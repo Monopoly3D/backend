@@ -9,17 +9,21 @@ class Game(MonopolyObject, RedisObject):
     def __init__(
             self,
             *,
-            uuid: UUID | None = None
+            uuid: UUID | None = None,
+            is_started: bool = False
     ) -> None:
         self.uuid: UUID = uuid or uuid4()
+        self.is_started = is_started
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> 'Game':
         return cls(
-            uuid=UUID(data.get("uuid"))
+            uuid=UUID(data.get("uuid")),
+            is_started=data.get("is_started")
         )
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "uuid": str(self.uuid)
+            "uuid": str(self.uuid),
+            "is_started": self.is_started
         }
