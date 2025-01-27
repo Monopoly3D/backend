@@ -44,6 +44,21 @@ class RedisController(AbstractController):
     ) -> bool:
         return bool(await self.__redis.exists(f"monopoly:{key}"))
 
+    async def _update(
+            self,
+            key: str,
+            value: Any
+    ) -> None:
+        try:
+            data: str = json.dumps(value)
+        except TypeError:
+            raise Exception("Provided value is not JSON serializable")
+
+        if not await self.__redis.exists(f"monopoly:{key}"):
+            raise Exception("Provided key does not exist")
+
+        await self.__redis.set(f"monopoly:{key}", data)
+
     async def _remove(
             self,
             key: str

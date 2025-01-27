@@ -19,8 +19,22 @@ class GamesController(RedisController):
                 raise AlreadyExistsError(f"Game with specified UUID already exists")
 
         game: Game = Game(uuid=uuid)
-
         await self._create(f"games:{game.uuid}", game.to_json())
+
+        recruitments: Dict[str, Any] = await self._get("recruitments")
+
+        if recruitments is None:
+            recruitments = {}
+        if "amount" not in recruitments:
+            recruitments["amount"] = 0
+        if "games" not in recruitments:
+            recruitments["games"] = {}
+
+        recruitments["games"].update({str(uuid): game.to_recruitment()})
+        recruitments["amount"] = len(recruitments["games"])
+
+        await self._create("recruitments", recruitments)
+
         return game
 
     async def get(
@@ -42,3 +56,17 @@ class GamesController(RedisController):
             raise NotFoundError(f"Game with specified UUID was not found")
 
         await self._remove(f"games:{uuid}")
+
+        recruitments: Dict[str, Any] = await self._get("recruitments")
+
+        if recruitments is None:
+            recruitments = {}
+        if "amount" not in recruitments:
+            recruitments["amount"] = 0
+        if "games" not in recruitments:
+            recruitments["games"] = {}
+
+        recruitments["games"].pop(str(uuid))
+        recruitments["amount"] = len(recruitments["games"])
+
+        await self._create("recruitments", recruitments)

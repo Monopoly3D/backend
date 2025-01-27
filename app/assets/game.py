@@ -25,3 +25,8 @@ class Game(MonopolyObject, RedisObject, BaseModel):
             "uuid": str(self.uuid),
             "is_started": self.is_started
         }
+
+    def to_recruitment(self) -> Dict[str, Any]:
+        return {
+            "uuid": str(self.uuid)
+        }

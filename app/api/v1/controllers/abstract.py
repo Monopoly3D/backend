@@ -25,6 +25,13 @@ class AbstractController(ABC):
     ) -> Any: pass
 
     @abstractmethod
+    async def _update(
+            self,
+            *args,
+            **kwargs
+    ) -> Any: pass
+
+    @abstractmethod
     async def _remove(
             self,
             *args,
