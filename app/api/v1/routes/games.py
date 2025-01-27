@@ -18,7 +18,7 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 async def create_game(
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
 ) -> Game:
-    game: Game = await games_controller.create_game()
+    game: Game = await games_controller.create()
 
     return game
 
@@ -32,7 +32,7 @@ async def get_game(
         uuid: UUID,
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
 ) -> Game:
-    game: Game = await games_controller.get_game(uuid)
+    game: Game = await games_controller.get(uuid)
 
     return game
 
@@ -45,4 +45,4 @@ async def remove_game(
         uuid: UUID,
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
 ) -> None:
-    await games_controller.remove_game(uuid)
+    await games_controller.remove(uuid)

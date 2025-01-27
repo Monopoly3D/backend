@@ -8,7 +8,7 @@ from app.assets.game import Game
 
 
 class GamesController(RedisController):
-    async def create_game(
+    async def create(
             self,
             uuid: UUID | str | None = None
     ) -> Game:
@@ -23,7 +23,7 @@ class GamesController(RedisController):
         await self._create(f"games:{game.uuid}", game.to_json())
         return game
 
-    async def get_game(
+    async def get(
             self,
             uuid: UUID | str
     ) -> Game | None:
@@ -34,7 +34,7 @@ class GamesController(RedisController):
 
         return Game.from_json(game)
 
-    async def remove_game(
+    async def remove(
             self,
             uuid: UUID | str
     ) -> None:
