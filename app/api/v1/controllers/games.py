@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from uuid import UUID, uuid4
 
 from app.api.v1.controllers.redis import RedisController
@@ -70,3 +70,10 @@ class GamesController(RedisController):
         recruitments["amount"] = len(recruitments["games"])
 
         await self._create("recruitments", recruitments)
+
+    async def update_recruitments(self) -> None:
+        games: Tuple[str, ...] = await self._get_keys(pattern="games")
+
+        for uuid in games:
+            game: Game = await self._get(f"games:{uuid}")
+

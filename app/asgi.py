@@ -36,7 +36,7 @@ app.include_router(api_router)
 
 
 @app.exception_handler(ValidationError)
-async def on_api_error(request: Request, exception: ValidationError) -> JSONResponse:
+async def on_validation_error(request: Request, exception: ValidationError) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": exception.errors()}

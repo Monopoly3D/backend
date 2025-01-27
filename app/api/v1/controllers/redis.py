@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Any
+from typing import Annotated, Any, Tuple
 
 from fastapi import Depends
 from redis import Redis
@@ -37,6 +37,13 @@ class RedisController(AbstractController):
             return json.loads(serialized) if serialized is not None else None
         except ValueError:
             raise Exception("Provided value is not in a valid JSON format")
+
+    async def _get_keys(
+            self,
+            *,
+            pattern: str = ""
+    ) -> Tuple[str, ...]:
+        return tuple(await self.__redis.keys(f"*monopoly:{pattern}*"))
 
     async def _exists(
             self,
