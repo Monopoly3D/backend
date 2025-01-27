@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from app.api.v1.controllers.games import GamesController
-from app.api.v1.models.response.game import GameResponseModel
 from app.assets.game import Game
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
@@ -14,26 +13,28 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 @games_router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=GameResponseModel
+    response_model=Game
 )
 async def create_game(
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
-) -> GameResponseModel:
+) -> Game:
     game: Game = await games_controller.create_game()
-    return GameResponseModel.from_game(game)
+
+    return game
 
 
 @games_router.get(
     "/{uuid}",
     status_code=status.HTTP_200_OK,
-    response_model=GameResponseModel
+    response_model=Game
 )
 async def get_game(
         uuid: UUID,
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
-) -> GameResponseModel:
+) -> Game:
     game: Game = await games_controller.get_game(uuid)
-    return GameResponseModel.from_game(game)
+
+    return game
 
 
 @games_router.delete(
