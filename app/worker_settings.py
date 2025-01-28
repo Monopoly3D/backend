@@ -1,4 +1,3 @@
-from arq import cron
 from arq.connections import RedisSettings, ArqRedis
 from redis.asyncio import Redis
 
@@ -14,9 +13,6 @@ async def on_startup(ctx: ArqRedis) -> None:
 
 
 class WorkerSettings:
-    cron_jobs = [
-        cron("app.cron.update_recruitments.update_recruitments", second={i * 10 for i in range(6)})
-    ]
     on_startup = on_startup
 
     redis_settings = RedisSettings.from_dsn(redis_dsn)

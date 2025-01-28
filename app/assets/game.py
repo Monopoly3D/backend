@@ -3,8 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.assets.base.monopoly_object import MonopolyObject
-from app.assets.base.redis_object import RedisObject
+from app.assets.monopoly_object import MonopolyObject
+from app.assets.redis_object import RedisObject
 
 
 class Game(MonopolyObject, RedisObject, BaseModel):
