@@ -3,9 +3,11 @@ from uuid import UUID
 
 from fastapi import APIRouter
 from starlette import status
+from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.models.response.game import GameResponseModel
+from app.api.v1.routes.message_packet import MessagePacket
 from app.assets.game import Game
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
@@ -45,3 +47,13 @@ async def remove_game(
         games_controller: Annotated[GamesController, GamesController.dependency()]
 ) -> None:
     await games_controller.remove_game(uuid)
+
+
+@games_router.websocket("/{uuid}")
+async def join_game(websocket: WebSocket):
+    await websocket.accept()
+
+    while True:
+        packet: MessagePacket = MessagePacket.unpack(await websocket.receive_json())
+        print(f"New message: {packet.message}")
+        await websocket.send_json(MessagePacket("Message received!").pack())
