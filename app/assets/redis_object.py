@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class RedisObject(ABC):
@@ -12,6 +12,3 @@ class RedisObject(ABC):
 
     @abstractmethod
     async def save(self) -> None: pass
-
-    @abstractmethod
-    def to_json(self) -> Dict[str, Any]: pass
