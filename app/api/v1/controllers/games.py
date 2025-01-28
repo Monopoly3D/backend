@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 from uuid import UUID, uuid4
 
 from app.api.v1.controllers.redis import RedisController
