@@ -49,3 +49,11 @@ async def on_api_error(request: Request, exception: APIError) -> JSONResponse:
         status_code=exception.status_code,
         content={"detail": str(exception)}
     )
+
+
+@app.exception_handler(Exception)
+async def on_server_error(request: Request, exception: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": str(exception)}
+    )
