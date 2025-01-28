@@ -13,68 +13,44 @@ class RedisController(AbstractController):
             self,
             redis: Redis
     ) -> None:
-        self.__redis: Redis = redis
+        self._redis: Redis = redis
 
-    async def _create(
+    @staticmethod
+    async def dependency() -> Depends:
+        async def __dependency(redis: Annotated[Redis, Depends(Dependency.redis)]) -> RedisController:
+            return RedisController(redis)
+
+        return Depends(__dependency)
+
+    async def create(
             self,
             key: str,
             value: Any
     ) -> None:
-        try:
-            data: str = json.dumps(value)
-        except TypeError:
-            raise Exception("Provided value is not JSON serializable")
+        await self._redis.set(f"monopoly:{key}", json.dumps(value))
 
-        await self.__redis.set(f"monopoly:{key}", data)
-
-    async def _get(
+    async def get(
             self,
             key: str
     ) -> Any:
-        serialized: str = await self.__redis.get(f"monopoly:{key}")
+        serialized: str = await self._redis.get(f"monopoly:{key}")
+        return json.loads(serialized) if serialized is not None else None
 
-        try:
-            return json.loads(serialized) if serialized is not None else None
-        except ValueError:
-            raise Exception("Provided value is not in a valid JSON format")
-
-    async def _get_keys(
+    async def get_keys(
             self,
             *,
             pattern: str = ""
     ) -> Tuple[str, ...]:
-        return tuple(await self.__redis.keys(f"*monopoly:{pattern}*"))
+        return tuple(await self._redis.keys(f"*monopoly:{pattern}*"))
 
-    async def _exists(
+    async def exists(
             self,
             key: str
     ) -> bool:
-        return bool(await self.__redis.exists(f"monopoly:{key}"))
+        return bool(await self._redis.exists(f"monopoly:{key}"))
 
-    async def _update(
-            self,
-            key: str,
-            value: Any
-    ) -> None:
-        try:
-            data: str = json.dumps(value)
-        except TypeError:
-            raise Exception("Provided value is not JSON serializable")
-
-        if not await self.__redis.exists(f"monopoly:{key}"):
-            raise Exception("Provided key does not exist")
-
-        await self.__redis.set(f"monopoly:{key}", data)
-
-    async def _remove(
+    async def remove(
             self,
             key: str
     ) -> None:
-        await self.__redis.delete(f"monopoly:{key}")
-
-    @classmethod
-    async def dependency(
-            cls,
-            redis: Annotated[Redis, Depends(Dependency.redis)]
-    ) -> 'RedisController':
-        return cls(redis)
+        await self._redis.delete(f"monopoly:{key}")

@@ -4,35 +4,28 @@ from typing import Any
 
 class AbstractController(ABC):
     @abstractmethod
-    async def _create(
+    async def create(
             self,
             *args,
             **kwargs
     ) -> Any: pass
 
     @abstractmethod
-    async def _get(
+    async def get(
             self,
             *args,
             **kwargs
     ) -> Any: pass
 
     @abstractmethod
-    async def _exists(
+    async def exists(
             self,
             *args,
             **kwargs
     ) -> Any: pass
 
     @abstractmethod
-    async def _update(
-            self,
-            *args,
-            **kwargs
-    ) -> Any: pass
-
-    @abstractmethod
-    async def _remove(
+    async def remove(
             self,
             *args,
             **kwargs

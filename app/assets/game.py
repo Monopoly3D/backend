@@ -1,32 +1,29 @@
-from typing import Dict, Any
+from typing import Any, Dict
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
+from app.api.v1.controllers.redis import RedisController
 from app.assets.monopoly_object import MonopolyObject
 from app.assets.redis_object import RedisObject
 
 
-class Game(MonopolyObject, RedisObject, BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+class Game(MonopolyObject, RedisObject):
+    def __init__(
+            self,
+            uuid: UUID,
+            *,
+            is_started: bool = False,
+            controller: RedisController
+    ) -> None:
+        self.uuid = uuid
+        self.is_started = is_started
 
-    uuid: UUID
-    is_started: bool = False
+        self.__controller = controller
 
-    @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> 'Game':
-        return cls(
-            uuid=UUID(data.get("uuid")),
-            is_started=data.get("is_started")
-        )
+    async def save(self) -> None:
+        await self.__controller.create(f"games:{self.uuid}", self.to_json())
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "uuid": str(self.uuid),
+            "id": str(self.uuid),
             "is_started": self.is_started
-        }
-
-    def to_recruitment(self) -> Dict[str, Any]:
-        return {
-            "uuid": str(self.uuid)
         }
