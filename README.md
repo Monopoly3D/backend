@@ -2,5 +2,5 @@
 
 Launch Arq
 ```bash
-arq app.cron.worker_settings.WorkerSettings
+arq app.worker_settings.WorkerSettings
 ```

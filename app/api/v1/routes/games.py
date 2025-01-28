@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from starlette import status
 
 from app.api.v1.controllers.games import GamesController
@@ -42,6 +42,6 @@ async def get_game(
 )
 async def remove_game(
         uuid: UUID,
-        games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
+        games_controller: Annotated[GamesController, GamesController.dependency()]
 ) -> None:
     await games_controller.remove_game(uuid)

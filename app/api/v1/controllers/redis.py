@@ -1,11 +1,9 @@
 import json
-from typing import Annotated, Any, Tuple
+from typing import Any, Tuple
 
-from fastapi import Depends
 from redis import Redis
 
 from app.api.v1.controllers.abstract import AbstractController
-from app.dependencies import Dependency
 
 
 class RedisController(AbstractController):
@@ -14,13 +12,6 @@ class RedisController(AbstractController):
             redis: Redis
     ) -> None:
         self._redis: Redis = redis
-
-    @staticmethod
-    async def dependency() -> Depends:
-        async def __dependency(redis: Annotated[Redis, Depends(Dependency.redis)]) -> RedisController:
-            return RedisController(redis)
-
-        return Depends(__dependency)
 
     async def create(
             self,
