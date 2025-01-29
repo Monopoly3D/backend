@@ -7,7 +7,7 @@ from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
 
 
 class BasePacket(ABC):
-    packet_type: PacketType
+    PACKET_TYPE: PacketType
 
     @abstractmethod
     def __init__(
@@ -38,20 +38,18 @@ class BasePacket(ABC):
                 raise InvalidPacketError("Provided packet is not a valid JSON")
 
         if "data" not in packet:
-            raise InvalidPacketError("Provided packet does not contain data")
+            raise InvalidPacketError("Provided packet data is invalid")
         if "meta" not in packet:
-            raise InvalidPacketError("Provided packet does not contain meta")
+            raise InvalidPacketError("Provided packet meta is invalid")
 
-        for meta_attribute in ("id", "tag", "class"):
-            if meta_attribute not in packet:
+        for meta_attribute in ("tag", "class"):
+            if meta_attribute not in packet["meta"]:
                 raise InvalidPacketError("Provided packet meta is invalid")
 
-        if packet["id"] != cls.packet_type.packet_id:
-            raise InvalidPacketError("Provided packet ID is invalid")
-        if packet["tag"] != cls.packet_type.packet_tag:
-            raise InvalidPacketError("Provided packet tag is invalid")
-        if packet["class"] != cls.packet_type.packet_class.value:
-            raise InvalidPacketError("Provided packet class is invalid")
+        if packet["meta"]["tag"] != cls.PACKET_TYPE.packet_tag:
+            raise InvalidPacketError("Provided packet meta is invalid")
+        if packet["meta"]["class"] != cls.PACKET_TYPE.packet_class.value:
+            raise InvalidPacketError("Provided packet meta is invalid")
 
         return cls.from_json(packet["data"])
 
@@ -63,9 +61,8 @@ class BasePacket(ABC):
         packet: Dict[str, Any] = {
             "data": self.to_json(),
             "meta": {
-                "id": self.packet_type.packet_id,
-                "tag": self.packet_type.packet_tag,
-                "class": self.packet_type.packet_class.value
+                "tag": self.PACKET_TYPE.packet_tag,
+                "class": self.PACKET_TYPE.packet_class.value
             }
         }
 

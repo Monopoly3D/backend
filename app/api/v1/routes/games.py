@@ -3,9 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter
 from starlette import status
+from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.models.response.game import GameResponseModel
+from app.api.v1.packets.client.ping import ClientPingPacket
+from app.api.v1.packets.server.ping import ServerPingPacket
 from app.assets.game import Game
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
@@ -45,3 +48,16 @@ async def remove_game(
         games_controller: Annotated[GamesController, GamesController.dependency()]
 ) -> None:
     await games_controller.remove_game(uuid)
+
+
+@games_router.websocket("/ping")
+async def ping(websocket: WebSocket) -> None:
+    await websocket.accept()
+
+    while True:
+        data: str = await websocket.receive_text()
+        packet: ClientPingPacket = ClientPingPacket.unpack(data)
+
+        print(f"Received request: {packet.request}")
+
+        await websocket.send_text(ServerPingPacket(packet.request).pack(to_string=True))
