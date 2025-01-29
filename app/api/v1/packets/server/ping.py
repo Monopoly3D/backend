@@ -1,12 +1,13 @@
 from typing import Dict, Any
 
-from app.api.v1.enums.packet_type import PacketType
+from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
 from app.api.v1.packets.base_packet import BasePacket
 
 
 class ServerPingPacket(BasePacket):
-    PACKET_TYPE = PacketType.SERVER_PING
+    PACKET_TAG = "server_ping"
+    PACKET_CLASS = PacketClass.SERVER
 
     def __init__(
             self,

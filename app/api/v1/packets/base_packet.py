@@ -2,12 +2,13 @@ import json
 from abc import abstractmethod, ABC
 from typing import Dict, Any
 
-from app.api.v1.enums.packet_type import PacketType
+from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
 
 
 class BasePacket(ABC):
-    PACKET_TYPE: PacketType
+    PACKET_TAG: str
+    PACKET_CLASS: PacketClass
 
     @abstractmethod
     def __init__(
@@ -46,9 +47,9 @@ class BasePacket(ABC):
             if meta_attribute not in packet["meta"]:
                 raise InvalidPacketError("Provided packet meta is invalid")
 
-        if packet["meta"]["tag"] != cls.PACKET_TYPE.packet_tag:
+        if packet["meta"]["tag"] != cls.PACKET_TAG:
             raise InvalidPacketError("Provided packet meta is invalid")
-        if packet["meta"]["class"] != cls.PACKET_TYPE.packet_class.value:
+        if packet["meta"]["class"] != cls.PACKET_CLASS.value:
             raise InvalidPacketError("Provided packet meta is invalid")
 
         return cls.from_json(packet["data"])
@@ -61,8 +62,8 @@ class BasePacket(ABC):
         packet: Dict[str, Any] = {
             "data": self.to_json(),
             "meta": {
-                "tag": self.PACKET_TYPE.packet_tag,
-                "class": self.PACKET_TYPE.packet_class.value
+                "tag": self.PACKET_TAG,
+                "class": self.PACKET_CLASS.value
             }
         }
 
