@@ -30,13 +30,12 @@ class BasePacket(ABC):
     @classmethod
     def unpack(
             cls,
-            packet: Dict[str, Any] | str
+            packet: str
     ) -> 'BasePacket':
-        if isinstance(packet, str):
-            try:
-                packet: Dict[str, Any] = json.loads(packet)
-            except ValueError:
-                raise InvalidPacketError("Provided packet is not a valid JSON")
+        try:
+            packet: Dict[str, Any] = json.loads(packet)
+        except ValueError:
+            raise InvalidPacketError("Provided packet is not a valid JSON")
 
         if "data" not in packet:
             raise InvalidPacketError("Provided packet data is invalid")
@@ -54,11 +53,7 @@ class BasePacket(ABC):
 
         return cls.from_json(packet["data"])
 
-    def pack(
-            self,
-            *,
-            to_string: bool = False
-    ) -> Dict[str, Any] | str:
+    def pack(self) -> Dict[str, Any] | str:
         packet: Dict[str, Any] = {
             "data": self.to_json(),
             "meta": {
@@ -67,7 +62,4 @@ class BasePacket(ABC):
             }
         }
 
-        if to_string:
-            return json.dumps(packet)
-
-        return packet
+        return json.dumps(packet)
