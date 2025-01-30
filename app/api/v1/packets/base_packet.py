@@ -36,26 +36,29 @@ class BasePacket(ABC):
 
         if "data" not in packet:
             raise InvalidPacketError("Provided packet data is invalid")
+
+        invalid_packet_meta = InvalidPacketError("Provided packet meta is invalid")
+
         if "meta" not in packet:
-            raise InvalidPacketError("Provided packet meta is invalid")
+            raise invalid_packet_meta
 
         for meta_attribute in ("tag", "class"):
             if meta_attribute not in packet["meta"]:
-                raise InvalidPacketError("Provided packet meta is invalid")
+                raise invalid_packet_meta
 
         if cls == BasePacket:
             packet_tag: str = packet["meta"]["tag"]
             packet_class: Type[BasePacket] = {p.PACKET_TAG: p for p in cls.__get_packets()}[packet_tag]
 
             if packet_class.PACKET_CLASS != packet["meta"]["class"]:
-                raise InvalidPacketError("Provided packet meta is invalid")
+                raise invalid_packet_meta
 
             return packet_class.from_json(packet["data"])
         else:
             if packet["meta"]["tag"] != cls.PACKET_TAG:
-                raise InvalidPacketError("Provided packet meta is invalid")
+                raise invalid_packet_meta
             if packet["meta"]["class"] != cls.PACKET_CLASS.value:
-                raise InvalidPacketError("Provided packet meta is invalid")
+                raise invalid_packet_meta
 
             return cls.from_json(packet["data"])
 
