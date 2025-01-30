@@ -7,8 +7,7 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.models.response.game import GameResponseModel
-from app.api.v1.packets.client.ping import ClientPingPacket
-from app.api.v1.packets.server.ping import ServerPingPacket
+from app.api.v1.packets.base_packet import BasePacket
 from app.assets.game import Game
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
@@ -50,14 +49,13 @@ async def remove_game(
     await games_controller.remove_game(uuid)
 
 
-@games_router.websocket("/ping")
-async def ping(websocket: WebSocket) -> None:
+@games_router.websocket("/ws")
+async def ws_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
 
     while True:
-        data: str = await websocket.receive_text()
-        packet: ClientPingPacket = ClientPingPacket.unpack(data)
+        packet: BasePacket = BasePacket.unpack(await websocket.receive_text())
 
-        print(f"Received request: {packet.request}")
-
-        await websocket.send_text(ServerPingPacket(packet.request).pack(to_string=True))
+        match packet.PACKET_TAG:
+            case "client_ping":
+                print(f"Received message: {packet.request}")

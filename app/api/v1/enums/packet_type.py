@@ -11,8 +11,4 @@ class PacketType(Enum):
 
     @property
     def tags(self) -> Tuple[str, ...]:
-        return self.__tags()
-
-    @classmethod
-    def __tags(cls) -> Tuple[str, ...]:
-        return tuple(dict.fromkeys(packet.value.PACKET_TAG for packet in cls))
+        return tuple(packet.value.PACKET_TAG for packet in PacketType)

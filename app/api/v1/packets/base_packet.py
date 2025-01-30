@@ -1,6 +1,6 @@
 import json
 from abc import abstractmethod, ABC
-from typing import Dict, Any
+from typing import Dict, Any, List, Type
 
 from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
@@ -28,10 +28,7 @@ class BasePacket(ABC):
         pass
 
     @classmethod
-    def unpack(
-            cls,
-            packet: str
-    ) -> 'BasePacket':
+    def unpack(cls, packet: str) -> 'BasePacket':
         try:
             packet: Dict[str, Any] = json.loads(packet)
         except ValueError:
@@ -46,12 +43,21 @@ class BasePacket(ABC):
             if meta_attribute not in packet["meta"]:
                 raise InvalidPacketError("Provided packet meta is invalid")
 
-        if packet["meta"]["tag"] != cls.PACKET_TAG:
-            raise InvalidPacketError("Provided packet meta is invalid")
-        if packet["meta"]["class"] != cls.PACKET_CLASS.value:
-            raise InvalidPacketError("Provided packet meta is invalid")
+        if cls == BasePacket:
+            packet_tag: str = packet["meta"]["tag"]
+            packet_class: Type[BasePacket] = {p.PACKET_TAG: p for p in cls.__get_packets()}[packet_tag]
 
-        return cls.from_json(packet["data"])
+            if packet_class.PACKET_CLASS != packet["meta"]["class"]:
+                raise InvalidPacketError("Provided packet meta is invalid")
+
+            return packet_class.from_json(packet["data"])
+        else:
+            if packet["meta"]["tag"] != cls.PACKET_TAG:
+                raise InvalidPacketError("Provided packet meta is invalid")
+            if packet["meta"]["class"] != cls.PACKET_CLASS.value:
+                raise InvalidPacketError("Provided packet meta is invalid")
+
+            return cls.from_json(packet["data"])
 
     def pack(self) -> Dict[str, Any] | str:
         packet: Dict[str, Any] = {
@@ -63,3 +69,14 @@ class BasePacket(ABC):
         }
 
         return json.dumps(packet)
+
+    @classmethod
+    def __get_packets(cls) -> List[Type['BasePacket']]:
+        subclasses: List[Type[BasePacket]] = cls.__subclasses__()
+        overall: List[Type[BasePacket]] = []
+
+        for subclass in subclasses:
+            overall.append(subclass)
+            overall.extend(subclass.__get_packets())
+
+        return overall
