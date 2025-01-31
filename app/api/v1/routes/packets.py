@@ -24,59 +24,9 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
-        self.handlers: Dict[Type[BasePacket], Coroutine[Any, Any, BasePacket]] = {}
-
         self.add_api_websocket_route("/", self.handle_packets)
 
-    async def handle_packets(
-            self,
-            websocket: WebSocket
-    ) -> None:
-        await websocket.accept()
-
-        try:
-            auth_packet: ClientAuthPacket = ClientAuthPacket.unpack(await websocket.receive_text())
-        except InvalidPacketError:
-            await websocket.close(3000, "Provided authorization packet data is invalid")
-            return
-        try:
-            ticket: Dict[str, Any] = await self.__decode_auth_ticket(auth_packet.ticket)
-        except InvalidTokenError:
-            await websocket.close(3000, "Provided authorization ticket is invalid")
-            return
-        if "user_id" not in ticket or "username" not in ticket:
-            await websocket.close(3000, "Provided authorization ticket is invalid")
-            return
-
-        auth_response_packet: ServerAuthResponsePacket = ServerAuthResponsePacket(
-            ticket["user_id"],
-            ticket["username"]
-        )
-        await websocket.send_text(auth_response_packet.pack())
-
-        while True:  # TODO: Fix
-            packet: str = await websocket.receive_text()
-
-            try:
-                packet_type: Type[BasePacket] = BasePacket.withdraw_packet_type(packet)
-            except InvalidPacketError:
-                await websocket.send_text(ServerErrorPacket(4000, "Provided packet meta is invalid").pack())
-                continue
-            try:
-                packet: BasePacket = packet_type.unpack(packet)
-            except InvalidPacketError:
-                await websocket.send_text(ServerErrorPacket(4000, "Provided packet data is invalid").pack())
-                continue
-
-            handler: Any = self.handlers.get(packet_type, None)
-            if handler is None:
-                await websocket.send_text(ServerErrorPacket(4001, "Provided packet type was not handled").pack())
-                continue
-
-            prepared_args: Dict[str, Any] = self.__prepare_args(handler, packet=packet, websocket=websocket)
-            response_packet: BasePacket = await handler(**prepared_args)
-
-            await websocket.send_text(response_packet.pack())
+        self.handlers: Dict[Type[BasePacket], Coroutine[Any, Any, BasePacket]] = {}
 
     def handle(
             self,
@@ -87,16 +37,71 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
 
         return decorator
 
-    async def __decode_auth_ticket(
+    async def handle_packets(
             self,
-            ticket: str
-    ) -> Dict[str, Any]:
-        return await asyncio.to_thread(
-            decode,
-            ticket,
-            self.config.jwt_key.get_secret_value(),
-            algorithms=[self.config.jwt_algorithm]
+            websocket: WebSocket
+    ) -> None:
+        await websocket.accept()
+        authenticated: bool = await self.__authenticate_client(websocket)
+
+        if authenticated:
+            while True:  # TODO: Fix
+                await self.__handle_packet(websocket)
+
+    async def __handle_packet(
+            self,
+            websocket: WebSocket
+    ) -> None:
+        packet: str = await websocket.receive_text()
+
+        try:
+            packet_type: Type[BasePacket] = BasePacket.withdraw_packet_type(packet)
+            packet: BasePacket = packet_type.unpack(packet)
+        except InvalidPacketError:
+            await websocket.send_text(ServerErrorPacket(4000, "Provided packet data is invalid").pack())
+            return
+
+        handler: Any = self.handlers.get(packet_type, None)
+        if handler is None:
+            await websocket.send_text(ServerErrorPacket(4001, "Provided packet type was not handled").pack())
+            return
+
+        prepared_args: Dict[str, Any] = self.__prepare_args(handler, packet=packet, websocket=websocket)
+        response_packet: BasePacket = await handler(**prepared_args)
+
+        await websocket.send_text(response_packet.pack())
+
+    async def __authenticate_client(
+            self,
+            websocket: WebSocket
+    ) -> bool:
+        try:
+            auth_packet: ClientAuthPacket = ClientAuthPacket.unpack(await websocket.receive_text())
+        except InvalidPacketError:
+            await websocket.close(3000, "Provided authorization packet data is invalid")
+            return False
+
+        try:
+            ticket: Dict[str, Any] = await asyncio.to_thread(
+                decode,
+                auth_packet.ticket,
+                self.config.jwt_key.get_secret_value(),
+                algorithms=[self.config.jwt_algorithm]
+            )
+
+            if "user_id" not in ticket or "username" not in ticket:
+                raise InvalidTokenError
+        except InvalidTokenError:
+            await websocket.close(3000, "Provided authorization ticket is invalid")
+            return False
+
+        auth_response_packet: ServerAuthResponsePacket = ServerAuthResponsePacket(
+            ticket["user_id"],
+            ticket["username"]
         )
+
+        await websocket.send_text(auth_response_packet.pack())
+        return True
 
     @staticmethod
     def __prepare_args(
