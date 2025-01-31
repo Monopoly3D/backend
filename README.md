@@ -25,7 +25,7 @@ Packet tag is a string tag of client name in snake case, packet class is a class
 ```json
 {
   "data": {
-    "request": "message"
+    "request": "Message"
   },
   "meta": {
     "tag": "client_ping",
@@ -41,7 +41,7 @@ Sends a simple text message to server in request field.
 ```json
 {
   "data": {
-    "ticket": "ticket"
+    "ticket": "JWT-encoded ticket"
   },
   "meta": {
     "tag": "client_auth",
@@ -55,22 +55,6 @@ Authenticates client, must be the first packet sent to server, otherwise server 
 Ticket field is a JWT-encoded token that currently authenticates client by user ID, client must get this ticket by sending a specific HTTP request.
 
 ## Server Packets
-
-### ServerPingPacket
-
-```json
-{
-  "data": {
-    "response": "message"
-  },
-  "meta": {
-    "tag": "server_ping",
-    "class": "server"
-  }
-}
-```
-
-Sends a simple text message to client in response field.
 
 ### ServerAuthResponsePacket
 
@@ -88,3 +72,36 @@ Sends a simple text message to client in response field.
 ```
 
 Sends a response if the authentication succeeded, otherwise server closes the connection with code 3000.
+
+### ServerErrorPacket
+
+```json
+{
+  "data": {
+    "status": 4000,
+    "detail": "Error detail"
+  },
+  "meta": {
+    "tag": "server_error",
+    "class": "server"
+  }
+}
+```
+
+Sends an exception status code and detail.
+
+### ServerPingPacket
+
+```json
+{
+  "data": {
+    "response": "Message"
+  },
+  "meta": {
+    "tag": "server_ping",
+    "class": "server"
+  }
+}
+```
+
+Sends a simple text message to client in response field.
