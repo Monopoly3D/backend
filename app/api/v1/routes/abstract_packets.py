@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from starlette.websockets import WebSocket
-
 
 class AbstractPacketsRouter(ABC):
     @abstractmethod
