@@ -1,9 +1,15 @@
-from typing import Dict, Any
+from typing import Dict, Any, Annotated
 from uuid import UUID, uuid4
+
+from fastapi import Depends
+from redis.asyncio import Redis
+from starlette.requests import Request
+from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.not_found_error import NotFoundError
 from app.assets.game import Game
+from app.dependencies import Dependency
 
 
 class GamesController(RedisController):
@@ -41,3 +47,11 @@ class GamesController(RedisController):
             raise NotFoundError("Game with provided UUID was not found")
 
         await self.remove(self.REDIS_KEY.format(game_id=game_id))
+
+    @staticmethod
+    async def dependency(redis: Annotated[Redis, Depends(Dependency.redis)]) -> 'GamesController':
+        return GamesController(redis)
+
+    @staticmethod
+    async def websocket_dependency(redis: Annotated[Redis, Depends(Dependency.redis_websocket)]) -> 'GamesController':
+        return GamesController(redis)

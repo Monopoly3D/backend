@@ -8,7 +8,6 @@ from app.api.v1.controllers.users import UsersController
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.user import User
-from app.dependencies import Dependency
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 
@@ -20,15 +19,14 @@ auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 )
 async def register(
         username: str,
-        users_controller: Annotated[UsersController, Depends(Dependency.users_controller)],
-        authenticator: Annotated[Authenticator, Depends(Dependency.authenticator)]
+        users_controller: Annotated[UsersController, Depends(UsersController.dependency)],
+        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
     user: User = await users_controller.create_user(username=username)
 
     access_token: str = await asyncio.to_thread(
         authenticator.create_access_token,
-        user_id=user.user_id,
-        username=username
+        user_id=user.user_id
     )
 
     return AuthenticationModel(access_token=access_token)
