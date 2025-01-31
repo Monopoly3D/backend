@@ -7,8 +7,13 @@ from app.assets.game import Game
 
 
 class GamesController(RedisController):
+    REDIS_KEY = "games:{game_id}"
+
     async def create_game(self) -> Game:
-        game: Game = Game(uuid4(), controller=super())
+        game: Game = Game(
+            uuid4(),
+            controller=self
+        )
         await game.save()
 
         return game

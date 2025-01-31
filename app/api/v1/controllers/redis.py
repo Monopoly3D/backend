@@ -13,7 +13,7 @@ class RedisController(AbstractController):
     ) -> None:
         self._redis: Redis = redis
 
-    async def create(
+    async def set(
             self,
             key: str,
             value: Any

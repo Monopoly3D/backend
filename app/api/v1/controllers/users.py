@@ -7,6 +7,8 @@ from app.assets.user import User
 
 
 class UsersController(RedisController):
+    REDIS_KEY: str = "users:{user_id}"
+
     async def create_user(
             self,
             *,
@@ -15,7 +17,7 @@ class UsersController(RedisController):
         user: User = User(
             uuid4(),
             username=username,
-            controller=super()
+            controller=self
         )
         await user.save()
 
@@ -23,9 +25,9 @@ class UsersController(RedisController):
 
     async def get_user(
             self,
-            uuid: UUID
+            user_id: UUID
     ) -> User:
-        user: Dict[str, Any] | None = await self.get(f"users:{uuid}")
+        user: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(user_id))
 
         if user is None:
             raise NotFoundError("User with provided UUID was not found")
@@ -38,9 +40,9 @@ class UsersController(RedisController):
 
     async def remove_game(
             self,
-            uuid: UUID
+            user_id: UUID
     ) -> None:
-        if not await self.exists(f"users:{uuid}"):
+        if not await self.exists(self.REDIS_KEY.format(user_id)):
             raise NotFoundError("User with provided UUID was not found")
 
-        await self.remove(f"users:{uuid}")
+        await self.remove(self.REDIS_KEY.format(user_id))

@@ -1,6 +1,7 @@
+from typing import Any, Dict
 from uuid import UUID
 
-from app.api.v1.controllers.redis import RedisController
+from app.api.v1.controllers.users import UsersController
 from app.assets.monopoly_object import MonopolyObject
 from app.assets.redis_object import RedisObject
 
@@ -8,21 +9,18 @@ from app.assets.redis_object import RedisObject
 class User(MonopolyObject, RedisObject):
     def __init__(
             self,
-            uuid: UUID,
+            user_id: UUID,
             *,
             username: str,
-            controller: RedisController
+            controller: UsersController
     ) -> None:
-        self.uuid = uuid
+        self.user_id = user_id
         self.username = username
 
-        self.__controller = controller
+        super().__init__(controller.REDIS_KEY.format(user_id), controller)
 
-    async def save(self) -> None:
-        await self.__controller.create(
-            f"users:{self.uuid}",
-            {
-                "id": str(self.uuid),
-                "username": self.username
-            }
-        )
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "id": str(self.user_id),
+            "username": self.username
+        }

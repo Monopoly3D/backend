@@ -4,7 +4,7 @@ from typing import Any
 
 class AbstractController(ABC):
     @abstractmethod
-    async def create(
+    async def set(
             self,
             *args,
             **kwargs
