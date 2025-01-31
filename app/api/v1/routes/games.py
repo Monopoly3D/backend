@@ -7,7 +7,7 @@ from starlette import status
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.game import Game
+from app.assets.objects.game import Game
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 

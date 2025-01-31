@@ -8,7 +8,7 @@ from app.api.v1.controllers.users import UsersController
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.user import User
+from app.assets.objects.user import User
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 

@@ -1,7 +1,7 @@
 from abc import ABC
 
 from app.api.v1.controllers.redis import RedisController
-from app.assets.monopoly_object import MonopolyObject
+from app.assets.objects.monopoly_object import MonopolyObject
 
 
 class RedisObject(MonopolyObject, ABC):

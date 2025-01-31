@@ -19,7 +19,7 @@ from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.api.v1.routes.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.user import User
+from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
 

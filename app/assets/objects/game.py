@@ -2,9 +2,9 @@ from typing import Dict, Any, List
 from uuid import UUID
 
 from app.api.v1.controllers.redis import RedisController
-from app.assets.field import Field
-from app.assets.player import Player
-from app.assets.redis import RedisObject
+from app.assets.objects.fields.field import Field
+from app.assets.objects.player import Player
+from app.assets.objects.redis import RedisObject
 
 
 class Game(RedisObject):

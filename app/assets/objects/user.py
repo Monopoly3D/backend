@@ -2,7 +2,7 @@ from typing import Any, Dict
 from uuid import UUID
 
 from app.api.v1.controllers.redis import RedisController
-from app.assets.redis import RedisObject
+from app.assets.objects.redis import RedisObject
 
 
 class User(RedisObject):
