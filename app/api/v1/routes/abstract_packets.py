@@ -8,7 +8,8 @@ class AbstractPacketsRouter(ABC):
     @abstractmethod
     async def handle_packets(
             self,
-            websocket: WebSocket
+            *args: Any,
+            **kwargs: Any
     ) -> None:
         pass
 

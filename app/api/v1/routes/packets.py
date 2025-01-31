@@ -1,9 +1,10 @@
 import asyncio
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Coroutine
+from typing import Dict, Any, Callable, Type, Coroutine, Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from jwt import decode, InvalidTokenError
+from redis.asyncio import Redis
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
@@ -13,12 +14,11 @@ from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.api.v1.routes.abstract_packets import AbstractPacketsRouter
+from app.dependencies import Dependency
 from config import Config
 
 
 class PacketsRouter(APIRouter, AbstractPacketsRouter):
-    config: Config = Config(_env_file=".env")
-
     def __init__(
             self,
             *,
@@ -40,21 +40,28 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
 
     async def handle_packets(
             self,
-            websocket: WebSocket
+            websocket: WebSocket,
+            config: Annotated[Config, Depends(Dependency.config_websocket)],
+            redis: Annotated[Redis, Depends(Dependency.redis_websocket)]
     ) -> None:
         await websocket.accept()
-        authenticated: bool = await self.__authenticate_client(websocket)
+        authenticated: bool = await self.__authenticate_client(
+            websocket,
+            config.jwt_key.get_secret_value(),
+            config.jwt_algorithm
+        )
 
         if authenticated:
             try:
                 while True:
-                    await self.__handle_packet(websocket)
+                    await self.__handle_packet(websocket, config=config, redis=redis)
             except WebSocketDisconnect as e:
                 logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
     async def __handle_packet(
             self,
-            websocket: WebSocket
+            websocket: WebSocket,
+            **kwargs
     ) -> None:
         packet: str = await websocket.receive_text()
 
@@ -70,14 +77,16 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             await websocket.send_text(ServerErrorPacket(4001, "Provided packet type was not handled").pack())
             return
 
-        prepared_args: Dict[str, Any] = self.__prepare_args(handler, packet=packet, websocket=websocket)
+        prepared_args: Dict[str, Any] = self.__prepare_args(handler, packet=packet, websocket=websocket, **kwargs)
         response_packet: BasePacket = await handler(**prepared_args)
 
         await websocket.send_text(response_packet.pack())
 
+    @staticmethod
     async def __authenticate_client(
-            self,
-            websocket: WebSocket
+            websocket: WebSocket,
+            jwt_key: str,
+            jwt_algorithm: str
     ) -> bool:
         try:
             auth_packet: ClientAuthPacket = ClientAuthPacket.unpack(await websocket.receive_text())
@@ -89,8 +98,8 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             ticket: Dict[str, Any] = await asyncio.to_thread(
                 decode,
                 auth_packet.ticket,
-                self.config.jwt_key.get_secret_value(),
-                algorithms=[self.config.jwt_algorithm]
+                jwt_key,
+                algorithms=[jwt_algorithm]
             )
 
             if "user_id" not in ticket or "username" not in ticket:

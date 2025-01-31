@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from redis.asyncio import Redis
 from starlette.requests import Request
+from starlette.websockets import WebSocket
 
 from config import Config
 
@@ -28,3 +29,15 @@ class Dependency:
     @staticmethod
     async def redis(request: Request) -> Redis:
         return request.app.state.redis
+
+    @staticmethod
+    async def config_websocket(websocket: WebSocket) -> Config:
+        return websocket.app.state.config
+
+    @staticmethod
+    async def database_websocket(websocket: WebSocket) -> None:
+        return websocket.app.state.database
+
+    @staticmethod
+    async def redis_websocket(websocket: WebSocket) -> Redis:
+        return websocket.app.state.redis
