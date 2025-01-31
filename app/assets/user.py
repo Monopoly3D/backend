@@ -5,24 +5,24 @@ from app.assets.monopoly_object import MonopolyObject
 from app.assets.redis_object import RedisObject
 
 
-class Game(MonopolyObject, RedisObject):
+class User(MonopolyObject, RedisObject):
     def __init__(
             self,
             uuid: UUID,
             *,
-            is_started: bool = False,
+            username: str,
             controller: RedisController
     ) -> None:
         self.uuid = uuid
-        self.is_started = is_started
+        self.username = username
 
         self.__controller = controller
 
     async def save(self) -> None:
         await self.__controller.create(
-            f"games:{self.uuid}",
+            f"users:{self.uuid}",
             {
                 "id": str(self.uuid),
-                "is_started": self.is_started
+                "username": self.username
             }
         )
