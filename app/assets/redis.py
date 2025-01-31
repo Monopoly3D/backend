@@ -1,9 +1,10 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from app.api.v1.controllers.redis import RedisController
+from app.assets.monopoly_object import MonopolyObject
 
 
-class RedisObject(ABC):
+class RedisObject(MonopolyObject, ABC):
     def __init__(
             self,
             redis_key: str,
@@ -11,10 +12,6 @@ class RedisObject(ABC):
     ) -> None:
         self.__redis_key = redis_key
         self.__controller = controller
-
-    @abstractmethod
-    def to_json(self) -> None:
-        pass
 
     async def save(self) -> None:
         await self.__controller.set(self.__redis_key, self.to_json())

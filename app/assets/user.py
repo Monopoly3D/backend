@@ -2,11 +2,10 @@ from typing import Any, Dict
 from uuid import UUID
 
 from app.api.v1.controllers.redis import RedisController
-from app.assets.monopoly.monopoly_object import MonopolyObject
-from app.assets.redis.redis_object import RedisObject
+from app.assets.redis import RedisObject
 
 
-class User(MonopolyObject, RedisObject):
+class User(RedisObject):
     def __init__(
             self,
             user_id: UUID,
