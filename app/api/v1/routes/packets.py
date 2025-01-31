@@ -15,6 +15,7 @@ from app.api.v1.exceptions.not_found_error import NotFoundError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base import BasePacket
 from app.api.v1.packets.client.auth import ClientAuthPacket
+from app.api.v1.packets.connection_manager import ConnectionManager
 from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.api.v1.routes.abstract_packets import AbstractPacketsRouter
@@ -49,6 +50,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             websocket: WebSocket,
             config: Annotated[Config, Depends(Dependency.config_websocket)],
             redis: Annotated[Redis, Depends(Dependency.redis_websocket)],
+            connection_manager: Annotated[ConnectionManager, Depends(ConnectionManager.websocket_dependency)],
             authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
             users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
             games_controller: Annotated[GamesController, Depends(GamesController.websocket_dependency)]
@@ -58,6 +60,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         try:
             authenticated: bool = await self.__authenticate_client(
                 websocket,
+                connection_manager,
                 authenticator,
                 users_controller
             )
@@ -70,6 +73,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
                     try:
                         await self.__handle_packet(
                             websocket,
+                            connection_manager,
                             config=config,
                             redis=redis,
                             authenticator=authenticator,
@@ -88,6 +92,9 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     async def __handle_packet(
             self,
             websocket: WebSocket,
+            connection_manager: ConnectionManager,
+            *,
+            users_controller: UsersController,
             **kwargs
     ) -> None:
         packet: str = await websocket.receive_text()
@@ -104,7 +111,22 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             await websocket.send_text(ServerErrorPacket(4001, "Provided packet type was not handled").pack())
             return
 
-        prepared_args: Dict[str, Any] = self.__prepare_args(handler, packet=packet, websocket=websocket, **kwargs)
+        user: User = await users_controller.get_user(await connection_manager.get_user_id(websocket.client))
+
+        if user is None:
+            await websocket.send_text(
+                ServerErrorPacket(4002, "Provided websocket address does not seem to be authenticated").pack()
+            )
+            return
+
+        prepared_args: Dict[str, Any] = self.__prepare_args(
+            handler,
+            packet=packet,
+            user=user,
+            websocket=websocket,
+            connection_manager=connection_manager,
+            **kwargs
+        )
         response_packet: BasePacket = await handler(**prepared_args)
 
         await websocket.send_text(response_packet.pack())
@@ -112,6 +134,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     @staticmethod
     async def __authenticate_client(
             websocket: WebSocket,
+            connection_manager: ConnectionManager,
             authenticator: Authenticator,
             users_controller: UsersController
     ) -> bool:
@@ -135,6 +158,8 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         except NotFoundError or ValueError:
             await websocket.close(3000, "Provided authorization ticket is invalid")
             return False
+
+        await connection_manager.add_connection(websocket.client, user.user_id)
 
         auth_response_packet: ServerAuthResponsePacket = ServerAuthResponsePacket(
             user.user_id,

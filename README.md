@@ -38,6 +38,22 @@ Authenticates client, must be the first packet sent to server, otherwise server 
 
 Ticket field is a JWT-encoded token that currently authenticates client by user ID, client must get this ticket by sending a specific HTTP request.
 
+### ClientJoinGamePacket
+
+```json
+{
+  "data": {
+    "game_id": "UUID"
+  },
+  "meta": {
+    "tag": "client_join_game",
+    "class": "client"
+  }
+}
+```
+
+Sends a simple text message to server in request field.
+
 ### ClientPingPacket
 
 ```json

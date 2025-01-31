@@ -18,7 +18,7 @@ from config import Config
 
 class Authenticator:
     ACCESS_TOKEN_EXPIRE = timedelta(minutes=15)
-    TICKET_EXPIRE = timedelta(seconds=1)
+    TICKET_EXPIRE = timedelta(seconds=60)
 
     def __init__(
             self,
