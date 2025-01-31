@@ -4,9 +4,10 @@ from typing import Dict, Any, Callable, Type, Coroutine
 
 from fastapi import APIRouter
 from jwt import decode, InvalidTokenError
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
+from app.api.v1.logging import logger
 from app.api.v1.packets.base import BasePacket
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
@@ -45,8 +46,11 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         authenticated: bool = await self.__authenticate_client(websocket)
 
         if authenticated:
-            while True:  # TODO: Fix
-                await self.__handle_packet(websocket)
+            try:
+                while True:
+                    await self.__handle_packet(websocket)
+            except WebSocketDisconnect as e:
+                logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
     async def __handle_packet(
             self,
