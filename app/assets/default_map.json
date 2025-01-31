@@ -1,0 +1,504 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        20,
+        100,
+        300,
+        900,
+        1600,
+        2500
+      ],
+      "cost": 600,
+      "mortgage_cost": 300,
+      "buyout_cost": 360,
+      "filiation_cost": 500
+    }
+  },
+  {
+    "type": "chance"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        40,
+        200,
+        600,
+        1800,
+        3200,
+        4500
+      ],
+      "cost": 600,
+      "mortgage_cost": 300,
+      "buyout_cost": 360,
+      "filiation_cost": 500
+    }
+  },
+  {
+    "type": "tax",
+    "tax": {
+      "tax_amount": 2000
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        250,
+        500,
+        1000,
+        2000
+      ],
+      "cost": 2000,
+      "mortgage_cost": 1000,
+      "buyout_cost": 1200,
+      "field_dependant": true
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        60,
+        300,
+        900,
+        2700,
+        4000,
+        5500
+      ],
+      "cost": 1000,
+      "mortgage_cost": 500,
+      "buyout_cost": 600,
+      "filiation_cost": 500
+    }
+  },
+  {
+    "type": "chance"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        60,
+        300,
+        900,
+        2700,
+        4000,
+        5500
+      ],
+      "cost": 1000,
+      "mortgage_cost": 500,
+      "buyout_cost": 600,
+      "filiation_cost": 500
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        80,
+        400,
+        1000,
+        3000,
+        4500,
+        6000
+      ],
+      "cost": 1200,
+      "mortgage_cost": 600,
+      "buyout_cost": 720,
+      "filiation_cost": 500
+    }
+  },
+  {
+    "type": "prison"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        100,
+        500,
+        1500,
+        4500,
+        6250,
+        7500
+      ],
+      "cost": 1400,
+      "mortgage_cost": 700,
+      "buyout_cost": 840,
+      "filiation_cost": 750
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        100,
+        250
+      ],
+      "cost": 1500,
+      "mortgage_cost": 750,
+      "buyout_cost": 900,
+      "dice_dependant": true
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        100,
+        500,
+        1500,
+        4500,
+        6250,
+        7500
+      ],
+      "cost": 1400,
+      "mortgage_cost": 700,
+      "buyout_cost": 840,
+      "filiation_cost": 750
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        120,
+        600,
+        1800,
+        5000,
+        7000,
+        9000
+      ],
+      "cost": 1600,
+      "mortgage_cost": 800,
+      "buyout_cost": 960,
+      "filiation_cost": 750
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        250,
+        500,
+        1000,
+        2000
+      ],
+      "cost": 2000,
+      "mortgage_cost": 1000,
+      "buyout_cost": 1200,
+      "field_dependant": true
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        140,
+        700,
+        2000,
+        5500,
+        7500,
+        9500
+      ],
+      "cost": 1800,
+      "mortgage_cost": 900,
+      "buyout_cost": 1080,
+      "filiation_cost": 1000
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        140,
+        700,
+        2000,
+        5500,
+        7500,
+        9500
+      ],
+      "cost": 1800,
+      "mortgage_cost": 900,
+      "buyout_cost": 1080,
+      "filiation_cost": 1000
+    }
+  },
+  {
+    "type": "chance"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        160,
+        800,
+        2200,
+        6000,
+        8000,
+        10000
+      ],
+      "cost": 2000,
+      "mortgage_cost": 1000,
+      "buyout_cost": 1200,
+      "filiation_cost": 1000
+    }
+  },
+  {
+    "type": "casino"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        180,
+        900,
+        2500,
+        7000,
+        8750,
+        10500
+      ],
+      "cost": 2200,
+      "mortgage_cost": 1100,
+      "buyout_cost": 1320,
+      "filiation_cost": 1250
+    }
+  },
+  {
+    "type": "chance"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        180,
+        900,
+        2500,
+        7000,
+        8750,
+        10500
+      ],
+      "cost": 2200,
+      "mortgage_cost": 1100,
+      "buyout_cost": 1320,
+      "filiation_cost": 1250
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        200,
+        1000,
+        3000,
+        7500,
+        9250,
+        11000
+      ],
+      "cost": 2400,
+      "mortgage_cost": 1200,
+      "buyout_cost": 1440,
+      "filiation_cost": 1250
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        250,
+        500,
+        1000,
+        2000
+      ],
+      "cost": 2000,
+      "mortgage_cost": 1000,
+      "buyout_cost": 1200,
+      "field_dependant": true
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        220,
+        1100,
+        3300,
+        8000,
+        9750,
+        11500
+      ],
+      "cost": 2600,
+      "mortgage_cost": 1300,
+      "buyout_cost": 1560,
+      "filiation_cost": 1500
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        220,
+        1100,
+        3300,
+        8000,
+        9750,
+        11500
+      ],
+      "cost": 2600,
+      "mortgage_cost": 1300,
+      "buyout_cost": 1560,
+      "filiation_cost": 1500
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        100,
+        250
+      ],
+      "cost": 1500,
+      "mortgage_cost": 750,
+      "buyout_cost": 900,
+      "dice_dependant": true
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        240,
+        1200,
+        3600,
+        8500,
+        10250,
+        12000
+      ],
+      "cost": 2800,
+      "mortgage_cost": 1400,
+      "buyout_cost": 1680,
+      "filiation_cost": 1500
+    }
+  },
+  {
+    "type": "police"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        260,
+        1300,
+        3900,
+        9000,
+        11000,
+        12750
+      ],
+      "cost": 3000,
+      "mortgage_cost": 1500,
+      "buyout_cost": 1800,
+      "filiation_cost": 1750
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        260,
+        1300,
+        3900,
+        9000,
+        11000,
+        12750
+      ],
+      "cost": 3000,
+      "mortgage_cost": 1500,
+      "buyout_cost": 1800,
+      "filiation_cost": 1750
+    }
+  },
+  {
+    "type": "chance"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        280,
+        1500,
+        4500,
+        10000,
+        12000,
+        14000
+      ],
+      "cost": 3200,
+      "mortgage_cost": 1600,
+      "buyout_cost": 1920,
+      "filiation_cost": 1750
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        250,
+        500,
+        1000,
+        2000
+      ],
+      "cost": 2000,
+      "mortgage_cost": 1000,
+      "buyout_cost": 1200,
+      "field_dependant": true
+    }
+  },
+  {
+    "type": "tax",
+    "tax": {
+      "tax_amount": 1000
+    }
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        350,
+        1750,
+        500,
+        11000,
+        13000,
+        15000
+      ],
+      "cost": 3500,
+      "mortgage_cost": 1750,
+      "buyout_cost": 2100,
+      "filiation_cost": 2000
+    }
+  },
+  {
+    "type": "chance"
+  },
+  {
+    "type": "company",
+    "company": {
+      "rent": [
+        500,
+        2000,
+        6000,
+        14000,
+        17000,
+        20000
+      ],
+      "cost": 4000,
+      "mortgage_cost": 2000,
+      "buyout_cost": 2400,
+      "filiation_cost": 2000
+    }
+  }
+]
