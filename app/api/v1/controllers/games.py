@@ -1,13 +1,9 @@
-from typing import Dict, Any, Annotated
+from typing import Dict, Any
 from uuid import UUID, uuid4
-
-from fastapi import Depends
-from redis import Redis
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.not_found_error import NotFoundError
 from app.assets.game import Game
-from app.dependencies import Dependency
 
 
 class GamesController(RedisController):
@@ -40,10 +36,3 @@ class GamesController(RedisController):
             raise NotFoundError("Game with provided UUID was not found")
 
         await self.remove(f"games:{uuid}")
-
-    @staticmethod
-    def dependency() -> Depends:
-        async def __dependency(redis: Annotated[Redis, Depends(Dependency.redis)]) -> GamesController:
-            return GamesController(redis)
-
-        return Depends(__dependency)

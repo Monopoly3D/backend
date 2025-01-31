@@ -1,13 +1,9 @@
-from typing import Dict, Any, Annotated
+from typing import Dict, Any
 from uuid import UUID, uuid4
-
-from fastapi import Depends
-from redis import Redis
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.not_found_error import NotFoundError
 from app.assets.user import User
-from app.dependencies import Dependency
 
 
 class UsersController(RedisController):
@@ -48,10 +44,3 @@ class UsersController(RedisController):
             raise NotFoundError("User with provided UUID was not found")
 
         await self.remove(f"users:{uuid}")
-
-    @staticmethod
-    def dependency() -> Depends:
-        async def __dependency(redis: Annotated[Redis, Depends(Dependency.redis)]) -> UsersController:
-            return UsersController(redis)
-
-        return Depends(__dependency)

@@ -1,12 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from starlette import status
 
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.models.response.game import GameResponseModel
 from app.assets.game import Game
+from app.dependencies import Dependency
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 
@@ -17,7 +18,7 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
     response_model=GameResponseModel
 )
 async def create_game(
-        games_controller: Annotated[GamesController, GamesController.dependency()]
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> GameResponseModel:
     game: Game = await games_controller.create_game()
     return GameResponseModel.from_game(game)
@@ -30,7 +31,7 @@ async def create_game(
 )
 async def get_game(
         uuid: UUID,
-        games_controller: Annotated[GamesController, GamesController.dependency()]
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> GameResponseModel:
     game: Game = await games_controller.get_game(uuid)
     return GameResponseModel.from_game(game)
@@ -42,6 +43,6 @@ async def get_game(
 )
 async def remove_game(
         uuid: UUID,
-        games_controller: Annotated[GamesController, GamesController.dependency()]
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> None:
     await games_controller.remove_game(uuid)
