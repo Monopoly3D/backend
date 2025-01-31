@@ -36,6 +36,7 @@ async def get_game(
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
 ) -> GameResponseModel:
     game: Game = await games_controller.get_game(game_id)
+    print(game.to_json())
     return GameResponseModel.from_game(game)
 
 

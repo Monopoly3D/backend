@@ -2,7 +2,9 @@ from typing import Dict, Any, List
 from uuid import UUID
 
 from app.api.v1.controllers.redis import RedisController
+from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.start import Start
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 
@@ -36,7 +38,7 @@ class Game(RedisObject):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "game_id": str(self.game_id),
+            "id": str(self.game_id),
             "is_started": self.is_started,
             "round": self.round,
             "move": self.move,
@@ -53,5 +55,9 @@ class Game(RedisObject):
     def fields_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.fields]
 
-    def default_fields(self) -> List[Field]:
-        return []
+    @staticmethod
+    def default_fields() -> List[Field]:
+        return [
+            Start(0),
+            Company(1, rent=[20, 100, 600, 1600, 2500], cost=600, mortgage_cost=300, buyout_cost=800, filiation_cost=500)
+        ]
