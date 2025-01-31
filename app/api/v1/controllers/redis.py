@@ -3,10 +3,8 @@ from typing import Any, Tuple
 
 from redis import Redis
 
-from app.api.v1.controllers.abstract import AbstractController
 
-
-class RedisController(AbstractController):
+class RedisController:
     REDIS_KEY: str
 
     def __init__(
