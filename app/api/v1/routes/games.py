@@ -1,14 +1,15 @@
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from jwt import encode
 from starlette import status
-from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.models.response.game import GameResponseModel
-from app.api.v1.routes.packets.games import games_packets_router
 from app.assets.game import Game
+from app.dependencies import Dependency
+from config import Config
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 
@@ -49,6 +50,20 @@ async def remove_game(
     await games_controller.remove_game(uuid)
 
 
-@games_router.websocket("/")
-async def on_games_websocket(websocket: WebSocket) -> None:
-    await games_packets_router.handle(websocket)
+@games_router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    response_model=str
+)
+async def register(
+        username: str,
+        config: Annotated[Config, Depends(Dependency.config)]
+) -> str:
+    return encode(
+        {
+            "user_id": str(uuid4()),
+            "username": username
+        },
+        key=config.jwt_key.get_secret_value(),
+        algorithm=config.jwt_algorithm
+    )

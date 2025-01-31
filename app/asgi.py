@@ -22,6 +22,7 @@ async def lifespan(fastapi_app: FastAPI):
 
     Dependency.inject(
         fastapi_app,
+        config,
         database,
         redis
     )

@@ -5,22 +5,22 @@ from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
 from app.api.v1.packets.base import BasePacket
 
 
-class ClientPingPacket(BasePacket):
-    PACKET_TAG = "client_ping"
+class ClientAuthPacket(BasePacket):
+    PACKET_TAG = "client_auth"
     PACKET_CLASS = PacketClass.CLIENT
 
     def __init__(
             self,
-            request: str
+            ticket: str
     ) -> None:
-        self.request = request
+        self.ticket = ticket
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "request" not in packet:
+        if "ticket" not in packet:
             raise InvalidPacketError("Provided packet data is invalid")
 
-        return cls(packet["request"])
+        return cls(packet["ticket"])
 
     def to_json(self) -> Dict[str, Any]:
-        return {"request": self.request}
+        return {"ticket": self.ticket}
