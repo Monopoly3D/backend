@@ -25,24 +25,24 @@ async def create_game(
 
 
 @games_router.get(
-    "/{uuid}",
+    "/{game_id}",
     status_code=status.HTTP_200_OK,
     response_model=GameResponseModel
 )
 async def get_game(
-        uuid: UUID,
+        game_id: UUID,
         games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> GameResponseModel:
-    game: Game = await games_controller.get_game(uuid)
+    game: Game = await games_controller.get_game(game_id)
     return GameResponseModel.from_game(game)
 
 
 @games_router.delete(
-    "/{uuid}",
+    "/{game_id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
 async def remove_game(
-        uuid: UUID,
+        game_id: UUID,
         games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> None:
-    await games_controller.remove_game(uuid)
+    await games_controller.remove_game(game_id)

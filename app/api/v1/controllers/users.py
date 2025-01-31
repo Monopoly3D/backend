@@ -27,7 +27,7 @@ class UsersController(RedisController):
             self,
             user_id: UUID
     ) -> User:
-        user: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(user_id))
+        user: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(user_id=user_id))
 
         if user is None:
             raise NotFoundError("User with provided UUID was not found")
@@ -42,7 +42,7 @@ class UsersController(RedisController):
             self,
             user_id: UUID
     ) -> None:
-        if not await self.exists(self.REDIS_KEY.format(user_id)):
+        if not await self.exists(self.REDIS_KEY.format(user_id=user_id)):
             raise NotFoundError("User with provided UUID was not found")
 
-        await self.remove(self.REDIS_KEY.format(user_id))
+        await self.remove(self.REDIS_KEY.format(user_id=user_id))

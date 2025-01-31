@@ -20,9 +20,9 @@ class GamesController(RedisController):
 
     async def get_game(
             self,
-            uuid: UUID
+            game_id: UUID
     ) -> Game:
-        game: Dict[str, Any] | None = await self.get(f"games:{uuid}")
+        game: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(game_id=game_id))
 
         if game is None:
             raise NotFoundError("Game with provided UUID was not found")
@@ -35,9 +35,9 @@ class GamesController(RedisController):
 
     async def remove_game(
             self,
-            uuid: UUID
+            game_id: UUID
     ) -> None:
-        if not await self.exists(f"games:{uuid}"):
+        if not await self.exists(self.REDIS_KEY.format(game_id=game_id)):
             raise NotFoundError("Game with provided UUID was not found")
 
-        await self.remove(f"games:{uuid}")
+        await self.remove(self.REDIS_KEY.format(game_id=game_id))

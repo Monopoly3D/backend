@@ -27,7 +27,7 @@ async def register(
 
     access_token: str = await asyncio.to_thread(
         authenticator.create_access_token,
-        user_id=user.uuid,
+        user_id=user.user_id,
         username=username
     )
 

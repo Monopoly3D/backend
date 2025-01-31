@@ -15,6 +15,6 @@ class GameResponseModel(BaseModel):
             game: Game
     ) -> 'GameResponseModel':
         return cls(
-            id=game.uuid,
+            id=game.game_id,
             is_started=game.is_started
         )

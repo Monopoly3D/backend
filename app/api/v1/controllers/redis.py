@@ -7,6 +7,8 @@ from app.api.v1.controllers.abstract import AbstractController
 
 
 class RedisController(AbstractController):
+    REDIS_KEY: str
+
     def __init__(
             self,
             redis: Redis
