@@ -3,8 +3,6 @@ from uuid import UUID, uuid4
 
 from fastapi import Depends
 from redis.asyncio import Redis
-from starlette.requests import Request
-from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.not_found_error import NotFoundError

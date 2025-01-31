@@ -1,10 +1,8 @@
-from typing import Dict, Any, Annotated
+from typing import Dict, Any, Annotated, List, Tuple
 from uuid import UUID, uuid4
 
 from fastapi import Depends
 from redis.asyncio import Redis
-from starlette.requests import Request
-from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.not_found_error import NotFoundError
@@ -40,9 +38,27 @@ class UsersController(RedisController):
 
         return User(
             user.get("id"),
-            username=user.get("is_started"),
+            username=user.get("username"),
             controller=self
         )
+
+    async def get_user_by_username(
+            self,
+            username: str
+    ) -> User:
+        users: Tuple[str, ...] = await self.get_keys(pattern="users")
+
+        for user_key in users:
+            user: Dict[str, Any] = await self.get(user_key, exact_key=True)
+
+            if user is not None and user.get("username") == username:
+                return User(
+                    user.get("id"),
+                    username=user.get("username"),
+                    controller=self
+                )
+
+        raise NotFoundError("User with provided username was not found")
 
     async def remove_game(
             self,
