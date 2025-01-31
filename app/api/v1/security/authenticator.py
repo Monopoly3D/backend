@@ -11,7 +11,7 @@ from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.invalid_access_token_error import InvalidAccessTokenError
 from app.api.v1.exceptions.invalid_credentials_error import InvalidCredentialsError
 from app.api.v1.exceptions.not_found_error import NotFoundError
-from app.assets.user import User
+from app.assets.redis.user import User
 from app.dependencies import Dependency
 from config import Config
 

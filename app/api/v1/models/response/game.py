@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.assets.game import Game
+from app.assets.redis.game import Game
 
 
 class GameResponseModel(BaseModel):

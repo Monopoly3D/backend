@@ -1,4 +1,4 @@
-from typing import Dict, Any, Annotated, List, Tuple
+from typing import Dict, Any, Annotated, Tuple
 from uuid import UUID, uuid4
 
 from fastapi import Depends
@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.not_found_error import NotFoundError
-from app.assets.user import User
+from app.assets.redis.user import User
 from app.dependencies import Dependency
 
 

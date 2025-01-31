@@ -2,8 +2,8 @@ from typing import Dict, Any
 from uuid import UUID
 
 from app.api.v1.controllers.redis import RedisController
-from app.assets.monopoly_object import MonopolyObject
-from app.assets.redis_object import RedisObject
+from app.assets.monopoly.monopoly_object import MonopolyObject
+from app.assets.redis.redis_object import RedisObject
 
 
 class Game(MonopolyObject, RedisObject):
