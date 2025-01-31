@@ -54,7 +54,14 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         if authenticated:
             try:
                 while True:
-                    await self.__handle_packet(websocket, config=config, redis=redis)
+                    try:
+                        await self.__handle_packet(websocket, config=config, redis=redis)
+                    except Exception as e:
+                        try:
+                            await websocket.send_text(ServerErrorPacket(4100, "Internal server error").pack())
+                        except WebSocketDisconnect:
+                            pass
+                        logger.error(e)
             except WebSocketDisconnect as e:
                 logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
