@@ -47,11 +47,12 @@ class Game(RedisObject):
         self.move = current_move
         self.has_start_bonus = has_start_bonus
 
-        self.players = players or []
-        self.fields = fields
+        self.__players = players or []
 
         if fields is None:
-            self.fields = self.default_map()
+            self.__fields = self.default_map()
+        else:
+            self.__fields = fields
 
         super().__init__(controller.REDIS_KEY.format(game_id=game_id), controller)
 
@@ -67,12 +68,36 @@ class Game(RedisObject):
         }
 
     @property
+    def players(self) -> List[Player]:
+        return self.__players
+
+    @property
+    def fields(self) -> List[Field]:
+        return self.__fields
+
+    @property
     def players_json(self) -> List[Dict[str, Any]]:
         return [player.to_json() for player in self.players]
 
     @property
     def fields_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.fields]
+
+    def add_player(
+            self,
+            player: Player
+    ) -> None:
+        self.__players.append(player)
+
+    def has_player(
+            self,
+            player_id: UUID
+    ) -> bool:
+        for player in self.players:
+            if player.player_id == player_id:
+                return True
+
+        return False
 
     @classmethod
     def default_map(cls) -> List[Field]:

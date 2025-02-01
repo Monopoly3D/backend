@@ -79,7 +79,8 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
                         **dp
                     )
                 except Exception as e:
-                    raise InternalServerError("Internal server error")
+                    # raise InternalServerError("Internal server error")
+                    raise e
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
