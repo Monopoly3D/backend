@@ -2,7 +2,7 @@ from app.api.v1.logging import logger
 from app.api.v1.packets.client.join_game import ClientJoinGamePacket
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
-from app.api.v1.routes.packets import PacketsRouter
+from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.objects.user import User
 from config import Config
 

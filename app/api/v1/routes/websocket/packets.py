@@ -9,12 +9,12 @@ from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
-from app.api.v1.exceptions.websocket.internal import InternalServerError
+from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base import BasePacket
-from app.api.v1.routes.abstract_packets import AbstractPacketsRouter
+from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
 from app.dependencies import Dependency
@@ -69,14 +69,14 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     async def handle_packets(
             self,
             websocket: WebSocket,
-            dependencies: Annotated[Dict[str, Any], Depends(dependencies)]
+            dp: Annotated[Dict[str, Any], Depends(dependencies)]
     ) -> None:
         try:
             while True:
                 try:
                     await self.__handle_packet(
                         websocket,
-                        **dependencies
+                        **dp
                     )
                 except Exception as e:
                     raise InternalServerError("Internal server error")
