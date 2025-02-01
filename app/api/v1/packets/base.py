@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from typing import Dict, Any, List, Type
 
 from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
 
 
 class BasePacket(ABC):

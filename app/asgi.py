@@ -6,9 +6,14 @@ from redis.asyncio import Redis
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.websockets import WebSocket
 
 from app.api.router import api_router
-from app.api.v1.exceptions.api_error import APIError
+from app.api.v1.controllers.connections import ConnectionsController
+from app.api.v1.exceptions.http.http_error import HTTPError
+from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
+from app.api.v1.logging import logger
+from app.api.v1.packets.server.error import ServerErrorPacket
 from app.dependencies import Dependency
 from config import Config
 
@@ -19,16 +24,21 @@ config: Config = Config(_env_file=".env")
 async def lifespan(fastapi_app: FastAPI):
     database = None
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
+    connections: ConnectionsController = ConnectionsController(redis)
 
     Dependency.inject(
         fastapi_app,
         config,
         database,
-        redis
+        redis,
+        connections
     )
+
+    await connections.prepare()
 
     yield
 
+    await connections.prepare()
     await redis.aclose()
 
 
@@ -44,12 +54,23 @@ async def on_validation_error(request: Request, exception: ValidationError) -> J
     )
 
 
-@app.exception_handler(APIError)
-async def on_api_error(request: Request, exception: APIError) -> JSONResponse:
+@app.exception_handler(HTTPError)
+async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
     return JSONResponse(
         status_code=exception.status_code,
         content={"detail": str(exception)}
     )
+
+
+@app.exception_handler(WebSocketError)
+async def on_websocket_error(websocket: WebSocket, exception: WebSocketError) -> None:
+    try:
+        await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
+        logger.error(
+            f"(\'{websocket.client.host}\', {websocket.client.port}) - WebSocket error {exception.status_code}: {exception}"
+        )
+    except RuntimeError:
+        pass
 
 
 @app.exception_handler(Exception)

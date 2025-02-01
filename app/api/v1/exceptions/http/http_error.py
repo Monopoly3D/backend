@@ -1,5 +1,5 @@
 from starlette import status
 
 
-class APIError(Exception):
+class HTTPError(Exception):
     status_code = status.HTTP_400_BAD_REQUEST

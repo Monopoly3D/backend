@@ -6,19 +6,25 @@ from uuid import UUID
 from fastapi import Depends, Header
 from jwt import encode, decode, InvalidTokenError, DecodeError, ExpiredSignatureError, InvalidSignatureError
 from pytz import utc
+from starlette.websockets import WebSocket
 
+from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.invalid_access_token_error import InvalidAccessTokenError
-from app.api.v1.exceptions.invalid_credentials_error import InvalidCredentialsError
-from app.api.v1.exceptions.not_found_error import NotFoundError
+from app.api.v1.exceptions.http.invalid_access_token_error import InvalidAccessTokenError
+from app.api.v1.exceptions.http.invalid_credentials_error import InvalidCredentialsError
+from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.http.not_found_error import NotFoundError
+from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
+from app.api.v1.packets.client.auth import ClientAuthPacket
+from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
 
 
 class Authenticator:
-    ACCESS_TOKEN_EXPIRE = timedelta(minutes=15)
-    TICKET_EXPIRE = timedelta(seconds=60)
+    ACCESS_TOKEN_EXPIRE = timedelta(days=1)
+    TICKET_EXPIRE = timedelta(days=1)
 
     def __init__(
             self,
@@ -149,3 +155,61 @@ class Authenticator:
             return await authenticator.verify_access_token(access_token, users_controller=users_controller)
 
         return Depends(__get_user)
+
+    @staticmethod
+    def authenticate_websocket_dependency() -> Depends:
+        async def __authenticate_websocket(
+                websocket: WebSocket,
+                authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
+                connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
+                users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)]
+        ) -> None:
+            await websocket.accept()
+
+            try:
+                auth_packet: ClientAuthPacket = ClientAuthPacket.unpack(await websocket.receive_text())
+            except InvalidPacketError:
+                await websocket.close(3000, "Provided authorization packet data is invalid")
+                return
+
+            try:
+                ticket: Dict[str, str] = await asyncio.to_thread(
+                    authenticator.decode_ticket,
+                    auth_packet.ticket
+                )
+            except InvalidAccessTokenError:
+                await websocket.close(3000, "Provided authorization ticket is invalid")
+                return
+
+            try:
+                user: User = await users_controller.get_user(UUID(ticket["id"]))
+            except NotFoundError or ValueError:
+                await websocket.close(3000, "Provided authorization ticket is invalid")
+                return
+
+            await connections.add_connection(websocket, user.user_id)
+
+            auth_response_packet: ServerAuthResponsePacket = ServerAuthResponsePacket(
+                user.user_id,
+                user.username
+            )
+
+            await websocket.send_text(auth_response_packet.pack())
+
+        return Depends(__authenticate_websocket)
+
+    @staticmethod
+    def get_websocket_user() -> Depends:
+        async def __get_websocket_user(
+                websocket: WebSocket,
+                connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
+                users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
+        ) -> User:
+            user: User = await users_controller.get_user(await connections.get_user_id(websocket))
+
+            if user is None:
+                raise NotAuthenticatedAddressError("Provided websocket address is not authenticated")
+
+            return user
+
+        return Depends(__get_websocket_user)
