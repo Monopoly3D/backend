@@ -7,7 +7,6 @@ from starlette.requests import Request
 from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.packets.connection import Connection
 
 
 class ConnectionsController(RedisController):
@@ -18,7 +17,7 @@ class ConnectionsController(RedisController):
             redis: Redis
     ) -> None:
         super().__init__(redis)
-        self.connections: Dict[UUID, Connection] = {}
+        self.connections: Dict[UUID, WebSocket] = {}
 
     async def prepare(self) -> None:
         await self.set(self.REDIS_KEY, {})
@@ -41,18 +40,7 @@ class ConnectionsController(RedisController):
         connections[self.__address_to_str(address)] = str(user_id)
         await self.set(self.REDIS_KEY, connections)
 
-        self.connections[user_id] = Connection(websocket, user_id)
-
-    async def get_connection(
-            self,
-            websocket: WebSocket
-    ) -> Connection | None:
-        user_id: UUID | None = await self.get_user_id(websocket)
-
-        if user_id is None:
-            return
-
-        return self.connections.get(user_id)
+        self.connections[user_id] = websocket
 
     async def get_user_id(
             self,
@@ -75,17 +63,17 @@ class ConnectionsController(RedisController):
             self,
             user_id: UUID
     ) -> None:
-        connection: Connection | None = self.connections.get(user_id)
+        connection: WebSocket | None = self.connections.get(user_id)
 
         if connection is None:
             return
 
-        address: Address | None = connection.websocket.client
+        address: Address | None = connection.client
 
         if address is not None:
             connections: Dict[str, str] | None = await self.get(self.REDIS_KEY)
 
-            if connections is not None and self.__address_to_str(connection.websocket.client) in connections:
+            if connections is not None and self.__address_to_str(connection.client) in connections:
                 connections.pop(self.__address_to_str(address))
             else:
                 connections: Dict[str, str] = {}
@@ -93,7 +81,7 @@ class ConnectionsController(RedisController):
             await self.set(self.REDIS_KEY, connections)
 
         try:
-            await connection.websocket.close()
+            await connection.close()
         except RuntimeError:
             pass
 
