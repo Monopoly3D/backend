@@ -3,7 +3,7 @@ from redis.asyncio import Redis
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from app.api.v1.packets.connection_manager import ConnectionManager
+from app.api.v1.controllers.connections import ConnectionsController
 from config import Config
 
 
@@ -13,13 +13,13 @@ class Dependency:
             fastapi_app: FastAPI,
             config: Config,
             database,
-            redis: Redis
+            redis: Redis,
+            connections: ConnectionsController
     ) -> None:
         fastapi_app.state.config = config
         fastapi_app.state.database = database
         fastapi_app.state.redis = redis
-
-        fastapi_app.state.connection_manager = ConnectionManager()
+        fastapi_app.state.connections = connections
 
     @staticmethod
     async def config(request: Request) -> Config:

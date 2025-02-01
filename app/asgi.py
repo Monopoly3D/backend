@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from app.api.router import api_router
+from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.exceptions.api_error import APIError
 from app.dependencies import Dependency
 from config import Config
@@ -19,16 +20,21 @@ config: Config = Config(_env_file=".env")
 async def lifespan(fastapi_app: FastAPI):
     database = None
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
+    connections: ConnectionsController = ConnectionsController(redis)
 
     Dependency.inject(
         fastapi_app,
         config,
         database,
-        redis
+        redis,
+        connections
     )
+
+    await connections.prepare()
 
     yield
 
+    await connections.prepare()
     await redis.aclose()
 
 
