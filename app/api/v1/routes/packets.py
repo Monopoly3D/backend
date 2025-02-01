@@ -1,7 +1,5 @@
-import asyncio
 from inspect import getfullargspec
 from typing import Dict, Any, Callable, Type, Coroutine, Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -10,19 +8,37 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.invalid_access_token_error import InvalidAccessTokenError
-from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
-from app.api.v1.exceptions.not_found_error import NotFoundError
+from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.websocket.internal import InternalServerError
+from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
+from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base import BasePacket
-from app.api.v1.packets.client.auth import ClientAuthPacket
-from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
-from app.api.v1.packets.server.error import ServerErrorPacket
 from app.api.v1.routes.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
+
+
+async def dependencies(
+        config: Annotated[Config, Depends(Dependency.config_websocket)],
+        redis: Annotated[Redis, Depends(Dependency.redis_websocket)],
+        authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
+        connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
+        users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
+        games_controller: Annotated[GamesController, Depends(GamesController.websocket_dependency)],
+        user: Annotated[User, Authenticator.get_websocket_user()]
+) -> Dict[str, Any]:
+    return {
+        "config": config,
+        "redis": redis,
+        "authenticator": authenticator,
+        "connections": connections,
+        "users_controller": users_controller,
+        "games_controller": games_controller,
+        "user": user
+    }
 
 
 class PacketsRouter(APIRouter, AbstractPacketsRouter):
@@ -32,7 +48,12 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
-        self.add_api_websocket_route("/", self.handle_packets)
+
+        self.add_api_websocket_route(
+            "/",
+            self.handle_packets,
+            dependencies=[Authenticator.authenticate_websocket_dependency()]
+        )
 
         self.handlers: Dict[Type[BasePacket], Coroutine[Any, Any, BasePacket]] = {}
 
@@ -48,53 +69,23 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     async def handle_packets(
             self,
             websocket: WebSocket,
-            config: Annotated[Config, Depends(Dependency.config_websocket)],
-            redis: Annotated[Redis, Depends(Dependency.redis_websocket)],
-            connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-            authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
-            users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
-            games_controller: Annotated[GamesController, Depends(GamesController.websocket_dependency)]
+            dependencies: Annotated[Dict[str, Any], Depends(dependencies)]
     ) -> None:
-        await websocket.accept()
-
         try:
-            authenticated: bool = await self.__authenticate_client(
-                websocket,
-                connections,
-                authenticator,
-                users_controller
-            )
-        except WebSocketDisconnect:
-            return
-
-        if authenticated:
-            try:
-                while True:
-                    try:
-                        await self.__handle_packet(
-                            websocket,
-                            connections,
-                            config=config,
-                            redis=redis,
-                            authenticator=authenticator,
-                            users_controller=users_controller,
-                            games_controller=games_controller
-                        )
-                    except Exception as e:
-                        try:
-                            await websocket.send_text(ServerErrorPacket(4100, "Internal server error").pack())
-                        except RuntimeError:
-                            break
-                        logger.error(e)
-            except WebSocketDisconnect as e:
-                logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
+            while True:
+                try:
+                    await self.__handle_packet(
+                        websocket,
+                        **dependencies
+                    )
+                except Exception as e:
+                    raise InternalServerError("Internal server error")
+        except WebSocketDisconnect as e:
+            logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
     async def __handle_packet(
             self,
             websocket: WebSocket,
-            connections: ConnectionsController,
-            *,
-            users_controller: UsersController,
             **kwargs
     ) -> None:
         packet: str = await websocket.receive_text()
@@ -103,71 +94,21 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             packet_type: Type[BasePacket] = BasePacket.withdraw_packet_type(packet)
             packet: BasePacket = packet_type.unpack(packet)
         except InvalidPacketError:
-            await websocket.send_text(ServerErrorPacket(4000, "Provided packet data is invalid").pack())
-            return
+            raise InvalidPacketDataError("Provided packet data is invalid")
 
         handler: Any = self.handlers.get(packet_type, None)
         if handler is None:
-            await websocket.send_text(ServerErrorPacket(4001, "Provided packet type was not handled").pack())
-            return
-
-        user: User = await users_controller.get_user(await connections.get_user_id(websocket))
-
-        if user is None:
-            await websocket.send_text(
-                ServerErrorPacket(4002, "Provided websocket address does not seem to be authenticated").pack()
-            )
-            return
+            raise UnknownPacketError("Unknown packet type")
 
         prepared_args: Dict[str, Any] = self.__prepare_args(
             handler,
             packet=packet,
-            user=user,
             websocket=websocket,
-            connections=connections,
             **kwargs
         )
         response_packet: BasePacket = await handler(**prepared_args)
 
         await websocket.send_text(response_packet.pack())
-
-    @staticmethod
-    async def __authenticate_client(
-            websocket: WebSocket,
-            connections: ConnectionsController,
-            authenticator: Authenticator,
-            users_controller: UsersController
-    ) -> bool:
-        try:
-            auth_packet: ClientAuthPacket = ClientAuthPacket.unpack(await websocket.receive_text())
-        except InvalidPacketError:
-            await websocket.close(3000, "Provided authorization packet data is invalid")
-            return False
-
-        try:
-            ticket: Dict[str, str] = await asyncio.to_thread(
-                authenticator.decode_ticket,
-                auth_packet.ticket
-            )
-        except InvalidAccessTokenError:
-            await websocket.close(3000, "Provided authorization ticket is invalid")
-            return False
-
-        try:
-            user: User = await users_controller.get_user(UUID(ticket["id"]))
-        except NotFoundError or ValueError:
-            await websocket.close(3000, "Provided authorization ticket is invalid")
-            return False
-
-        await connections.add_connection(websocket, user.user_id)
-
-        auth_response_packet: ServerAuthResponsePacket = ServerAuthResponsePacket(
-            user.user_id,
-            user.username
-        )
-
-        await websocket.send_text(auth_response_packet.pack())
-        return True
 
     @staticmethod
     def __prepare_args(

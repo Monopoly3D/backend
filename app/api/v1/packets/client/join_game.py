@@ -2,7 +2,7 @@ from typing import Dict, Any
 from uuid import UUID
 
 from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
 from app.api.v1.packets.base import BasePacket
 
 
