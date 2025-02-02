@@ -12,7 +12,7 @@ from app.assets.objects.redis import RedisObject
 
 
 class Game(RedisObject):
-    default_map_path: str = "app/assets/default_map.json"
+    default_map_path: str = "app/assets/maps/default_map.json"
 
     def __init__(
             self,
