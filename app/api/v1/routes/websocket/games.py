@@ -24,13 +24,6 @@ config: Config = Config(_env_file=".env")
 games_packets_router = PacketsRouter(prefix="/games")
 
 
-@games_packets_router.handle(ClientPingPacket)
-async def on_client_ping(packet: ClientPingPacket) -> ServerPingPacket:
-    logger.info(f"Ping: {packet.request}")
-
-    return ServerPingPacket("Pong!")
-
-
 @games_packets_router.handle(ClientPlayerJoinGamePacket)
 async def on_client_join_game(
         websocket: WebSocket,

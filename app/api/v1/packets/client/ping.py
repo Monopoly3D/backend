@@ -6,14 +6,9 @@ from app.api.v1.packets.base_client import ClientPacket
 class ClientPingPacket(ClientPacket):
     PACKET_TAG = "ping"
 
-    PACKET_KEYS = ["request"]
-
-    def __init__(
-            self,
-            request: str
-    ) -> None:
-        self.request = request
+    def __init__(self) -> None:
+        pass
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':
-        return cls(packet["request"])
+        return cls()

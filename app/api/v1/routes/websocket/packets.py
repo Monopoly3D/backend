@@ -14,6 +14,8 @@ from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.client.ping import ClientPingPacket
+from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
@@ -56,6 +58,10 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         )
 
         self.handlers: Dict[Type[ClientPacket], Coroutine[Any, Any, ServerPacket | None]] = {}
+
+        @self.handle(ClientPingPacket)
+        async def on_client_ping() -> ServerPingPacket:
+            return ServerPingPacket()
 
     def handle(
             self,
