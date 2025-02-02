@@ -2,10 +2,12 @@ from typing import List, Any, Dict
 from uuid import UUID
 
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.field import Field
+from app.assets.objects.field import Field
 
 
 class Company(Field):
+    FIELD_TYPE = FieldType.COMPANY
+
     def __init__(
             self,
             field_id: int,
@@ -22,7 +24,7 @@ class Company(Field):
             buyout_cost: int,
             filiation_cost: int
     ) -> None:
-        super().__init__(field_id, field_type=FieldType.COMPANY)
+        super().__init__(field_id)
 
         self.owner_id = owner_id
         self.is_monopoly = is_monopoly or False
@@ -41,7 +43,7 @@ class Company(Field):
             cls,
             data: Dict[str, Any]
     ) -> Any:
-        if "id" not in data or "type" not in data or "company" not in data:
+        if "company" not in data:
             return
 
         company: Dict[str, Any] = data["company"]
@@ -64,7 +66,7 @@ class Company(Field):
     def to_json(self) -> Dict[str, Any]:
         return {
             "id": self.field_id,
-            "type": self.field_type.value,
+            "type": self.FIELD_TYPE.value,
             "company": {
                 "owner_id": str(self.owner_id),
                 "is_monopoly": self.is_monopoly,

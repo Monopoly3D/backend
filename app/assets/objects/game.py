@@ -1,37 +1,18 @@
 import json
-from typing import Dict, Any, List, Type, Tuple
+from typing import Dict, Any, List, Tuple
 from uuid import UUID
 
 from starlette.websockets import WebSocket
-from websockets.sync.connection import Connection
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
-from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.casino import Casino
-from app.assets.objects.fields.chance import Chance
-from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
-from app.assets.objects.fields.police import Police
-from app.assets.objects.fields.prison import Prison
-from app.assets.objects.fields.start import Start
-from app.assets.objects.fields.tax import Tax
+from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 
 
 class Game(RedisObject):
     default_map_path: str = "app/assets/default_map.json"
-
-    field_type_mapping: Dict[FieldType, Type[Field | Any]] = {
-        FieldType.COMPANY: Company,
-        FieldType.CHANCE: Chance,
-        FieldType.START: Start,
-        FieldType.TAX: Tax,
-        FieldType.PRISON: Prison,
-        FieldType.POLICE: Police,
-        FieldType.CASINO: Casino
-    }
 
     def __init__(
             self,
@@ -92,7 +73,7 @@ class Game(RedisObject):
             if "type" not in data_field:
                 continue
 
-            field: Field | None = cls.field_type_mapping[FieldType(data_field.get("type"))].from_json(data_field)
+            field: Field | None = Field.from_json(data_field)
 
             if field is None:
                 continue
@@ -164,36 +145,12 @@ class Game(RedisObject):
         fields: List[Field] = []
 
         for index, field in enumerate(data):
-            match FieldType(field["type"]):
-                case FieldType.COMPANY:
-                    company: Dict[str, Any] = field["company"]
+            field.update({"id": index})
 
-                    field_dependant: bool = False
-                    dice_dependant: bool = False
-                    filiation_cost: int = 0
+            new_field: Field | None = Field.from_json(field)
 
-                    if "filiation_cost" not in company:
-                        if "field_dependant" in company:
-                            field_dependant = company["field_dependant"]
-                        if "dice_dependant" in company:
-                            dice_dependant = company["dice_dependant"]
-                    else:
-                        filiation_cost = company["filiation_cost"]
-
-                    new_field: Field = Company(
-                        index,
-                        field_dependant=field_dependant,
-                        dice_dependant=dice_dependant,
-                        rent=company["rent"],
-                        cost=company["cost"],
-                        mortgage_cost=company["mortgage_cost"],
-                        buyout_cost=company["buyout_cost"],
-                        filiation_cost=filiation_cost
-                    )
-                case FieldType.TAX:
-                    new_field: Field = Tax(index, tax_amount=field["tax"]["tax_amount"])
-                case _:
-                    new_field: Field = cls.field_type_mapping[field["type"]](index)
+            if new_field is None:
+                continue
 
             fields.append(new_field)
 
