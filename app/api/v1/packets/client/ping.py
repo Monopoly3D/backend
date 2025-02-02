@@ -9,6 +9,8 @@ class ClientPingPacket(BasePacket):
     PACKET_TAG = "client_ping"
     PACKET_CLASS = PacketClass.CLIENT
 
+    PACKET_KEYS = ["request"]
+
     def __init__(
             self,
             request: str
@@ -17,9 +19,6 @@ class ClientPingPacket(BasePacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "request" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
         return cls(packet["request"])
 
     def to_json(self) -> Dict[str, Any]:

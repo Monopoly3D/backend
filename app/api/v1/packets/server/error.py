@@ -10,6 +10,8 @@ class ServerErrorPacket(BasePacket):
     PACKET_TAG = "server_error"
     PACKET_CLASS = PacketClass.SERVER
 
+    PACKET_KEYS = ["status_code", "detail"]
+
     def __init__(
             self,
             status_code: int,
@@ -30,9 +32,6 @@ class ServerErrorPacket(BasePacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "status_code" not in packet or "detail" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
         return cls(packet["status_code"], packet["detail"])
 
     def to_json(self) -> Dict[str, Any]:

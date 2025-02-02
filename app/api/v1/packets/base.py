@@ -10,6 +10,8 @@ class BasePacket(ABC):
     PACKET_TAG: str
     PACKET_CLASS: PacketClass
 
+    PACKET_KEYS: Dict[str, Any]
+
     @abstractmethod
     def __init__(
             self,
@@ -31,9 +33,7 @@ class BasePacket(ABC):
     def unpack(cls, packet: str) -> 'BasePacket':
         packet: Dict[str, Any] = cls.__get_validated_packet(packet)
 
-        if packet["meta"]["tag"] != cls.PACKET_TAG:
-            raise InvalidPacketError("Provided packet meta is invalid")
-        if packet["meta"]["class"] != cls.PACKET_CLASS.value:
+        if packet["meta"]["tag"] != cls.PACKET_TAG or packet["meta"]["class"] != cls.PACKET_CLASS.value:
             raise InvalidPacketError("Provided packet meta is invalid")
 
         return cls.from_json(packet["data"])
@@ -65,18 +65,10 @@ class BasePacket(ABC):
         return packets[packet_tag]
 
     @classmethod
-    def __get_packets(cls) -> List[Type['BasePacket']]:
-        subclasses: List[Type[BasePacket]] = cls.__subclasses__()
-        overall: List[Type[BasePacket]] = []
-
-        for subclass in subclasses:
-            overall.append(subclass)
-            overall.extend(subclass.__get_packets())
-
-        return overall
-
-    @staticmethod
-    def __get_validated_packet(packet: str) -> Dict[str, Any]:
+    def __get_validated_packet(
+            cls,
+            packet: str
+    ) -> Dict[str, Any]:
         try:
             packet: Dict[str, Any] = json.loads(packet)
         except ValueError:
@@ -92,4 +84,34 @@ class BasePacket(ABC):
             if meta_attribute not in packet["meta"]:
                 raise InvalidPacketError("Provided packet meta is invalid")
 
+        if not cls.__validate_keys(packet["data"], cls.PACKET_KEYS):
+            raise InvalidPacketError("Provided packet data is invalid")
+
         return packet
+
+    @classmethod
+    def __validate_keys(
+            cls,
+            packet: Dict[str, Any],
+            keys: Dict[str, Any] | List[str]
+    ) -> bool:
+        if isinstance(keys, dict):
+            for key, value in keys.items():
+                if key not in packet or not cls.__validate_keys(packet[key], value):
+                    return False
+        elif isinstance(keys, list):
+            for key in keys:
+                if key not in packet:
+                    return False
+        return True
+
+    @classmethod
+    def __get_packets(cls) -> List[Type['BasePacket']]:
+        subclasses: List[Type[BasePacket]] = cls.__subclasses__()
+        overall: List[Type[BasePacket]] = []
+
+        for subclass in subclasses:
+            overall.append(subclass)
+            overall.extend(subclass.__get_packets())
+
+        return overall

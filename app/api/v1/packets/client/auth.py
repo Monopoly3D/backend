@@ -9,6 +9,8 @@ class ClientAuthPacket(BasePacket):
     PACKET_TAG = "client_auth"
     PACKET_CLASS = PacketClass.CLIENT
 
+    PACKET_KEYS = ["ticket"]
+
     def __init__(
             self,
             ticket: str
@@ -17,9 +19,6 @@ class ClientAuthPacket(BasePacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "ticket" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
         return cls(packet["ticket"])
 
     def to_json(self) -> Dict[str, Any]:

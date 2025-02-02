@@ -10,6 +10,8 @@ class ServerPlayerJoinGamePacket(BasePacket):
     PACKET_TAG = "server_player_join_game"
     PACKET_CLASS = PacketClass.SERVER
 
+    PACKET_KEYS = ["game_id", "player_id", "username"]
+
     def __init__(
             self,
             game_id: UUID,
@@ -22,19 +24,10 @@ class ServerPlayerJoinGamePacket(BasePacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "game_id" not in packet or "player_id" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
         try:
-            game_id = UUID(packet["game_id"])
-            player_id = UUID(packet["player_id"])
+            return cls(UUID(packet["game_id"]), UUID(packet["player_id"]), packet["username"])
         except ValueError:
             raise InvalidPacketError("Provided packet data is invalid")
-
-        if "username" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
-        return cls(game_id, player_id, packet["username"])
 
     def to_json(self) -> Dict[str, Any]:
         return {

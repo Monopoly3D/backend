@@ -10,6 +10,8 @@ class ServerAuthPacket(BasePacket):
     PACKET_TAG = "server_auth"
     PACKET_CLASS = PacketClass.SERVER
 
+    PACKET_KEYS = ["user_id", "username"]
+
     def __init__(
             self,
             user_id: UUID,
@@ -20,18 +22,10 @@ class ServerAuthPacket(BasePacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "user_id" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
         try:
-            user_id = UUID(packet["user_id"])
+            return cls(UUID(packet["user_id"]), packet["username"])
         except ValueError:
             raise InvalidPacketError("Provided packet data is invalid")
-
-        if "username" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
-        return cls(user_id, packet["username"])
 
     def to_json(self) -> Dict[str, Any]:
         return {
