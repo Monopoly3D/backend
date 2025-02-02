@@ -1,13 +1,12 @@
 from typing import Dict, Any
 
 from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_server import ServerPacket
 
 
-class ServerErrorPacket(BasePacket):
-    PACKET_TAG = "server_error"
+class ServerErrorPacket(ServerPacket):
+    PACKET_TAG = "error"
     PACKET_CLASS = PacketClass.SERVER
 
     PACKET_KEYS = ["status_code", "detail"]
@@ -29,10 +28,6 @@ class ServerErrorPacket(BasePacket):
             status_code=error.status_code,
             detail=str(error)
         )
-
-    @classmethod
-    def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        return cls(packet["status_code"], packet["detail"])
 
     def to_json(self) -> Dict[str, Any]:
         return {

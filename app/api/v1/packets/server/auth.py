@@ -2,12 +2,11 @@ from typing import Dict, Any
 from uuid import UUID
 
 from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_server import ServerPacket
 
 
-class ServerAuthPacket(BasePacket):
-    PACKET_TAG = "server_auth"
+class ServerAuthPacket(ServerPacket):
+    PACKET_TAG = "auth"
     PACKET_CLASS = PacketClass.SERVER
 
     PACKET_KEYS = ["user_id", "username"]
@@ -19,13 +18,6 @@ class ServerAuthPacket(BasePacket):
     ) -> None:
         self.user_id = user_id
         self.username = username
-
-    @classmethod
-    def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        try:
-            return cls(UUID(packet["user_id"]), packet["username"])
-        except ValueError:
-            raise InvalidPacketError("Provided packet data is invalid")
 
     def to_json(self) -> Dict[str, Any]:
         return {

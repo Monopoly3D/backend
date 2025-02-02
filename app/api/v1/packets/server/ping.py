@@ -1,12 +1,11 @@
 from typing import Dict, Any
 
 from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_server import ServerPacket
 
 
-class ServerPingPacket(BasePacket):
-    PACKET_TAG = "server_ping"
+class ServerPingPacket(ServerPacket):
+    PACKET_TAG = "ping"
     PACKET_CLASS = PacketClass.SERVER
 
     PACKET_KEYS = ["response"]
@@ -16,10 +15,6 @@ class ServerPingPacket(BasePacket):
             response: str
     ) -> None:
         self.response = response
-
-    @classmethod
-    def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        return cls(packet["response"])
 
     def to_json(self) -> Dict[str, Any]:
         return {"response": self.response}

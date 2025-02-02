@@ -21,35 +21,6 @@ class BasePacket(ABC):
         pass
 
     @classmethod
-    @abstractmethod
-    def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        pass
-
-    @abstractmethod
-    def to_json(self) -> Dict[str, Any]:
-        pass
-
-    @classmethod
-    def unpack(cls, packet: str) -> 'BasePacket':
-        packet: Dict[str, Any] = cls.__get_validated_packet(packet)
-
-        if packet["meta"]["tag"] != cls.PACKET_TAG or packet["meta"]["class"] != cls.PACKET_CLASS.value:
-            raise InvalidPacketError("Provided packet meta is invalid")
-
-        return cls.from_json(packet["data"])
-
-    def pack(self) -> str:
-        packet: Dict[str, Any] = {
-            "data": self.to_json(),
-            "meta": {
-                "tag": self.PACKET_TAG,
-                "class": self.PACKET_CLASS.value
-            }
-        }
-
-        return json.dumps(packet)
-
-    @classmethod
     def withdraw_packet_type(
             cls,
             packet: str
@@ -57,7 +28,11 @@ class BasePacket(ABC):
         packet: Dict[str, Any] = cls.__get_validated_packet(packet)
 
         packet_tag: str = packet["meta"]["tag"]
-        packets: Dict[str, Type[BasePacket]] = {p.PACKET_TAG: p for p in cls.__get_packets()}
+        packet_class: str = packet["meta"]["class"]
+
+        packets: Dict[str, Type[BasePacket]] = {
+            p.PACKET_TAG: p for p in cls.__get_packets() if p.PACKET_CLASS.value == packet_class
+        }
 
         if packet_tag not in packets:
             raise InvalidPacketError("Provided packet meta is invalid")

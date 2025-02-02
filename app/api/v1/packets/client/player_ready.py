@@ -3,11 +3,11 @@ from uuid import UUID
 
 from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_client import ClientPacket
 
 
-class ClientPlayerReadyPacket(BasePacket):
-    PACKET_TAG = "client_player_ready"
+class ClientPlayerReadyPacket(ClientPacket):
+    PACKET_TAG = "player_ready"
     PACKET_CLASS = PacketClass.CLIENT
 
     PACKET_KEYS = ["game_id", "is_ready"]
@@ -21,7 +21,7 @@ class ClientPlayerReadyPacket(BasePacket):
         self.is_ready = is_ready
 
     @classmethod
-    def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
+    def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':
         try:
             return cls(
                 UUID(packet["game_id"]),
@@ -29,6 +29,3 @@ class ClientPlayerReadyPacket(BasePacket):
             )
         except ValueError:
             raise InvalidPacketError("Provided packet data is invalid")
-
-    def to_json(self) -> Dict[str, Any]:
-        return {"game_id": str(self.game_id), "is_ready": self.is_ready}
