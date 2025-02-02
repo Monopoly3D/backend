@@ -139,7 +139,14 @@ class Game(RedisObject):
 
     @classmethod
     def default_map(cls) -> List[Field]:
-        with open(cls.default_map_path, "r") as file:
+        return cls.__get_map(cls.default_map_path)
+
+    @classmethod
+    def __get_map(
+            cls,
+            game_path: str
+    ) -> List[Field]:
+        with open(game_path, "r") as file:
             data: List[Dict[str, Any]] = json.load(file)
 
         fields: List[Field] = []
