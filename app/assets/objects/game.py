@@ -145,7 +145,7 @@ class Game(RedisObject):
             player_id: UUID
     ) -> bool:
         for player in self.players:
-            if player.player_id == player_id:
+            if str(player.player_id) == str(player_id):
                 return True
 
         return False

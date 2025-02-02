@@ -35,8 +35,6 @@ async def on_client_join_game(
 ) -> ServerPingPacket:
     game: Game | None = await games_controller.get_game(packet.game_id, connections)
 
-    print(game.players)
-
     if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("Game with provided UUID already has this player")
 
@@ -49,5 +47,4 @@ async def on_client_join_game(
     )
 
     await game.save()
-
     return ServerPingPacket("join")

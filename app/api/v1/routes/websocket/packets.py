@@ -107,9 +107,10 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             websocket=websocket,
             **kwargs
         )
-        response_packet: BasePacket = await handler(**prepared_args)
+        response_packet: BasePacket | None = await handler(**prepared_args)
 
-        await websocket.send_text(response_packet.pack())
+        if response_packet is not None:
+            await websocket.send_text(response_packet.pack())
 
     @staticmethod
     def __prepare_args(

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from app.api.v1.controllers.users import UsersController
+from app.api.v1.exceptions.http.not_found_error import NotFoundError
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.security.authenticator import Authenticator
@@ -43,7 +44,10 @@ async def login(
         users_controller: Annotated[UsersController, Depends(UsersController.dependency)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
-    user: User = await users_controller.get_user_by_username(username=username)
+    user: User | None = await users_controller.get_user_by_username(username=username)
+
+    if user is None:
+        raise NotFoundError("User with provided username was not found")
 
     access_token: str = await asyncio.to_thread(
         authenticator.create_access_token,

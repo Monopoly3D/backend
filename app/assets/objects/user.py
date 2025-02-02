@@ -18,6 +18,21 @@ class User(RedisObject):
 
         super().__init__(controller.REDIS_KEY.format(user_id=user_id), controller)
 
+    @classmethod
+    def from_json(
+            cls,
+            data: Dict[str, Any],
+            controller: RedisController
+    ) -> Any:
+        if "id" not in data or "username" not in data:
+            return
+
+        return cls(
+            data.get("id"),
+            username=data.get("username"),
+            controller=controller
+        )
+
     def to_json(self) -> Dict[str, Any]:
         return {
             "id": str(self.user_id),
