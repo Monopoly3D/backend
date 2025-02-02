@@ -12,7 +12,8 @@ from app.assets.objects.redis import RedisObject
 
 
 class Game(RedisObject):
-    default_map_path: str = "app/assets/maps/default_map.json"
+    DEFAULT_MAP_PATH: str = "app/assets/maps/default_map.json"
+    MAX_PLAYERS: int = 5
 
     def __init__(
             self,
@@ -32,12 +33,8 @@ class Game(RedisObject):
         self.move = current_move or 0
         self.has_start_bonus = has_start_bonus or True
 
-        self.__players = players or []
-
-        if fields is None:
-            self.__fields = self.default_map()
-        else:
-            self.__fields = fields
+        self.__players: Dict[UUID, Player] = {player.player_id: player for player in players}
+        self.__fields = fields or self.default_map()
 
         super().__init__(controller.REDIS_KEY.format(game_id=game_id), controller)
 
@@ -104,7 +101,7 @@ class Game(RedisObject):
 
     @property
     def players(self) -> List[Player]:
-        return self.__players
+        return list(self.__players.values())
 
     @property
     def fields(self) -> List[Field]:
@@ -122,24 +119,26 @@ class Game(RedisObject):
             self,
             player: Player
     ) -> None:
-        self.__players.append(player)
+        self.__players.update({player.player_id: player})
 
     def has_player(
             self,
             player_id: UUID
     ) -> bool:
-        for player in self.players:
-            if str(player.player_id) == str(player_id):
-                return True
+        return player_id in self.__players
 
-        return False
+    def remove_player(
+            self,
+            player_id: UUID
+    ) -> None:
+        self.__players.pop(player_id)
 
     def get_connections(self) -> Tuple[WebSocket, ...]:
         return filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players)),
 
     @classmethod
     def default_map(cls) -> List[Field]:
-        return cls.__get_map(cls.default_map_path)
+        return cls.__get_map(cls.DEFAULT_MAP_PATH)
 
     @classmethod
     def __get_map(
