@@ -6,11 +6,8 @@ from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
 from app.api.v1.exceptions.websocket.max_players import MaxPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
-from app.api.v1.logging import logger
-from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
-from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.packets import PacketsRouter
