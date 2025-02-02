@@ -15,6 +15,21 @@ class Tax(Field):
 
         self.tax_amount = tax_amount
 
+    @classmethod
+    def from_json(
+            cls,
+            data: Dict[str, Any]
+    ) -> Any:
+        if "id" not in data or "type" not in data or "tax" not in data:
+            return
+
+        tax: Dict[str, Any] = data["tax"]
+
+        return cls(
+            data.get("id"),
+            tax_amount=tax.get("tax_amount")
+        )
+
     def to_json(self) -> Dict[str, Any]:
         return {
             "id": self.field_id,

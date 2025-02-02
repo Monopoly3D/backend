@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from fastapi import Depends
 from redis.asyncio import Redis
 
+from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.assets.objects.game import Game
 from app.dependencies import Dependency
@@ -13,28 +14,22 @@ class GamesController(RedisController):
     REDIS_KEY = "games:{game_id}"
 
     async def create_game(self) -> Game:
-        game: Game = Game(
-            uuid4(),
-            controller=self
-        )
+        game: Game = Game(uuid4(), controller=self)
         await game.save()
 
         return game
 
     async def get_game(
             self,
-            game_id: UUID
+            game_id: UUID,
+            connections: ConnectionsController
     ) -> Game | None:
         game: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(game_id=game_id))
 
         if game is None:
             return
 
-        return Game(
-            game.get("id"),
-            is_started=game.get("is_started"),
-            controller=self
-        )
+        return Game.from_json(game, controller=self, connections=connections)
 
     async def exists_game(
             self,

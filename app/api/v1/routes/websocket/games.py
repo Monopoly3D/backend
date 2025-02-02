@@ -1,5 +1,6 @@
 from starlette.websockets import WebSocket
 
+from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.logging import logger
@@ -29,9 +30,10 @@ async def on_client_join_game(
         websocket: WebSocket,
         packet: ClientJoinGamePacket,
         user: User,
+        connections: ConnectionsController,
         games_controller: GamesController
 ) -> ServerPingPacket:
-    game: Game | None = await games_controller.get_game(packet.game_id)
+    game: Game | None = await games_controller.get_game(packet.game_id, connections)
 
     print(game.players)
 

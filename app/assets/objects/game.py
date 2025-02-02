@@ -2,6 +2,7 @@ import json
 from typing import Dict, Any, List, Type
 from uuid import UUID
 
+from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.casino import Casino
@@ -19,7 +20,7 @@ from app.assets.objects.redis import RedisObject
 class Game(RedisObject):
     default_map_path: str = "app/assets/default_map.json"
 
-    field_type_mapping: Dict[FieldType, Type[Any]] = {
+    field_type_mapping: Dict[FieldType, Type[Field | Any]] = {
         FieldType.COMPANY: Company,
         FieldType.CHANCE: Chance,
         FieldType.START: Start,
@@ -33,19 +34,19 @@ class Game(RedisObject):
             self,
             game_id: UUID,
             *,
-            is_started: bool = False,
-            current_round: int = 0,
-            current_move: int = 0,
-            has_start_bonus: bool = True,
+            is_started: bool | None = None,
+            current_round: int | None = None,
+            current_move: int | None = None,
+            has_start_bonus: bool | None = None,
             players: List[Player] | None = None,
             fields: List[Field] | None = None,
             controller: RedisController
     ) -> None:
         self.game_id = game_id
-        self.is_started = is_started
-        self.round = current_round
-        self.move = current_move
-        self.has_start_bonus = has_start_bonus
+        self.is_started = is_started or False
+        self.round = current_round or 0
+        self.move = current_move or 0
+        self.has_start_bonus = has_start_bonus or True
 
         self.__players = players or []
 
@@ -59,9 +60,52 @@ class Game(RedisObject):
     @classmethod
     def from_json(
             cls,
-            data: Dict[str, Any]
+            data: Dict[str, Any],
+            *,
+            controller: RedisController,
+            connections: ConnectionsController
     ) -> Any:
+        if "id" not in data:
+            return
 
+        try:
+            game_id: UUID = UUID(data.get("id"))
+        except ValueError:
+            return
+
+        players: List[Player] = []
+        fields: List[Field] = []
+
+        for data_player in data.get("players", []):
+            player: Player | None = Player.from_json(data_player)
+
+            if player is None:
+                continue
+
+            player.connection = connections.connections.get(player.player_id)
+            players.append(player)
+
+        for data_field in data.get("fields", []):
+            if "type" not in data_field:
+                continue
+
+            field: Field | None = cls.field_type_mapping[FieldType(data_field.get("type"))].from_json(data_field)
+
+            if field is None:
+                continue
+
+            fields.append(field)
+
+        return cls(
+            game_id,
+            is_started=data.get("is_started"),
+            current_round=data.get("current_round"),
+            current_move=data.get("current_move"),
+            has_start_bonus=data.get("has_start_bonus"),
+            players=players,
+            fields=fields,
+            controller=controller
+        )
 
     def to_json(self) -> Dict[str, Any]:
         return {
