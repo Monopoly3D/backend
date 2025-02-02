@@ -2,10 +2,10 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
-from app.api.v1.exceptions.websocket.game_not_found_error import GameNotFoundError
+from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
 from app.api.v1.exceptions.websocket.max_players import MaxPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
-from app.api.v1.exceptions.websocket.player_not_found_error import PlayerNotFoundError
+from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.logging import logger
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.ping import ClientPingPacket

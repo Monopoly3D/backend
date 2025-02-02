@@ -6,7 +6,7 @@ from starlette import status
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
-from app.api.v1.exceptions.http.not_found_error import NotFoundError
+from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.game import Game

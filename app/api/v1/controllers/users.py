@@ -5,7 +5,7 @@ from fastapi import Depends
 from redis.asyncio import Redis
 
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.exceptions.http.not_found_error import NotFoundError
+from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 

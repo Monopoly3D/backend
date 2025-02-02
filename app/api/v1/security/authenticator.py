@@ -10,9 +10,9 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.http.invalid_access_token_error import InvalidAccessTokenError
-from app.api.v1.exceptions.http.invalid_credentials_error import InvalidCredentialsError
-from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
+from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
+from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth import ServerAuthPacket

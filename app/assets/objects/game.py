@@ -143,7 +143,9 @@ class Game(RedisObject):
         self.__players.pop(player_id)
 
     def get_connections(self) -> Tuple[WebSocket, ...]:
-        return filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players)),
+        return tuple(
+            filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players))
+        )
 
     async def send(
             self,

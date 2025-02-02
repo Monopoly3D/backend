@@ -8,7 +8,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.logging import logger
