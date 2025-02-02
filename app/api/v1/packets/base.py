@@ -10,7 +10,7 @@ class BasePacket(ABC):
     PACKET_TAG: str
     PACKET_CLASS: PacketClass
 
-    PACKET_KEYS: Dict[str, Any]
+    PACKET_KEYS: Dict[str, Any] | List[str] = []
 
     @abstractmethod
     def __init__(
