@@ -30,11 +30,11 @@ class UsersController(RedisController):
     async def get_user(
             self,
             user_id: UUID
-    ) -> User:
+    ) -> User | None:
         user: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(user_id=user_id))
 
         if user is None:
-            raise NotFoundError("User with provided UUID was not found")
+            return
 
         return User(
             user.get("id"),

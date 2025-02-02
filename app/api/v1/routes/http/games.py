@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from app.api.v1.controllers.games import GamesController
+from app.api.v1.exceptions.http.not_found_error import NotFoundError
 from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.game import Game
@@ -35,7 +36,11 @@ async def get_game(
         game_id: UUID,
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
 ) -> GameResponseModel:
-    game: Game = await games_controller.get_game(game_id)
+    game: Game | None = await games_controller.get_game(game_id)
+
+    if game is None:
+        raise NotFoundError("Game with provided UUID was not found")
+
     return GameResponseModel.from_game(game)
 
 
@@ -48,4 +53,7 @@ async def remove_game(
         game_id: UUID,
         games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
 ) -> None:
+    if not await games_controller.exists_game(game_id):
+        raise NotFoundError("Game with provided UUID was not found")
+
     await games_controller.remove_game(game_id)

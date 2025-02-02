@@ -47,6 +47,5 @@ async def on_client_join_game(
     )
 
     await game.save()
-    print(game.players[0].connection)
 
     return ServerPingPacket("join")

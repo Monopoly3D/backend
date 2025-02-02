@@ -114,8 +114,13 @@ class Authenticator:
         data: Dict[str, str] = await asyncio.to_thread(self.decode_access_token, access_token)
 
         try:
-            user: User = await users_controller.get_user(UUID(data["id"]))
-        except NotFoundError or ValueError:
+            user_id: UUID = UUID(data["id"])
+        except ValueError:
+            raise InvalidCredentialsError("Provided access credentials are invalid")
+
+        user: User | None = await users_controller.get_user(user_id)
+
+        if user is None:
             raise InvalidCredentialsError("Provided access credentials are invalid")
 
         return user  # TODO: Add password check
@@ -182,8 +187,14 @@ class Authenticator:
                 return
 
             try:
-                user: User = await users_controller.get_user(UUID(ticket["id"]))
-            except NotFoundError or ValueError:
+                user_id: UUID = UUID(ticket["id"])
+            except ValueError:
+                await websocket.close(3000, "Provided authorization ticket is invalid")
+                return
+
+            user: User | None = await users_controller.get_user(user_id)
+
+            if user is None:
                 await websocket.close(3000, "Provided authorization ticket is invalid")
                 return
 
@@ -205,7 +216,7 @@ class Authenticator:
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
                 users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
         ) -> User:
-            user: User = await users_controller.get_user(await connections.get_user_id(websocket))
+            user: User | None = await users_controller.get_user(await connections.get_user_id(websocket))
 
             if user is None:
                 raise NotAuthenticatedAddressError("Provided websocket address is not authenticated")

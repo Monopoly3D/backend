@@ -56,6 +56,13 @@ class Game(RedisObject):
 
         super().__init__(controller.REDIS_KEY.format(game_id=game_id), controller)
 
+    @classmethod
+    def from_json(
+            cls,
+            data: Dict[str, Any]
+    ) -> Any:
+
+
     def to_json(self) -> Dict[str, Any]:
         return {
             "id": str(self.game_id),

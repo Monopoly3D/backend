@@ -5,7 +5,6 @@ from fastapi import Depends
 from redis.asyncio import Redis
 
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.exceptions.http.not_found_error import NotFoundError
 from app.assets.objects.game import Game
 from app.dependencies import Dependency
 
@@ -25,11 +24,11 @@ class GamesController(RedisController):
     async def get_game(
             self,
             game_id: UUID
-    ) -> Game:
+    ) -> Game | None:
         game: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(game_id=game_id))
 
         if game is None:
-            raise NotFoundError("Game with provided UUID was not found")
+            return
 
         return Game(
             game.get("id"),
@@ -37,13 +36,16 @@ class GamesController(RedisController):
             controller=self
         )
 
+    async def exists_game(
+            self,
+            game_id: UUID
+    ) -> bool:
+        return await self.exists(self.REDIS_KEY.format(game_id=game_id))
+
     async def remove_game(
             self,
             game_id: UUID
     ) -> None:
-        if not await self.exists(self.REDIS_KEY.format(game_id=game_id)):
-            raise NotFoundError("Game with provided UUID was not found")
-
         await self.remove(self.REDIS_KEY.format(game_id=game_id))
 
     @staticmethod
