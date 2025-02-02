@@ -1,13 +1,11 @@
 from typing import Dict, Any
 
-from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.packets.base_server import ServerPacket
 
 
 class ServerErrorPacket(ServerPacket):
     PACKET_TAG = "error"
-    PACKET_CLASS = PacketClass.SERVER
 
     PACKET_KEYS = ["status_code", "detail"]
 

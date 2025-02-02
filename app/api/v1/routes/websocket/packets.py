@@ -12,7 +12,8 @@ from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.logging import logger
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_client import ClientPacket
+from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
@@ -54,13 +55,13 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             dependencies=[Authenticator.authenticate_websocket_dependency()]
         )
 
-        self.handlers: Dict[Type[BasePacket], Coroutine[Any, Any, BasePacket]] = {}
+        self.handlers: Dict[Type[ClientPacket], Coroutine[Any, Any, ServerPacket | None]] = {}
 
     def handle(
             self,
-            packet: Type[BasePacket]
+            packet: Type[ClientPacket]
     ) -> Callable:
-        def decorator(func: Coroutine[Any, Any, BasePacket]) -> None:
+        def decorator(func: Coroutine[Any, Any, ServerPacket]) -> None:
             self.handlers.update({packet: func})
 
         return decorator
@@ -91,8 +92,8 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         packet: str = await websocket.receive_text()
 
         try:
-            packet_type: Type[BasePacket] = BasePacket.withdraw_packet_type(packet)
-            packet: BasePacket = packet_type.unpack(packet)
+            packet_type: Type[ClientPacket] = ClientPacket.withdraw_packet_type(packet)
+            packet: ClientPacket = packet_type.unpack(packet)
         except InvalidPacketError:
             raise InvalidPacketDataError("Provided packet data is invalid")
 
@@ -106,14 +107,14 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             websocket=websocket,
             **kwargs
         )
-        response_packet: BasePacket | None = await handler(**prepared_args)
+        response_packet: ServerPacket | None = await handler(**prepared_args)
 
         if response_packet is not None:
             await websocket.send_text(response_packet.pack())
 
     @staticmethod
     def __prepare_args(
-            func: Coroutine[Any, Any, BasePacket],
+            func: Coroutine[Any, Any, ServerPacket | None],
             **kwargs: Any
     ) -> Dict[str, Any]:
         return {

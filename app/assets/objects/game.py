@@ -6,7 +6,7 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_server import ServerPacket
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
@@ -149,7 +149,7 @@ class Game(RedisObject):
 
     async def send(
             self,
-            packet: BasePacket
+            packet: ServerPacket
     ) -> None:
         for connection in self.get_connections():
             await connection.send_text(packet.pack())

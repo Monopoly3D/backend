@@ -25,7 +25,7 @@ class BasePacket(ABC):
             cls,
             packet: str
     ) -> Type['BasePacket']:
-        packet: Dict[str, Any] = cls.__get_validated_packet(packet)
+        packet: Dict[str, Any] = cls._get_validated_packet(packet)
 
         packet_tag: str = packet["meta"]["tag"]
         packet_class: str = packet["meta"]["class"]
@@ -40,7 +40,7 @@ class BasePacket(ABC):
         return packets[packet_tag]
 
     @classmethod
-    def __get_validated_packet(
+    def _get_validated_packet(
             cls,
             packet: str
     ) -> Dict[str, Any]:

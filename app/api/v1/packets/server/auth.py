@@ -1,13 +1,11 @@
 from typing import Dict, Any
 from uuid import UUID
 
-from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.packets.base_server import ServerPacket
 
 
 class ServerAuthPacket(ServerPacket):
     PACKET_TAG = "auth"
-    PACKET_CLASS = PacketClass.SERVER
 
     PACKET_KEYS = ["user_id", "username"]
 

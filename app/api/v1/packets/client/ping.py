@@ -1,12 +1,10 @@
 from typing import Dict, Any
 
-from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.packets.base_client import ClientPacket
 
 
 class ClientPingPacket(ClientPacket):
     PACKET_TAG = "ping"
-    PACKET_CLASS = PacketClass.CLIENT
 
     PACKET_KEYS = ["request"]
 
