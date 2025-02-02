@@ -69,7 +69,7 @@ class Game(RedisObject):
             return
 
         try:
-            game_id: UUID = UUID(data.get("id"))
+            game_id = UUID(data.get("id"))
         except ValueError:
             return
 

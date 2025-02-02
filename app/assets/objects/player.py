@@ -70,9 +70,9 @@ class Player(MonopolyObject):
         }
 
     @property
-    def connection(self) -> WebSocket:
+    def connection(self) -> WebSocket | None:
         return self.__connection
 
     @connection.setter
-    def connection(self, connection: WebSocket) -> None:
+    def connection(self, connection: WebSocket | None) -> None:
         self.__connection = connection

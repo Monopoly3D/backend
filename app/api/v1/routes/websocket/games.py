@@ -2,14 +2,12 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
-from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.logging import logger
 from app.api.v1.packets.client.join_game import ClientJoinGamePacket
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.objects.game import Game
-from app.assets.objects.player import Player
 from app.assets.objects.user import User
 from config import Config
 
@@ -35,7 +33,7 @@ async def on_client_join_game(
 ) -> ServerPingPacket:
     game: Game | None = await games_controller.get_game(packet.game_id, connections)
 
-    if game.has_player(user.user_id):
+    """if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("Game with provided UUID already has this player")
 
     game.add_player(
@@ -46,5 +44,6 @@ async def on_client_join_game(
         )
     )
 
-    await game.save()
+    await game.save()"""
+
     return ServerPingPacket("join")

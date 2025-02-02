@@ -27,8 +27,13 @@ class User(RedisObject):
         if "id" not in data or "username" not in data:
             return
 
+        try:
+            user_id = UUID(data.get("id"))
+        except ValueError:
+            return
+
         return cls(
-            data.get("id"),
+            user_id,
             username=data.get("username"),
             controller=controller
         )

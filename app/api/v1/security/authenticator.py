@@ -13,7 +13,6 @@ from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.http.invalid_access_token_error import InvalidAccessTokenError
 from app.api.v1.exceptions.http.invalid_credentials_error import InvalidCredentialsError
 from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
-from app.api.v1.exceptions.http.not_found_error import NotFoundError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
