@@ -2,12 +2,15 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
+from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.logging import logger
-from app.api.v1.packets.client.join_game import ClientJoinGamePacket
+from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGame
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
+from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.objects.game import Game
+from app.assets.objects.player import Player
 from app.assets.objects.user import User
 from config import Config
 
@@ -18,32 +21,32 @@ games_packets_router = PacketsRouter(prefix="/games")
 
 @games_packets_router.handle(ClientPingPacket)
 async def on_client_ping(packet: ClientPingPacket) -> ServerPingPacket:
-    logger.info(f"Received message: {packet.request}")
+    logger.info(f"Ping: {packet.request}")
 
-    return ServerPingPacket("Message received!")
+    return ServerPingPacket("Pong!")
 
 
-@games_packets_router.handle(ClientJoinGamePacket)
+@games_packets_router.handle(ClientPlayerJoinGame)
 async def on_client_join_game(
         websocket: WebSocket,
-        packet: ClientJoinGamePacket,
+        packet: ClientPlayerJoinGame,
         user: User,
         connections: ConnectionsController,
         games_controller: GamesController
-) -> ServerPingPacket:
+) -> None:
     game: Game | None = await games_controller.get_game(packet.game_id, connections)
 
-    """if game.has_player(user.user_id):
+    if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("Game with provided UUID already has this player")
 
-    game.add_player(
-        Player(
-            user.user_id,
-            username=user.username,
-            connection=websocket
-        )
+    player = Player(
+        user.user_id,
+        username=user.username,
+        connection=websocket
     )
+    game.add_player(player)
 
-    await game.save()"""
+    await game.save()
 
-    return ServerPingPacket("join")
+    for connection in game.get_connections():
+        await connection.send_text(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username).pack())

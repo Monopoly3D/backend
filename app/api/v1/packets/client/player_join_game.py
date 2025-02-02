@@ -6,8 +6,8 @@ from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
 from app.api.v1.packets.base import BasePacket
 
 
-class ClientJoinGamePacket(BasePacket):
-    PACKET_TAG = "client_join_game"
+class ClientPlayerJoinGame(BasePacket):
+    PACKET_TAG = "client_player_join_game"
     PACKET_CLASS = PacketClass.CLIENT
 
     def __init__(

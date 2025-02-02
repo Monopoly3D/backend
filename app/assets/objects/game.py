@@ -1,6 +1,9 @@
 import json
-from typing import Dict, Any, List, Type
+from typing import Dict, Any, List, Type, Tuple
 from uuid import UUID
+
+from starlette.websockets import WebSocket
+from websockets.sync.connection import Connection
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
@@ -149,6 +152,9 @@ class Game(RedisObject):
                 return True
 
         return False
+
+    def get_connections(self) -> Tuple[WebSocket, ...]:
+        return filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players)),
 
     @classmethod
     def default_map(cls) -> List[Field]:
