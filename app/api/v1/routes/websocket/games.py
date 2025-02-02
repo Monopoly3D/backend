@@ -5,11 +5,14 @@ from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.game_not_found_error import GameNotFoundError
 from app.api.v1.exceptions.websocket.max_players import MaxPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
+from app.api.v1.exceptions.websocket.player_not_found_error import PlayerNotFoundError
 from app.api.v1.logging import logger
-from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGame
+from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.ping import ClientPingPacket
+from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
+from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
@@ -28,10 +31,10 @@ async def on_client_ping(packet: ClientPingPacket) -> ServerPingPacket:
     return ServerPingPacket("Pong!")
 
 
-@games_packets_router.handle(ClientPlayerJoinGame)
+@games_packets_router.handle(ClientPlayerJoinGamePacket)
 async def on_client_join_game(
         websocket: WebSocket,
-        packet: ClientPlayerJoinGame,
+        packet: ClientPlayerJoinGamePacket,
         user: User,
         connections: ConnectionsController,
         games_controller: GamesController
@@ -53,8 +56,29 @@ async def on_client_join_game(
         connection=websocket
     )
     game.add_player(player)
-
     await game.save()
 
-    for connection in game.get_connections():
-        await connection.send_text(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username).pack())
+    await game.send(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username))
+
+
+@games_packets_router.handle(ClientPlayerReadyPacket)
+async def on_client_ready(
+        packet: ClientPlayerReadyPacket,
+        user: User,
+        connections: ConnectionsController,
+        games_controller: GamesController
+) -> None:
+    game: Game | None = await games_controller.get_game(packet.game_id, connections)
+
+    if game is None:
+        raise GameNotFoundError("Game with provided UUID was not found")
+
+    player: Player | None = game.get_player(user.user_id)
+
+    if player is None:
+        raise PlayerNotFoundError("Player with provided UUID was not found")
+
+    player.is_ready = packet.is_ready
+    await game.save()
+
+    await game.send(ServerPlayerReadyPacket(game.game_id, player.player_id, packet.is_ready))

@@ -15,7 +15,7 @@ from app.api.v1.exceptions.http.invalid_credentials_error import InvalidCredenti
 from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
 from app.api.v1.packets.client.auth import ClientAuthPacket
-from app.api.v1.packets.server.auth_response import ServerAuthResponsePacket
+from app.api.v1.packets.server.auth import ServerAuthPacket
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
@@ -199,7 +199,7 @@ class Authenticator:
 
             await connections.add_connection(websocket, user.user_id)
 
-            auth_response_packet: ServerAuthResponsePacket = ServerAuthResponsePacket(
+            auth_response_packet: ServerAuthPacket = ServerAuthPacket(
                 user.user_id,
                 user.username
             )

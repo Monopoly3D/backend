@@ -15,6 +15,7 @@ class Player(MonopolyObject):
             connection: WebSocket | None = None,
             balance: int | None = None,
             field: int | None = None,
+            is_ready: bool | None = None,
             is_playing: bool | None = None,
             is_imprisoned: bool | None = None,
             double_amount: int | None = None,
@@ -24,6 +25,7 @@ class Player(MonopolyObject):
         self.username = username
         self.balance = balance or 15000
         self.field = field or 0
+        self.is_ready = is_ready or False
         self.is_playing = is_playing or True
         self.is_imprisoned = is_imprisoned or False
         self.double_amount = double_amount or 0
@@ -51,6 +53,7 @@ class Player(MonopolyObject):
             connection=connection,
             balance=data.get("balance"),
             field=data.get("field"),
+            is_ready=data.get("is_ready"),
             is_playing=data.get("is_playing"),
             is_imprisoned=data.get("is_imprisoned"),
             double_amount=data.get("double_amount"),
@@ -63,6 +66,7 @@ class Player(MonopolyObject):
             "username": self.username,
             "balance": self.balance,
             "field": self.field,
+            "is_ready": self.is_ready,
             "is_playing": self.is_playing,
             "is_imprisoned": self.is_imprisoned,
             "double_amount": self.double_amount,

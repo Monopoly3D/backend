@@ -6,6 +6,7 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
+from app.api.v1.packets.base import BasePacket
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
@@ -13,6 +14,8 @@ from app.assets.objects.redis import RedisObject
 
 class Game(RedisObject):
     DEFAULT_MAP_PATH: str = "app/assets/maps/default_map.json"
+
+    MIN_PLAYERS: int = 2
     MAX_PLAYERS: int = 5
 
     def __init__(
@@ -121,6 +124,12 @@ class Game(RedisObject):
     ) -> None:
         self.__players.update({player.player_id: player})
 
+    def get_player(
+            self,
+            player_id: UUID
+    ) -> Player | None:
+        return self.__players.get(player_id)
+
     def has_player(
             self,
             player_id: UUID
@@ -135,6 +144,13 @@ class Game(RedisObject):
 
     def get_connections(self) -> Tuple[WebSocket, ...]:
         return filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players)),
+
+    async def send(
+            self,
+            packet: BasePacket
+    ) -> None:
+        for connection in self.get_connections():
+            await connection.send_text(packet.pack())
 
     @classmethod
     def default_map(cls) -> List[Field]:

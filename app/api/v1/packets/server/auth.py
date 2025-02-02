@@ -6,8 +6,8 @@ from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
 from app.api.v1.packets.base import BasePacket
 
 
-class ServerAuthResponsePacket(BasePacket):
-    PACKET_TAG = "server_auth_response"
+class ServerAuthPacket(BasePacket):
+    PACKET_TAG = "server_auth"
     PACKET_CLASS = PacketClass.SERVER
 
     def __init__(
