@@ -36,7 +36,7 @@ class Game(RedisObject):
         self.move = current_move or 0
         self.has_start_bonus = has_start_bonus or True
 
-        self.__players: Dict[UUID, Player] = {player.player_id: player for player in players}
+        self.__players: Dict[UUID, Player] = {player.player_id: player for player in players} if players else {}
         self.__fields = fields or self.default_map()
 
         super().__init__(controller.REDIS_KEY.format(game_id=game_id), controller)

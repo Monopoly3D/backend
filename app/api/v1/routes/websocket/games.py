@@ -58,7 +58,7 @@ async def on_client_join_game(
     game.add_player(player)
     await game.save()
 
-    await game.send(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username))
+    await game.send(ServerPlayerJoinGamePacket(game.game_id, player))
 
 
 @games_packets_router.handle(ClientPlayerReadyPacket)
