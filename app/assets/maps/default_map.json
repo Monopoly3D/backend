@@ -57,6 +57,7 @@
       "cost": 2000,
       "mortgage_cost": 1000,
       "buyout_cost": 1200,
+      "filiation_cost": 0,
       "field_dependant": true
     }
   },
@@ -144,6 +145,7 @@
       "cost": 1500,
       "mortgage_cost": 750,
       "buyout_cost": 900,
+      "filiation_cost": 0,
       "dice_dependant": true
     }
   },
@@ -193,6 +195,7 @@
       "cost": 2000,
       "mortgage_cost": 1000,
       "buyout_cost": 1200,
+      "filiation_cost": 0,
       "field_dependant": true
     }
   },
@@ -319,6 +322,7 @@
       "cost": 2000,
       "mortgage_cost": 1000,
       "buyout_cost": 1200,
+      "filiation_cost": 0,
       "field_dependant": true
     }
   },
@@ -366,6 +370,7 @@
       "cost": 1500,
       "mortgage_cost": 750,
       "buyout_cost": 900,
+      "filiation_cost": 0,
       "dice_dependant": true
     }
   },
@@ -455,6 +460,7 @@
       "cost": 2000,
       "mortgage_cost": 1000,
       "buyout_cost": 1200,
+      "filiation_cost": 0,
       "field_dependant": true
     }
   },

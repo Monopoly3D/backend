@@ -47,10 +47,17 @@ class Company(Field):
             return
 
         company: Dict[str, Any] = data["company"]
+        owner_id: str | None = company.get("owner_id")
+
+        if owner_id is not None:
+            try:
+                owner_id: UUID = UUID(owner_id)
+            except ValueError:
+                pass
 
         return cls(
             data.get("id"),
-            owner_id=company.get("owner_id"),
+            owner_id=owner_id,
             is_monopoly=company.get("is_monopoly"),
             field_dependant=company.get("field_dependant"),
             dice_dependant=company.get("dice_dependant"),
@@ -68,7 +75,7 @@ class Company(Field):
             "id": self.field_id,
             "type": self.FIELD_TYPE.value,
             "company": {
-                "owner_id": str(self.owner_id),
+                "owner_id": str(self.owner_id) if self.owner_id else None,
                 "is_monopoly": self.is_monopoly,
                 "field_dependant": self.field_dependant,
                 "dice_dependant": self.dice_dependant,
