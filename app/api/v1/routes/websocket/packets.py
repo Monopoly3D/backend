@@ -108,7 +108,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
 
         handler: Any = self.handlers.get(packet_type, None)
         if handler is None:
-            raise UnknownPacketError("Unknown packet type")
+            raise UnknownPacketError("Unknown packet")
 
         prepared_args: Dict[str, Any] = self.__prepare_args(
             handler,

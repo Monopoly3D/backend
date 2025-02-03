@@ -9,6 +9,7 @@ from pytz import utc
 from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
+from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
@@ -16,6 +17,7 @@ from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth import ServerAuthPacket
+from app.assets.objects.game import Game
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
@@ -213,7 +215,7 @@ class Authenticator:
         async def __get_websocket_user(
                 websocket: WebSocket,
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-                users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
+                users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)]
         ) -> User:
             user: User | None = await users_controller.get_user(await connections.get_user_id(websocket))
 

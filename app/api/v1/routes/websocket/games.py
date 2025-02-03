@@ -5,6 +5,7 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
+from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
 from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
 from app.api.v1.exceptions.websocket.max_players import MaxPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
@@ -36,8 +37,13 @@ async def on_client_join_game(
     game: Game | None = await games_controller.get_game(packet.game_id, connections)
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
+
+    if game.is_started:
+        raise GameAlreadyStartedError("Game with provided UUID has already started")
+
     if len(game.players) >= game.MAX_PLAYERS:
         raise MaxPlayersError("Game with provided UUID has reached maximum number of players")
+
     if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("Player has already joined this game")
 
@@ -62,9 +68,13 @@ async def on_client_ready(
     game: Game | None = await games_controller.get_game(packet.game_id, connections)
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
+
+    if game.is_started:
+        raise GameAlreadyStartedError("Game with provided UUID has already started")
+
     player: Player | None = game.get_player(user.user_id)
     if player is None:
-        raise PlayerNotFoundError("Player with provided UUID was not found")
+        raise PlayerNotFoundError("Player with provided UUID is not in game")
 
     player.is_ready = packet.is_ready
     await game.save()
