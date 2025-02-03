@@ -84,7 +84,7 @@ async def on_client_ready(
 
     task: Task | None = get_task(f"start:{game.game_id}")
 
-    if game.is_ready and task is None:
+    if game.is_ready and len(game.players) >= game.min_players and task is None:
         task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
         await game.send(ServerGameCountdownStartPacket(game.game_id))
         await task
