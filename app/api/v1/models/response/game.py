@@ -14,6 +14,9 @@ class GameResponseModel(BaseModel):
     current_round: int
     current_move: int
     has_start_bonus: bool
+    min_players: int
+    max_players: int
+    start_delay: int
     players: List[PlayerResponseModel]
     fields: List[FieldResponseModel]
 
@@ -28,6 +31,9 @@ class GameResponseModel(BaseModel):
             current_round=game.round,
             current_move=game.move,
             has_start_bonus=game.has_start_bonus,
+            min_players=game.min_players,
+            max_players=game.max_players,
+            start_delay=game.start_delay,
             players=[PlayerResponseModel.from_player(player) for player in game.players],
             fields=[FieldResponseModel.from_field(field) for field in game.fields]
         )
