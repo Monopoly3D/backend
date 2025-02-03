@@ -7,11 +7,13 @@ from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
 from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
-from app.api.v1.exceptions.websocket.max_players import MaxPlayersError
+from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
+from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
+from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.packets import PacketsRouter
@@ -41,8 +43,8 @@ async def on_client_join_game(
     if game.is_started:
         raise GameAlreadyStartedError("Game with provided UUID has already started")
 
-    if len(game.players) >= game.MAX_PLAYERS:
-        raise MaxPlayersError("Game with provided UUID has reached maximum number of players")
+    if len(game.players) >= game.max_players:
+        raise TooManyPlayersError("Game with provided UUID has too many players")
 
     if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("Player has already joined this game")
@@ -84,6 +86,8 @@ async def on_client_ready(
 
     if game.is_ready and task is None:
         task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
+        await game.send(ServerGameCountdownStartPacket(game.game_id))
         await task
     elif not game.is_ready and task is not None:
+        await game.send(ServerGameCountdownStopPacket(game.game_id))
         task.cancel()

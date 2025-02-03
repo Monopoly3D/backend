@@ -1,6 +1,7 @@
 import asyncio
 import json
 from asyncio import CancelledError
+from random import shuffle
 from typing import Dict, Any, List, Tuple
 from uuid import UUID
 
@@ -9,6 +10,7 @@ from starlette.websockets import WebSocket
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
@@ -16,10 +18,6 @@ from app.assets.objects.redis import RedisObject
 
 class Game(RedisObject):
     DEFAULT_MAP_PATH: str = "app/assets/maps/default_map.json"
-
-    MIN_PLAYERS: int = 2
-    MAX_PLAYERS: int = 5
-    START_DELAY: float = 10
 
     def __init__(
             self,
@@ -29,6 +27,9 @@ class Game(RedisObject):
             current_round: int | None = None,
             current_move: int | None = None,
             has_start_bonus: bool | None = None,
+            min_players: int | None = None,
+            max_players: int | None = None,
+            start_delay: int | None = None,
             players: List[Player] | None = None,
             fields: List[Field] | None = None,
             controller: RedisController
@@ -38,6 +39,9 @@ class Game(RedisObject):
         self.round = current_round or 0
         self.move = current_move or 0
         self.has_start_bonus = has_start_bonus or True
+        self.min_players = min_players or 2
+        self.max_players = max_players or 5
+        self.start_delay = start_delay or 10
 
         self.__players: Dict[UUID, Player] = {player.player_id: player for player in players} if players else {}
         self.__fields = fields or self.default_map()
@@ -89,6 +93,9 @@ class Game(RedisObject):
             current_round=data.get("current_round"),
             current_move=data.get("current_move"),
             has_start_bonus=data.get("has_start_bonus"),
+            min_players=data.get("min_players"),
+            max_players=data.get("max_players"),
+            start_delay=data.get("start_delay"),
             players=players,
             fields=fields,
             controller=controller
@@ -101,6 +108,9 @@ class Game(RedisObject):
             "round": self.round,
             "move": self.move,
             "has_start_bonus": self.has_start_bonus,
+            "min_players": self.min_players,
+            "max_players": self.max_players,
+            "start_delay": self.start_delay,
             "players": self.players_json,
             "fields": self.fields_json
         }
@@ -123,11 +133,15 @@ class Game(RedisObject):
 
     async def start(self) -> None:
         self.is_started = True
+        self.shuffle_players()
+
+        await self.send(ServerGameStartPacket(self.game_id, self.players))
+
         await self.save()
 
     async def delayed_start(self) -> None:
         try:
-            await asyncio.sleep(self.START_DELAY)
+            await asyncio.sleep(self.start_delay)
             await self.start()
         except CancelledError:
             pass
@@ -155,6 +169,11 @@ class Game(RedisObject):
             player_id: UUID
     ) -> None:
         self.__players.pop(player_id)
+
+    def shuffle_players(self) -> None:
+        players_items: List[Tuple[UUID, Player]] = list(self.__players.items())
+        shuffle(players_items)
+        self.__players = dict(players_items)
 
     async def send(
             self,
