@@ -1,4 +1,6 @@
+import asyncio
 import json
+from asyncio import CancelledError
 from typing import Dict, Any, List, Tuple
 from uuid import UUID
 
@@ -17,6 +19,7 @@ class Game(RedisObject):
 
     MIN_PLAYERS: int = 2
     MAX_PLAYERS: int = 5
+    START_DELAY: float = 10
 
     def __init__(
             self,
@@ -118,6 +121,17 @@ class Game(RedisObject):
     def fields_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.fields]
 
+    async def start(self) -> None:
+        self.is_started = True
+        await self.save()
+
+    async def delayed_start(self) -> None:
+        try:
+            await asyncio.sleep(self.START_DELAY)
+            await self.start()
+        except CancelledError:
+            pass
+
     def add_player(
             self,
             player: Player
@@ -142,17 +156,22 @@ class Game(RedisObject):
     ) -> None:
         self.__players.pop(player_id)
 
-    def get_connections(self) -> Tuple[WebSocket, ...]:
-        return tuple(
-            filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players))
-        )
-
     async def send(
             self,
             packet: ServerPacket
     ) -> None:
-        for connection in self.get_connections():
+        for connection in self.connections:
             await connection.send_text(packet.pack())
+
+    @property
+    def is_ready(self) -> bool:
+        return all([player.is_ready for player in self.players])
+
+    @property
+    def connections(self) -> Tuple[WebSocket, ...]:
+        return tuple(
+            filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players))
+        )
 
     @classmethod
     def default_map(cls) -> List[Field]:

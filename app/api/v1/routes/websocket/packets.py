@@ -11,6 +11,7 @@ from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
+from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
@@ -84,9 +85,11 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
                         websocket,
                         **dp
                     )
-                except Exception as e:
-                    # raise InternalServerError("Internal server error")
+                except WebSocketError as e:
                     raise e
+                except Exception as e:
+                    raise e
+                    # raise InternalServerError("Internal server error")
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
