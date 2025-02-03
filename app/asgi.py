@@ -11,6 +11,7 @@ from starlette.websockets import WebSocket
 from app.api.router import api_router
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.exceptions.http.http_error import HTTPError
+from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
@@ -69,9 +70,14 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 async def on_websocket_error(websocket: WebSocket, exception: WebSocketError) -> None:
     try:
         await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
-        logger.error(
-            f"(\'{websocket.client.host}\', {websocket.client.port}) - WebSocket error {exception.status_code}: {exception}"
-        )
+
+        if isinstance(exception, InternalServerError):
+            raise exception.error
+        else:
+            logger.error(
+                f"(\'{websocket.client.host}\', {websocket.client.port}) "
+                f"WebSocket error {exception.status_code}: {exception}"
+            )
     except RuntimeError:
         pass
 

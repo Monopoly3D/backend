@@ -62,7 +62,6 @@ async def on_client_ready(
     game: Game | None = await games_controller.get_game(packet.game_id, connections)
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
-
     player: Player | None = game.get_player(user.user_id)
     if player is None:
         raise PlayerNotFoundError("Player with provided UUID was not found")
@@ -74,6 +73,7 @@ async def on_client_ready(
     task: Task | None = get_task(f"start:{game.game_id}")
 
     if game.is_ready and task is None:
-        await asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
+        task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
+        await task
     elif not game.is_ready and task is not None:
         task.cancel()
