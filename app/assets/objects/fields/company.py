@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.field import Field
+from app.assets.objects.player import Player
 
 
 class Company(Field):
@@ -88,3 +89,9 @@ class Company(Field):
                 "filiation_cost": self.filiation_cost
             }
         }
+
+    async def on_stand(
+            self,
+            player: Player
+    ) -> None:
+        pass
