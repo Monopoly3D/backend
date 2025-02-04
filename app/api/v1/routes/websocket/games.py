@@ -3,8 +3,6 @@ from asyncio import Task
 
 from starlette.websockets import WebSocket
 
-from app.api.v1.controllers.connections import ConnectionsController
-from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
 from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
@@ -34,12 +32,9 @@ games_packets_router = PacketsRouter(prefix="/games")
 @games_packets_router.handle(ClientPlayerJoinGamePacket)
 async def on_client_join_game(
         websocket: WebSocket,
-        packet: ClientPlayerJoinGamePacket,
         user: User,
-        connections: ConnectionsController,
-        games_controller: GamesController
+        game: Game,
 ) -> None:
-    game: Game | None = await games_controller.get_game(packet.game_id, connections)
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
 
@@ -67,10 +62,8 @@ async def on_client_join_game(
 async def on_client_ready(
         packet: ClientPlayerReadyPacket,
         user: User,
-        connections: ConnectionsController,
-        games_controller: GamesController
+        game: Game
 ) -> None:
-    game: Game | None = await games_controller.get_game(packet.game_id, connections)
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
 
@@ -99,12 +92,9 @@ async def on_client_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
-        packet: ClientPlayerMovePacket,
         user: User,
-        connections: ConnectionsController,
-        games_controller: GamesController
+        game: Game
 ) -> None:
-    game: Game | None = await games_controller.get_game(packet.game_id, connections)
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
 

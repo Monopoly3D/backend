@@ -223,3 +223,19 @@ class Authenticator:
             return user
 
         return Depends(__get_websocket_user)
+
+    @staticmethod
+    def get_websocket_game() -> Depends:
+        async def __get_websocket_user(
+                websocket: WebSocket,
+                connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
+                users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)]
+        ) -> User:
+            user: User | None = await users_controller.get_user(await connections.get_user_id(websocket))
+
+            if user is None:
+                raise NotAuthenticatedAddressError("Provided websocket address is not authenticated")
+
+            return user
+
+        return Depends(__get_websocket_user)

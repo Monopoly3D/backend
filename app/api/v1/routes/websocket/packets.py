@@ -20,6 +20,7 @@ from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
+from app.assets.objects.game import Game
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
@@ -110,10 +111,16 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         if handler is None:
             raise UnknownPacketError("Unknown packet")
 
+        if hasattr(packet, "game_id") and "connections" in kwargs and "games_controller" in kwargs:
+            game: Game | None = await kwargs["games_controller"].get_game(packet.game_id, kwargs["connections"])
+        else:
+            game = None
+
         prepared_args: Dict[str, Any] = self.__prepare_args(
             handler,
             packet=packet,
             websocket=websocket,
+            game=game,
             **kwargs
         )
         response_packet: ServerPacket | None = await handler(**prepared_args)
