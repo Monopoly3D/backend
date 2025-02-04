@@ -1,7 +1,7 @@
 import asyncio
 import json
 from asyncio import CancelledError
-from random import shuffle
+from random import shuffle, randint
 from typing import Dict, Any, List, Tuple
 from uuid import UUID
 
@@ -10,6 +10,7 @@ from starlette.websockets import WebSocket
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.game_move_packet import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
@@ -24,24 +25,28 @@ class Game(RedisObject):
             game_id: UUID,
             *,
             is_started: bool | None = None,
+            awaiting_move: bool | None = None,
             current_round: int | None = None,
             current_move: int | None = None,
-            has_start_bonus: bool | None = None,
             min_players: int | None = None,
             max_players: int | None = None,
             start_delay: int | None = None,
+            start_bonus: int | None = None,
+            has_start_bonus: bool | None = None,
             players: List[Player] | None = None,
             fields: List[Field] | None = None,
             controller: RedisController
     ) -> None:
         self.game_id = game_id
         self.is_started = is_started or False
+        self.awaiting_move = awaiting_move or False
         self.round = current_round or 0
         self.move = current_move or 0
-        self.has_start_bonus = has_start_bonus or True
-        self.min_players = min_players or 2
+        self.min_players = min_players or 1
         self.max_players = max_players or 5
-        self.start_delay = start_delay or 10
+        self.start_delay = start_delay or 3
+        self.start_bonus = start_bonus or 2000
+        self.has_start_bonus = has_start_bonus or True
 
         self.__players: Dict[UUID, Player] = {player.player_id: player for player in players} if players else {}
         self.__fields = fields or self.default_map()
@@ -90,12 +95,14 @@ class Game(RedisObject):
         return cls(
             game_id,
             is_started=data.get("is_started"),
+            awaiting_move=data.get("awaiting_move"),
             current_round=data.get("current_round"),
             current_move=data.get("current_move"),
-            has_start_bonus=data.get("has_start_bonus"),
             min_players=data.get("min_players"),
             max_players=data.get("max_players"),
             start_delay=data.get("start_delay"),
+            start_bonus=data.get("start_bonus"),
+            has_start_bonus=data.get("has_start_bonus"),
             players=players,
             fields=fields,
             controller=controller
@@ -105,12 +112,14 @@ class Game(RedisObject):
         return {
             "id": str(self.game_id),
             "is_started": self.is_started,
+            "awaiting_move": self.awaiting_move,
             "round": self.round,
             "move": self.move,
-            "has_start_bonus": self.has_start_bonus,
             "min_players": self.min_players,
             "max_players": self.max_players,
             "start_delay": self.start_delay,
+            "start_bonus": self.start_bonus,
+            "has_start_bonus": self.has_start_bonus,
             "players": self.players_json,
             "fields": self.fields_json
         }
@@ -133,9 +142,11 @@ class Game(RedisObject):
 
     async def start(self) -> None:
         self.is_started = True
+        self.awaiting_move = True
         self.shuffle_players()
 
         await self.send(ServerGameStartPacket(self.game_id, self.players))
+        await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
 
         await self.save()
 
@@ -145,6 +156,25 @@ class Game(RedisObject):
             await self.start()
         except CancelledError:
             pass
+
+    async def move_player(self) -> None:
+        player: Player = self.players[self.move]
+
+        dices: Tuple[int, int] = self.throw_dices()
+        amount: int = 8  # sum(dices)
+
+        player.field += amount
+        if player.field >= len(self.fields):
+            player.field %= len(self.fields)
+            if self.has_start_bonus:
+                player.balance += self.start_bonus
+
+        field: Field = self.fields[player.field]
+
+        self.move += 1
+        if self.move >= len(self.players):
+            self.move = 0
+            self.round += 1
 
     def add_player(
             self,
@@ -195,6 +225,10 @@ class Game(RedisObject):
     @classmethod
     def default_map(cls) -> List[Field]:
         return cls.__get_map(cls.DEFAULT_MAP_PATH)
+
+    @staticmethod
+    def throw_dices() -> Tuple[int, int]:
+        return randint(1, 6), randint(1, 6)
 
     @classmethod
     def __get_map(

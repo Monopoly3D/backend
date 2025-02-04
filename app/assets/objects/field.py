@@ -1,8 +1,9 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Type
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.monopoly_object import MonopolyObject
+from app.assets.objects.player import Player
 
 
 class Field(MonopolyObject, ABC):
@@ -29,6 +30,13 @@ class Field(MonopolyObject, ABC):
             "id": self.field_id,
             "type": self.FIELD_TYPE.value
         }
+
+    @abstractmethod
+    async def on_stand(
+            self,
+            player: Player
+    ) -> None:
+        pass
 
     @classmethod
     def get_class(

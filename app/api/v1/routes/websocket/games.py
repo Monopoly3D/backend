@@ -6,11 +6,14 @@ from starlette.websockets import WebSocket
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
+from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
+from app.api.v1.exceptions.websocket.game_not_started import GameNotStartedError
 from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
+from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
 from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
@@ -47,7 +50,7 @@ async def on_client_join_game(
         raise TooManyPlayersError("Game with provided UUID has too many players")
 
     if game.has_player(user.user_id):
-        raise PlayerAlreadyInGameError("Player has already joined this game")
+        raise PlayerAlreadyInGameError("You are already in game")
 
     player = Player(
         user.user_id,
@@ -76,7 +79,7 @@ async def on_client_ready(
 
     player: Player | None = game.get_player(user.user_id)
     if player is None:
-        raise PlayerNotFoundError("Player with provided UUID is not in game")
+        raise PlayerNotFoundError("You are not in game")
 
     player.is_ready = packet.is_ready
     await game.save()
@@ -88,6 +91,32 @@ async def on_client_ready(
         task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
         await game.send(ServerGameCountdownStartPacket(game.game_id))
         await task
+
     elif not game.is_ready and task is not None:
         await game.send(ServerGameCountdownStopPacket(game.game_id))
         task.cancel()
+
+
+@games_packets_router.handle(ClientPlayerMovePacket)
+async def on_client_move(
+        packet: ClientPlayerMovePacket,
+        user: User,
+        connections: ConnectionsController,
+        games_controller: GamesController
+) -> None:
+    game: Game | None = await games_controller.get_game(packet.game_id, connections)
+    if game is None:
+        raise GameNotFoundError("Game with provided UUID was not found")
+
+    if not game.is_started:
+        raise GameNotStartedError("Game with provided UUID has not been started")
+
+    player: Player | None = game.get_player(user.user_id)
+    if player is None:
+        raise PlayerNotFoundError("You are not in game")
+
+    if not game.awaiting_move or game.players[game.move].player_id != player.player_id:
+        raise GameNotAwaitingMoveError("You are not allowed to move now")
+
+    await game.move_player()
+    await game.save()
