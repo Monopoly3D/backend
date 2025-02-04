@@ -92,6 +92,52 @@ class Company(Field):
 
     async def on_stand(
             self,
-            player: Player
+            player: Player,
+            amount: int
     ) -> None:
-        pass
+        if self.owner_id is None:
+            print("You can buy it")
+            return
+
+        if self.owner_id == player.player_id:
+            self.game.awaiting_move = True
+            return
+
+        if self.mortgage >= 0:
+            self.game.awaiting_move = True
+            return
+
+    def stand_cost(
+            self,
+            amount: int
+    ) -> int:
+        if self.field_dependant:
+            field_count: int = 0
+            for field in self.game.fields:
+                if field.FIELD_TYPE == FieldType.COMPANY and field.rent_dependant and field.owner_id == self.owner_id:
+                    field_count += 1
+            try:
+                return self.rent[field_count - 1]
+            except IndexError:
+                return 0
+
+        if self.dice_dependant:
+            field_count: int = 0
+            for field in self.game.fields:
+                if field.FIELD_TYPE == FieldType.COMPANY and field.dice_dependant and field.owner_id == self.owner_id:
+                    field_count += 1
+            try:
+                return self.rent[field_count - 1] * amount
+            except IndexError:
+                return 0
+
+        if self.is_monopoly:
+            if self.filiation == 0:
+                return self.rent[0] * 2
+
+            try:
+                return self.rent[self.filiation]
+            except IndexError:
+                return 0
+
+        return self.rent[0]

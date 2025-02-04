@@ -174,7 +174,7 @@ class Game(RedisObject):
         player: Player = self.players[self.move]
 
         dices: Tuple[int, int] = self.throw_dices()
-        amount: int = 8  # sum(dices)
+        amount: int = 39  # sum(dices)
         got_start_bonus: bool = False
 
         player.field += amount
@@ -192,7 +192,7 @@ class Game(RedisObject):
             await self.send(ServerPlayerGotStartBonusPacket(self.game_id, player.player_id, self.start_bonus))
 
         field: Field = self.fields[player.field]
-        # await field.on_stand(player)
+        await field.on_stand(player, amount)
 
     def add_player(
             self,
