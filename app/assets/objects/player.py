@@ -31,7 +31,8 @@ class Player(MonopolyObject):
         self.double_amount = double_amount or 0
         self.contract_amount = contract_amount or 0
 
-        self.__connection = connection
+        self.connection = connection
+        self.game: Any = None
 
     @classmethod
     def from_json(
@@ -72,11 +73,3 @@ class Player(MonopolyObject):
             "double_amount": self.double_amount,
             "contract_amount": self.contract_amount
         }
-
-    @property
-    def connection(self) -> WebSocket | None:
-        return self.__connection
-
-    @connection.setter
-    def connection(self, connection: WebSocket | None) -> None:
-        self.__connection = connection

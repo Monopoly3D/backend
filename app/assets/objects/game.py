@@ -10,8 +10,10 @@ from starlette.websockets import WebSocket
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
-from app.api.v1.packets.server.game_move_packet import ServerGameMovePacket
+from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
+from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
+from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
@@ -48,8 +50,19 @@ class Game(RedisObject):
         self.start_bonus = start_bonus or 2000
         self.has_start_bonus = has_start_bonus or True
 
-        self.__players: Dict[UUID, Player] = {player.player_id: player for player in players} if players else {}
-        self.__fields = fields or self.default_map()
+        self.__players: Dict[UUID, Player] = {}
+        if players is not None:
+            for player in players:
+                player.game = self
+                self.__players[player.player_id] = player
+
+        if fields is None:
+            self.__fields: List[Field] = self.default_map()
+        else:
+            self.__fields: List[Field] = []
+            for field in fields:
+                field.game = self
+                self.__fields.append(field)
 
         super().__init__(controller.REDIS_KEY.format(game_id=game_id), controller)
 
@@ -162,24 +175,30 @@ class Game(RedisObject):
 
         dices: Tuple[int, int] = self.throw_dices()
         amount: int = 8  # sum(dices)
+        got_start_bonus: bool = False
 
         player.field += amount
+
         if player.field >= len(self.fields):
             player.field %= len(self.fields)
+
             if self.has_start_bonus:
+                got_start_bonus = True
                 player.balance += self.start_bonus
 
-        field: Field = self.fields[player.field]
+        await self.send(ServerPlayerMovePacket(self.game_id, player.player_id, dices, player.field))
 
-        self.move += 1
-        if self.move >= len(self.players):
-            self.move = 0
-            self.round += 1
+        if got_start_bonus:
+            await self.send(ServerPlayerGotStartBonusPacket(self.game_id, player.player_id, self.start_bonus))
+
+        field: Field = self.fields[player.field]
+        # await field.on_stand(player)
 
     def add_player(
             self,
             player: Player
     ) -> None:
+        player.game = self
         self.__players.update({player.player_id: player})
 
     def get_player(
@@ -222,17 +241,8 @@ class Game(RedisObject):
             filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players))
         )
 
-    @classmethod
-    def default_map(cls) -> List[Field]:
-        return cls.__get_map(cls.DEFAULT_MAP_PATH)
-
-    @staticmethod
-    def throw_dices() -> Tuple[int, int]:
-        return randint(1, 6), randint(1, 6)
-
-    @classmethod
-    def __get_map(
-            cls,
+    def get_map(
+            self,
             game_path: str
     ) -> List[Field]:
         with open(game_path, "r") as file:
@@ -248,6 +258,14 @@ class Game(RedisObject):
             if new_field is None:
                 continue
 
+            new_field.game = self
             fields.append(new_field)
 
         return fields
+
+    def default_map(self) -> List[Field]:
+        return self.get_map(self.DEFAULT_MAP_PATH)
+
+    @staticmethod
+    def throw_dices() -> Tuple[int, int]:
+        return randint(1, 6), randint(1, 6)
