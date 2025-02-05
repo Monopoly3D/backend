@@ -1,13 +1,14 @@
 from typing import Any, Dict
 from uuid import UUID
 
+from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
 from app.assets.objects.monopoly_object import MonopolyObject
 
 
-@dataclass
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Player(MonopolyObject):
     player_id: UUID
     username: str
@@ -28,7 +29,7 @@ class Player(MonopolyObject):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": str(self.player_id),
+            "player_id": str(self.player_id),
             "username": self.username,
             "balance": self.balance,
             "field": self.field,

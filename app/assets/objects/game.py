@@ -6,6 +6,7 @@ from random import shuffle, randint
 from typing import Dict, Any, List, Tuple, ClassVar
 from uuid import UUID, uuid4
 
+from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
@@ -21,7 +22,7 @@ from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 
 
-@dataclass
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Game(RedisObject):
     DEFAULT_MAP_PATH: ClassVar[str] = "app/assets/maps/default_map.json"
 
@@ -72,7 +73,7 @@ class Game(RedisObject):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": str(self.game_id),
+            "game_id": str(self.game_id),
             "is_started": self.is_started,
             "awaiting_move": self.awaiting_move,
             "round": self.round,

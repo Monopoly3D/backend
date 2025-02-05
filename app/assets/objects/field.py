@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Type, ClassVar
 
+from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
@@ -8,7 +9,7 @@ from app.assets.objects.monopoly_object import MonopolyObject
 from app.assets.objects.player import Player
 
 
-@dataclass
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Field(MonopolyObject, ABC):
     FIELD_TYPE: ClassVar[FieldType]
 
@@ -21,12 +22,12 @@ class Field(MonopolyObject, ABC):
             cls,
             data: Dict[str, Any]
     ) -> Any:
-        return cls.__get_class(data.get("type")).from_json(data)
+        return cls.__get_class(data.get("field_type")).from_json(data)
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": self.field_id,
-            "type": self.FIELD_TYPE.value
+            "field_id": self.field_id,
+            "field_type": self.FIELD_TYPE.value
         }
 
     @abstractmethod

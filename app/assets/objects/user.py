@@ -1,13 +1,14 @@
 from typing import Any, Dict
 from uuid import UUID
 
+from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.controllers.redis import RedisController
 from app.assets.objects.redis import RedisObject
 
 
-@dataclass
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class User(RedisObject):
     user_id: UUID
     username: str
@@ -23,7 +24,7 @@ class User(RedisObject):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": str(self.user_id),
+            "user_id": str(self.user_id),
             "username": self.username
         }
 
