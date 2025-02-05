@@ -152,30 +152,30 @@ class Game(RedisObject):
             player: Player
     ) -> None:
         player.game = self
-        self.__players.update({player.player_id: player})
+        self.players.update({player.player_id: player})
 
     def get_player(
             self,
             player_id: UUID
     ) -> Player | None:
-        return self.__players.get(player_id)
+        return self.players.get(player_id)
 
     def has_player(
             self,
             player_id: UUID
     ) -> bool:
-        return player_id in self.__players
+        return player_id in self.players
 
     def remove_player(
             self,
             player_id: UUID
     ) -> None:
-        self.__players.pop(player_id)
+        self.players.pop(player_id)
 
     def shuffle_players(self) -> None:
         players_items: List[Tuple[UUID, Player]] = list(self.players.items())
         shuffle(players_items)
-        self.__players = dict(players_items)
+        self.players = dict(players_items)
 
     async def send(
             self,
