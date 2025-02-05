@@ -1,65 +1,30 @@
 from typing import Any, Dict
 from uuid import UUID
 
+from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
 from app.assets.objects.monopoly_object import MonopolyObject
 
 
+@dataclass
 class Player(MonopolyObject):
-    def __init__(
-            self,
-            player_id: UUID,
-            *,
-            username: str,
-            connection: WebSocket | None = None,
-            balance: int | None = None,
-            field: int | None = None,
-            is_ready: bool | None = None,
-            is_playing: bool | None = None,
-            is_imprisoned: bool | None = None,
-            double_amount: int | None = None,
-            contract_amount: int | None = None,
-    ) -> None:
-        self.player_id = player_id
-        self.username = username
-        self.balance = balance or 15000
-        self.field = field or 0
-        self.is_ready = is_ready or False
-        self.is_playing = is_playing or True
-        self.is_imprisoned = is_imprisoned or False
-        self.double_amount = double_amount or 0
-        self.contract_amount = contract_amount or 0
+    player_id: UUID
+    username: str
+    balance: int = 15000
+    field: int = 0
+    is_ready: bool = False
+    is_playing: bool = True
+    is_imprisoned: bool = False
+    double_amount: int = 0
+    contract_amount: int = 0
 
-        self.connection = connection
-        self.game: Any = None
+    __connection_instance: WebSocket | None = None
+    __game_instance: Any = None
 
     @classmethod
-    def from_json(
-            cls,
-            data: Dict[str, Any],
-            connection: WebSocket | None = None
-    ) -> Any:
-        if "id" not in data or "username" not in data:
-            return
-
-        try:
-            player_id: UUID = UUID(data.get("id"))
-        except ValueError:
-            return
-
-        return cls(
-            player_id,
-            username=data.get("username"),
-            connection=connection,
-            balance=data.get("balance"),
-            field=data.get("field"),
-            is_ready=data.get("is_ready"),
-            is_playing=data.get("is_playing"),
-            is_imprisoned=data.get("is_imprisoned"),
-            double_amount=data.get("double_amount"),
-            contract_amount=data.get("contract_amount")
-        )
+    def from_json(cls, data: Dict[str, Any]) -> Any:
+        return cls(**data)
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -73,3 +38,19 @@ class Player(MonopolyObject):
             "double_amount": self.double_amount,
             "contract_amount": self.contract_amount
         }
+
+    @property
+    def connection(self) -> WebSocket | None:
+        return self.__connection_instance
+
+    @connection.setter
+    def connection(self, value: WebSocket | None) -> None:
+        self.__connection_instance = value
+
+    @property
+    def game(self) -> Any:
+        return self.__game_instance
+
+    @game.setter
+    def game(self, value: Any) -> None:
+        self.__game_instance = value

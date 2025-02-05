@@ -1,5 +1,5 @@
 from typing import Dict, Any, Annotated
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import Depends
 from redis.asyncio import Redis
@@ -14,7 +14,8 @@ class GamesController(RedisController):
     REDIS_KEY = "games:{game_id}"
 
     async def create_game(self) -> Game:
-        game: Game = Game(uuid4(), controller=self)
+        game = Game()
+        game.controller = self
         await game.save()
 
         return game
@@ -29,7 +30,9 @@ class GamesController(RedisController):
         if game is None:
             return
 
-        return Game.from_json(game, controller=self, connections=connections)
+        game: Game = Game.from_json(game, connections=connections)
+        game.controller = self
+        return game
 
     async def exists_game(
             self,

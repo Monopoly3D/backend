@@ -47,11 +47,8 @@ async def on_client_join_game(
     if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("You are already in game")
 
-    player = Player(
-        user.user_id,
-        username=user.username,
-        connection=websocket
-    )
+    player = Player(user.user_id, username=user.username)
+    player.connection = websocket
 
     game.add_player(player)
     await game.save()

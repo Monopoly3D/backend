@@ -1,10 +1,12 @@
 import asyncio
 import json
 from asyncio import CancelledError
+from dataclasses import field as dataclass_field
 from random import shuffle, randint
-from typing import Dict, Any, List, Tuple
-from uuid import UUID
+from typing import Dict, Any, List, Tuple, ClassVar
+from uuid import UUID, uuid4
 
+from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
@@ -19,107 +21,54 @@ from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 
 
+@dataclass
 class Game(RedisObject):
-    DEFAULT_MAP_PATH: str = "app/assets/maps/default_map.json"
+    DEFAULT_MAP_PATH: ClassVar[str] = "app/assets/maps/default_map.json"
 
-    def __init__(
-            self,
-            game_id: UUID,
-            *,
-            is_started: bool | None = None,
-            awaiting_move: bool | None = None,
-            current_round: int | None = None,
-            current_move: int | None = None,
-            min_players: int | None = None,
-            max_players: int | None = None,
-            start_delay: int | None = None,
-            start_bonus: int | None = None,
-            has_start_bonus: bool | None = None,
-            players: List[Player] | None = None,
-            fields: List[Field] | None = None,
-            controller: RedisController
-    ) -> None:
-        self.game_id = game_id
-        self.is_started = is_started or False
-        self.awaiting_move = awaiting_move or False
-        self.round = current_round or 0
-        self.move = current_move or 0
-        self.min_players = min_players or 1
-        self.max_players = max_players or 5
-        self.start_delay = start_delay or 3
-        self.start_bonus = start_bonus or 2000
-        self.has_start_bonus = has_start_bonus or True
+    game_id: UUID = dataclass_field(default_factory=uuid4)
+    is_started: bool = False
+    round: int = 0
+    move: int = 0
+    min_players: int = 1
+    max_players: int = 5
+    start_delay: int = 3
 
-        self.__players: Dict[UUID, Player] = {}
-        if players is not None:
-            for player in players:
-                player.game = self
-                self.__players[player.player_id] = player
+    awaiting_move: bool = False
+    start_bonus: int = 2000
+    has_start_bonus: bool = True
 
-        if fields is None:
-            self.__fields: List[Field] = self.default_map()
-        else:
-            self.__fields: List[Field] = []
-            for field in fields:
-                field.game = self
-                self.__fields.append(field)
+    players: Dict[UUID, Player] = dataclass_field(default_factory=dict)
+    fields: List[Field] = dataclass_field(default_factory=list)
 
-        super().__init__(controller.REDIS_KEY.format(game_id=game_id), controller)
+    __controller_instance: RedisController | None = None
 
     @classmethod
     def from_json(
             cls,
             data: Dict[str, Any],
             *,
-            controller: RedisController,
-            connections: ConnectionsController
+            connections: ConnectionsController | None = None
     ) -> Any:
-        if "id" not in data:
-            return
-
-        try:
-            game_id = UUID(data.get("id"))
-        except ValueError:
-            return
-
-        players: List[Player] = []
+        players: Dict[UUID, Player] = {}
         fields: List[Field] = []
 
         for data_player in data.get("players", []):
             player: Player | None = Player.from_json(data_player)
-
             if player is None:
                 continue
-
             player.connection = connections.connections.get(player.player_id)
-            players.append(player)
+            players[player.player_id] = player
 
         for data_field in data.get("fields", []):
-            if "type" not in data_field:
-                continue
-
             field: Field | None = Field.from_json(data_field)
-
             if field is None:
                 continue
-
             fields.append(field)
 
-        return cls(
-            game_id,
-            is_started=data.get("is_started"),
-            awaiting_move=data.get("awaiting_move"),
-            current_round=data.get("current_round"),
-            current_move=data.get("current_move"),
-            min_players=data.get("min_players"),
-            max_players=data.get("max_players"),
-            start_delay=data.get("start_delay"),
-            start_bonus=data.get("start_bonus"),
-            has_start_bonus=data.get("has_start_bonus"),
-            players=players,
-            fields=fields,
-            controller=controller
-        )
+        data["players"] = players
+        data["fields"] = fields
+
+        return cls(**data)
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -133,23 +82,26 @@ class Game(RedisObject):
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
             "has_start_bonus": self.has_start_bonus,
-            "players": self.players_json,
-            "fields": self.fields_json
+            "players": self.players_json(),
+            "fields": self.fields_json()
         }
 
     @property
-    def players(self) -> List[Player]:
-        return list(self.__players.values())
+    def players_list(self) -> List[Player]:
+        return list(self.players.values())
 
     @property
-    def fields(self) -> List[Field]:
-        return self.__fields
+    def controller(self) -> RedisController:
+        return self.__controller_instance
 
-    @property
+    @controller.setter
+    def controller(self, value: RedisController) -> None:
+        super().__init__(value.REDIS_KEY.format(game_id=self.game_id), value)
+        self.__controller_instance = value
+
     def players_json(self) -> List[Dict[str, Any]]:
-        return [player.to_json() for player in self.players]
+        return [player.to_json() for player in self.players_list]
 
-    @property
     def fields_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.fields]
 
@@ -158,7 +110,7 @@ class Game(RedisObject):
         self.awaiting_move = True
         self.shuffle_players()
 
-        await self.send(ServerGameStartPacket(self.game_id, self.players))
+        await self.send(ServerGameStartPacket(self.game_id, self.players_list))
         await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
 
         await self.save()
@@ -171,7 +123,7 @@ class Game(RedisObject):
             pass
 
     async def move_player(self) -> None:
-        player: Player = self.players[self.move]
+        player: Player = self.players_list[self.move]
 
         dices: Tuple[int, int] = self.throw_dices()
         amount: int = 39  # sum(dices)
@@ -192,7 +144,7 @@ class Game(RedisObject):
             await self.send(ServerPlayerGotStartBonusPacket(self.game_id, player.player_id, self.start_bonus))
 
         field: Field = self.fields[player.field]
-        await field.on_stand(player, amount)
+        await field.on_stand(player)
 
     def add_player(
             self,
@@ -220,7 +172,7 @@ class Game(RedisObject):
         self.__players.pop(player_id)
 
     def shuffle_players(self) -> None:
-        players_items: List[Tuple[UUID, Player]] = list(self.__players.items())
+        players_items: List[Tuple[UUID, Player]] = list(self.players.items())
         shuffle(players_items)
         self.__players = dict(players_items)
 
@@ -233,13 +185,11 @@ class Game(RedisObject):
 
     @property
     def is_ready(self) -> bool:
-        return all([player.is_ready for player in self.players])
+        return all([player.is_ready for player in self.players_list])
 
     @property
     def connections(self) -> Tuple[WebSocket, ...]:
-        return tuple(
-            filter(lambda connection: connection is not None, map(lambda player: player.connection, self.players))
-        )
+        return tuple([c for c in map(lambda player: player.connection, self.players_list) if c is not None])
 
     def get_map(
             self,

@@ -1,10 +1,13 @@
 from typing import Dict, Any
 
+from pydantic.dataclasses import dataclass
+
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 
 
+@dataclass
 class Police(Field):
     FIELD_TYPE = FieldType.POLICE
 
@@ -13,11 +16,10 @@ class Police(Field):
             cls,
             data: Dict[str, Any]
     ) -> Any:
-        return cls(data.get("id"))
+        return cls(**data)
 
     async def on_stand(
             self,
-            player: Player,
-            amount: int
+            player: Player
     ) -> None:
         pass

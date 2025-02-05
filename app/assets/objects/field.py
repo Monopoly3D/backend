@@ -1,30 +1,27 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Type
+from typing import Dict, Any, List, Type, ClassVar
+
+from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.monopoly_object import MonopolyObject
 from app.assets.objects.player import Player
 
 
+@dataclass
 class Field(MonopolyObject, ABC):
-    FIELD_TYPE: FieldType
+    FIELD_TYPE: ClassVar[FieldType]
 
-    def __init__(
-            self,
-            field_id: int
-    ) -> None:
-        self.field_id = field_id
-        self.game: Any = None
+    field_id: int
+
+    __game_instance: Any = None
 
     @classmethod
     def from_json(
             cls,
             data: Dict[str, Any]
     ) -> Any:
-        if "id" not in data or "type" not in data:
-            return
-
-        return cls.get_class(data.get("type")).from_json(data)
+        return cls.__get_class(data.get("type")).from_json(data)
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -35,13 +32,20 @@ class Field(MonopolyObject, ABC):
     @abstractmethod
     async def on_stand(
             self,
-            player: Player,
-            amount: int
+            player: Player
     ) -> None:
         pass
 
+    @property
+    def game(self) -> Any:
+        return self.__game_instance
+
+    @game.setter
+    def game(self, value: Any) -> None:
+        self.__game_instance = value
+
     @classmethod
-    def get_class(
+    def __get_class(
             cls,
             field_type: FieldType | str
     ) -> Type['Field'] | None:
