@@ -1,9 +1,9 @@
 [
   {
-    "type": "start"
+    "field_type": "start"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         20,
@@ -20,10 +20,10 @@
     }
   },
   {
-    "type": "chance"
+    "field_type": "chance"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         40,
@@ -40,13 +40,13 @@
     }
   },
   {
-    "type": "tax",
+    "field_type": "tax",
     "tax": {
       "tax_amount": 2000
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         250,
@@ -62,7 +62,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         60,
@@ -79,10 +79,10 @@
     }
   },
   {
-    "type": "chance"
+    "field_type": "chance"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         60,
@@ -99,7 +99,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         80,
@@ -116,10 +116,10 @@
     }
   },
   {
-    "type": "prison"
+    "field_type": "prison"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         100,
@@ -136,7 +136,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         100,
@@ -150,7 +150,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         100,
@@ -167,7 +167,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         120,
@@ -184,7 +184,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         250,
@@ -200,7 +200,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         140,
@@ -217,7 +217,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         140,
@@ -234,10 +234,10 @@
     }
   },
   {
-    "type": "chance"
+    "field_type": "chance"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         160,
@@ -254,10 +254,10 @@
     }
   },
   {
-    "type": "casino"
+    "field_type": "casino"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         180,
@@ -274,10 +274,10 @@
     }
   },
   {
-    "type": "chance"
+    "field_type": "chance"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         180,
@@ -294,7 +294,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         200,
@@ -311,7 +311,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         250,
@@ -327,7 +327,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         220,
@@ -344,7 +344,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         220,
@@ -361,7 +361,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         100,
@@ -375,7 +375,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         240,
@@ -392,10 +392,10 @@
     }
   },
   {
-    "type": "police"
+    "field_type": "police"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         260,
@@ -412,7 +412,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         260,
@@ -429,10 +429,10 @@
     }
   },
   {
-    "type": "chance"
+    "field_type": "chance"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         280,
@@ -449,7 +449,7 @@
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         250,
@@ -465,13 +465,13 @@
     }
   },
   {
-    "type": "tax",
+    "field_type": "tax",
     "tax": {
       "tax_amount": 1000
     }
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         350,
@@ -488,10 +488,10 @@
     }
   },
   {
-    "type": "chance"
+    "field_type": "chance"
   },
   {
-    "type": "company",
+    "field_type": "company",
     "company": {
       "rent": [
         500,

@@ -102,7 +102,7 @@ async def on_client_move(
     if player is None:
         raise PlayerNotFoundError("You are not in game")
 
-    if not game.awaiting_move or game.players[game.move].player_id != player.player_id:
+    if not game.awaiting_move or game.players_list[game.move].player_id != player.player_id:
         raise GameNotAwaitingMoveError("You are not allowed to move now")
 
     await game.move_player()

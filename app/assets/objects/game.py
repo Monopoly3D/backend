@@ -43,6 +43,10 @@ class Game(RedisObject):
 
     __controller_instance: RedisController | None = None
 
+    def __post_init__(self):
+        if not self.fields:
+            self.fields = self.default_map()
+
     @classmethod
     def from_json(
             cls,
@@ -192,6 +196,9 @@ class Game(RedisObject):
     def connections(self) -> Tuple[WebSocket, ...]:
         return tuple([c for c in map(lambda player: player.connection, self.players_list) if c is not None])
 
+    def default_map(self) -> List[Field]:
+        return self.get_map(self.DEFAULT_MAP_PATH)
+
     def get_map(
             self,
             game_path: str
@@ -202,7 +209,7 @@ class Game(RedisObject):
         fields: List[Field] = []
 
         for index, field in enumerate(data):
-            field.update({"id": index})
+            field.update({"field_id": index})
 
             new_field: Field | None = Field.from_json(field)
 
@@ -213,9 +220,6 @@ class Game(RedisObject):
             fields.append(new_field)
 
         return fields
-
-    def default_map(self) -> List[Field]:
-        return self.get_map(self.DEFAULT_MAP_PATH)
 
     @staticmethod
     def throw_dices() -> Tuple[int, int]:
