@@ -34,6 +34,6 @@ class GameResponseModel(BaseModel):
             min_players=game.min_players,
             max_players=game.max_players,
             start_delay=game.start_delay,
-            players=[PlayerResponseModel.from_player(player) for player in game.players],
+            players=[PlayerResponseModel.from_player(player) for player in game.players_list],
             fields=[FieldResponseModel.from_field(field) for field in game.fields]
         )
