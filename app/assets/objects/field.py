@@ -14,6 +14,7 @@ class Field(MonopolyObject, ABC):
     FIELD_TYPE: ClassVar[FieldType]
 
     field_id: int
+    field_type: FieldType
 
     __game_instance: Any = None
 
@@ -27,7 +28,7 @@ class Field(MonopolyObject, ABC):
     def to_json(self) -> Dict[str, Any]:
         return {
             "field_id": self.field_id,
-            "field_type": self.FIELD_TYPE.value
+            "field_type": self.field_type.value
         }
 
     @abstractmethod

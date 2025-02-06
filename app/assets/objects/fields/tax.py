@@ -22,14 +22,15 @@ class Tax(Field):
             return
 
         return cls(
-            data.get("id"),
+            data.get("field_id"),
+            data.get("field_type"),
             **data.get("tax")
         )
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": self.field_id,
-            "type": self.FIELD_TYPE.value,
+            "field_id": self.field_id,
+            "field_type": self.field_type.value,
             "tax": {
                 "tax_amount": self.tax_amount
             }

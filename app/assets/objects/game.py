@@ -4,7 +4,7 @@ from asyncio import CancelledError
 from dataclasses import field as dataclass_field
 from random import shuffle, randint
 from typing import Dict, Any, List, Tuple, ClassVar
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -26,7 +26,7 @@ from app.assets.objects.redis import RedisObject
 class Game(RedisObject):
     DEFAULT_MAP_PATH: ClassVar[str] = "app/assets/maps/default_map.json"
 
-    game_id: UUID = dataclass_field(default_factory=uuid4)
+    game_id: UUID
     is_started: bool = False
     round: int = 0
     move: int = 0

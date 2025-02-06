@@ -1,11 +1,15 @@
+from dataclasses import field as dataclass_field
 from typing import List, Any, Dict
 from uuid import UUID
+
+from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 
 
+@dataclass
 class Company(Field):
     FIELD_TYPE = FieldType.COMPANY
 
@@ -13,13 +17,13 @@ class Company(Field):
     is_monopoly: bool = False
     field_dependant: bool = False
     dice_dependant: bool = False
-    rent: List[int]
+    rent: List[int] = dataclass_field(default_factory=list)
     mortgage: int = -1
     filiation: int = 0
-    cost: int
-    mortgage_cost: int
-    buyout_cost: int
-    filiation_cost: int
+    cost: int = 0
+    mortgage_cost: int = 0
+    buyout_cost: int = 0
+    filiation_cost: int = 0
 
     @classmethod
     def from_json(
@@ -30,14 +34,15 @@ class Company(Field):
             return
 
         return cls(
-            data.get("id"),
+            data.get("field_id"),
+            data.get("field_type"),
             **data.get("company")
         )
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": self.field_id,
-            "type": self.FIELD_TYPE.value,
+            "field_id": self.field_id,
+            "field_type": self.field_type.value,
             "company": {
                 "owner_id": str(self.owner_id) if self.owner_id else None,
                 "is_monopoly": self.is_monopoly,

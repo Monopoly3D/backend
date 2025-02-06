@@ -24,7 +24,7 @@ class FieldResponseModel(BaseModel):
     ) -> 'FieldResponseModel':
         return cls(
             field_id=field.field_id,
-            field_type=field.FIELD_TYPE,
+            field_type=field.field_type,
             company=CompanyResponseModel.from_company(field) if isinstance(field, Company) else None,
             tax=TaxResponseModel.from_tax(field) if isinstance(field, Tax) else None,
         )

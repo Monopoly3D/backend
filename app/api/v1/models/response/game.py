@@ -26,8 +26,8 @@ class GameResponseModel(BaseModel):
         return cls(
             game_id=game.game_id,
             is_started=game.is_started,
-            current_round=game.round,
-            current_move=game.move,
+            round=game.round,
+            move=game.move,
             min_players=game.min_players,
             max_players=game.max_players,
             players=[PlayerResponseModel.from_player(player) for player in game.players_list],
