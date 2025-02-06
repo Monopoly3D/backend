@@ -16,11 +16,8 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
-from app.api.v1.packets.client.ping import ClientPingPacket
-from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.objects.game import Game
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
@@ -53,18 +50,13 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
+        self.handlers: Dict[Type[ClientPacket], Coroutine[Any, Any, ServerPacket | None]] = {}
 
         self.add_api_websocket_route(
             "/",
             self.handle_packets,
             dependencies=[Authenticator.authenticate_websocket_dependency()]
         )
-
-        self.handlers: Dict[Type[ClientPacket], Coroutine[Any, Any, ServerPacket | None]] = {}
-
-        @self.handle(ClientPingPacket)
-        async def on_client_ping() -> ServerPingPacket:
-            return ServerPingPacket()
 
     def handle(
             self,
@@ -111,26 +103,60 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         if handler is None:
             raise UnknownPacketError("Unknown packet")
 
-        if hasattr(packet, "game_id") and "connections" in kwargs and "games_controller" in kwargs:
-            game: Game | None = await kwargs["games_controller"].get_game(packet.game_id, kwargs["connections"])
-        else:
-            game = None
+        handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
+            handler,
+            packet=packet,
+            websocket=websocket,
+            **kwargs
+        )
 
         prepared_args: Dict[str, Any] = self.__prepare_args(
             handler,
             packet=packet,
             websocket=websocket,
-            game=game,
+            **handler_dependencies,
             **kwargs
         )
+
         response_packet: ServerPacket | None = await handler(**prepared_args)
 
         if response_packet is not None:
             await websocket.send_text(response_packet.pack())
 
+    async def __inject_dependencies(
+            self,
+            handler: Callable,
+            **kwargs: Any
+    ) -> Dict[str, Any]:
+        handler_dependencies: Dict[str, Any] = {}
+
+        if not hasattr(handler, "__annotations__"):
+            return handler_dependencies
+
+        for name, annotation in getattr(handler, "__annotations__").items():
+            if not hasattr(annotation, "__metadata__"):
+                continue
+
+            func: Callable = annotation.__metadata__[0]
+
+            func_dependencies: Dict[str, Any] = await self.__inject_dependencies(
+                func,
+                **kwargs
+            )
+
+            prepared_args: Dict[str, Any] = self.__prepare_args(
+                func,
+                **func_dependencies,
+                **kwargs
+            )
+
+            handler_dependencies.update({name: await func(**prepared_args)})
+
+        return handler_dependencies
+
     @staticmethod
     def __prepare_args(
-            func: Coroutine[Any, Any, ServerPacket | None],
+            func: Callable,
             **kwargs: Any
     ) -> Dict[str, Any]:
         return {

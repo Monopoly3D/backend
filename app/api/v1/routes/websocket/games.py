@@ -1,22 +1,25 @@
 import asyncio
 from asyncio import Task
+from typing import Annotated
 
 from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
 from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
-from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
 from app.api.v1.exceptions.websocket.game_not_started import GameNotStartedError
 from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
+from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
 from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
+from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
+from app.api.v1.routes.websocket.dependencies import WebsocketDependencies
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
@@ -29,15 +32,17 @@ config: Config = Config(_env_file=".env")
 games_packets_router = PacketsRouter(prefix="/games")
 
 
+@games_packets_router.handle(ClientPingPacket)
+async def on_ping() -> ServerPingPacket:
+    return ServerPingPacket()
+
+
 @games_packets_router.handle(ClientPlayerJoinGamePacket)
 async def on_client_join_game(
         websocket: WebSocket,
         user: User,
-        game: Game,
+        game: Annotated[Game, WebsocketDependencies.get_game]
 ) -> None:
-    if game is None:
-        raise GameNotFoundError("Game with provided UUID was not found")
-
     if game.is_started:
         raise GameAlreadyStartedError("Game with provided UUID has already started")
 
@@ -59,11 +64,8 @@ async def on_client_join_game(
 async def on_client_ready(
         packet: ClientPlayerReadyPacket,
         user: User,
-        game: Game
+        game: Annotated[Game, WebsocketDependencies.get_game]
 ) -> None:
-    if game is None:
-        raise GameNotFoundError("Game with provided UUID was not found")
-
     if game.is_started:
         raise GameAlreadyStartedError("Game with provided UUID has already started")
 
@@ -90,11 +92,8 @@ async def on_client_ready(
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
         user: User,
-        game: Game
+        game: Annotated[Game, WebsocketDependencies.get_game]
 ) -> None:
-    if game is None:
-        raise GameNotFoundError("Game with provided UUID was not found")
-
     if not game.is_started:
         raise GameNotStartedError("Game with provided UUID has not been started")
 
