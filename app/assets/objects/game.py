@@ -17,7 +17,15 @@ from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
+from app.assets.enums.field_type import FieldType
 from app.assets.objects.field import Field
+from app.assets.objects.fields.casino import Casino
+from app.assets.objects.fields.chance import Chance
+from app.assets.objects.fields.company import Company
+from app.assets.objects.fields.police import Police
+from app.assets.objects.fields.prison import Prison
+from app.assets.objects.fields.start import Start
+from app.assets.objects.fields.tax import Tax
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 
@@ -25,6 +33,16 @@ from app.assets.objects.redis import RedisObject
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Game(RedisObject):
     DEFAULT_MAP_PATH: ClassVar[str] = "app/assets/maps/default_map.json"
+
+    FIELDS: ClassVar[Dict[FieldType, Field]] = {
+        FieldType.COMPANY: Company,
+        FieldType.START: Start,
+        FieldType.CHANCE: Chance,
+        FieldType.TAX: Tax,
+        FieldType.PRISON: Prison,
+        FieldType.POLICE: Police,
+        FieldType.CASINO: Casino
+    }
 
     game_id: UUID
     is_started: bool = False
@@ -65,7 +83,7 @@ class Game(RedisObject):
             players[player.player_id] = player
 
         for data_field in data.get("fields", []):
-            field: Field | None = Field.from_json(data_field)
+            field: Field | None = cls.__get_field(data_field)
             if field is None:
                 continue
             fields.append(field)
@@ -211,7 +229,7 @@ class Game(RedisObject):
         for index, field in enumerate(data):
             field.update({"field_id": index})
 
-            new_field: Field | None = Field.from_json(field)
+            new_field: Field | None = self.__get_field(field)
 
             if new_field is None:
                 continue
@@ -224,3 +242,13 @@ class Game(RedisObject):
     @staticmethod
     def throw_dices() -> Tuple[int, int]:
         return randint(1, 6), randint(1, 6)
+
+    @classmethod
+    def __get_field(
+            cls,
+            data: Dict[str, Any]
+    ) -> Field | None:
+        if "field_type" not in data:
+            return
+
+        return cls.FIELDS[FieldType(data.get("field_type"))].from_json(data)
