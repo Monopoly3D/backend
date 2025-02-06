@@ -7,7 +7,6 @@ from starlette.websockets import WebSocket
 from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
-from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
@@ -58,13 +57,9 @@ async def on_client_join_game(
 @games_packets_router.handle(ClientPlayerReadyPacket)
 async def on_client_ready(
         packet: ClientPlayerReadyPacket,
-        user: User,
-        game: Annotated[Game, WebsocketDependencies.get_game(is_started=False)]
+        game: Annotated[Game, WebsocketDependencies.get_game(is_started=False)],
+        player: Annotated[Player, WebsocketDependencies.get_player(game_has_started=False)]
 ) -> None:
-    player: Player | None = game.get_player(user.user_id)
-    if player is None:
-        raise PlayerNotFoundError("You are not in game")
-
     player.is_ready = packet.is_ready
     await game.save()
     await game.send(ServerPlayerReadyPacket(game.game_id, player.player_id, packet.is_ready))
@@ -82,13 +77,9 @@ async def on_client_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
-        user: User,
-        game: Annotated[Game, WebsocketDependencies.get_game()]
+        game: Annotated[Game, WebsocketDependencies.get_game()],
+        player: Annotated[Player, WebsocketDependencies.get_player(game_has_started=True)]
 ) -> None:
-    player: Player | None = game.get_player(user.user_id)
-    if player is None:
-        raise PlayerNotFoundError("You are not in game")
-
     if not game.awaiting_move or game.players_list[game.move].player_id != player.player_id:
         raise GameNotAwaitingMoveError("You are not allowed to move now")
 
