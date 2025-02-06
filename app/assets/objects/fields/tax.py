@@ -1,22 +1,17 @@
 from typing import Any, Dict
 
+from pydantic.dataclasses import dataclass
+
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 
 
+@dataclass
 class Tax(Field):
     FIELD_TYPE = FieldType.TAX
 
-    def __init__(
-            self,
-            field_id: int,
-            *,
-            tax_amount: int
-    ) -> None:
-        super().__init__(field_id)
-
-        self.tax_amount = tax_amount
+    tax_amount: int = 0
 
     @classmethod
     def from_json(
@@ -26,17 +21,16 @@ class Tax(Field):
         if "tax" not in data:
             return
 
-        tax: Dict[str, Any] = data["tax"]
-
         return cls(
-            data.get("id"),
-            tax_amount=tax.get("tax_amount")
+            data.get("field_id"),
+            data.get("field_type"),
+            **data.get("tax")
         )
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": self.field_id,
-            "type": self.FIELD_TYPE.value,
+            "field_id": self.field_id,
+            "field_type": self.field_type.value,
             "tax": {
                 "tax_amount": self.tax_amount
             }
@@ -44,7 +38,6 @@ class Tax(Field):
 
     async def on_stand(
             self,
-            player: Player,
-            amount: int
+            player: Player
     ) -> None:
         pass

@@ -47,11 +47,8 @@ async def on_client_join_game(
     if game.has_player(user.user_id):
         raise PlayerAlreadyInGameError("You are already in game")
 
-    player = Player(
-        user.user_id,
-        username=user.username,
-        connection=websocket
-    )
+    player = Player(user.user_id, username=user.username)
+    player.connection = websocket
 
     game.add_player(player)
     await game.save()
@@ -105,7 +102,7 @@ async def on_client_move(
     if player is None:
         raise PlayerNotFoundError("You are not in game")
 
-    if not game.awaiting_move or game.players[game.move].player_id != player.player_id:
+    if not game.awaiting_move or game.players_list[game.move].player_id != player.player_id:
         raise GameNotAwaitingMoveError("You are not allowed to move now")
 
     await game.move_player()
