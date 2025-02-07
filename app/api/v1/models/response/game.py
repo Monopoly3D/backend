@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Dict, Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_serializer
 
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.models.response.player import PlayerResponseModel
@@ -9,25 +9,53 @@ from app.assets.objects.game import Game
 
 
 class GameResponseModel(BaseModel):
-    id: UUID
+    game_id: UUID
     is_started: bool
-    current_round: int
-    current_move: int
-    has_start_bonus: bool
+    round: int
+    move: int
+    min_players: int
+    max_players: int
     players: List[PlayerResponseModel]
     fields: List[FieldResponseModel]
+
+    with_players: bool
+    with_fields: bool
 
     @classmethod
     def from_game(
             cls,
-            game: Game
+            game: Game,
+            *,
+            with_players: bool = True,
+            with_fields: bool = False
     ) -> 'GameResponseModel':
         return cls(
-            id=game.game_id,
+            game_id=game.game_id,
             is_started=game.is_started,
-            current_round=game.round,
-            current_move=game.move,
-            has_start_bonus=game.has_start_bonus,
-            players=[PlayerResponseModel.from_player(player) for player in game.players],
-            fields=[FieldResponseModel.from_field(field) for field in game.fields]
+            round=game.round,
+            move=game.move,
+            min_players=game.min_players,
+            max_players=game.max_players,
+            players=[PlayerResponseModel.from_player(player) for player in game.players_list],
+            fields=[FieldResponseModel.from_field(field) for field in game.fields],
+            with_players=with_players,
+            with_fields=with_fields
         )
+
+    @model_serializer()
+    def serialize_model(self) -> Dict[str, Any]:
+        model: Dict[str, Any] = {
+            "game_id": self.game_id,
+            "is_started": self.is_started,
+            "round": self.round,
+            "move": self.move,
+            "min_players": self.min_players,
+            "max_players": self.max_players
+        }
+
+        if self.with_players:
+            model["players"] = self.players
+        if self.with_fields:
+            model["fields"] = self.fields
+
+        return model

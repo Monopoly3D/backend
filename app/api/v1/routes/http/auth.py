@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.http.not_found_error import NotFoundError
+from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.security.authenticator import Authenticator

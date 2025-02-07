@@ -1,52 +1,44 @@
-from abc import ABC
-from typing import Dict, Any, List, Type
+from abc import ABC, abstractmethod
+from typing import Dict, Any
+
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.monopoly_object import MonopolyObject
 
 
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Field(MonopolyObject, ABC):
-    FIELD_TYPE: FieldType
+    field_id: int
+    field_type: FieldType
 
-    def __init__(
-            self,
-            field_id: int
-    ) -> None:
-        self.field_id = field_id
+    __game_instance: Any = None
 
     @classmethod
     def from_json(
             cls,
             data: Dict[str, Any]
     ) -> Any:
-        if "id" not in data or "type" not in data:
-            return
-
-        return cls.get_class(data.get("type")).from_json(data)
+        return cls(**data)
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "id": self.field_id,
-            "type": self.FIELD_TYPE.value
+            "field_id": self.field_id,
+            "field_type": self.field_type.value
         }
 
-    @classmethod
-    def get_class(
-            cls,
-            field_type: FieldType | str
-    ) -> Type['Field'] | None:
-        if isinstance(field_type, str):
-            field_type: FieldType = FieldType(field_type)
+    @abstractmethod
+    async def on_stand(
+            self,
+            player: Any
+    ) -> None:
+        pass
 
-        return {field.FIELD_TYPE: field for field in cls.__get_fields()}[field_type]
+    @property
+    def game(self) -> Any:
+        return self.__game_instance
 
-    @classmethod
-    def __get_fields(cls) -> List[Type['Field']]:
-        subclasses: List[Type[Field]] = cls.__subclasses__()
-        overall: List[Type[Field]] = []
-
-        for subclass in subclasses:
-            overall.append(subclass)
-            overall.extend(subclass.__get_fields())
-
-        return overall
+    @game.setter
+    def game(self, value: Any) -> None:
+        self.__game_instance = value

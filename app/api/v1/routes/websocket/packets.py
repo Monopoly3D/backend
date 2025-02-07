@@ -1,5 +1,5 @@
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Coroutine, Annotated
+from typing import Dict, Any, Callable, Type, Annotated, Tuple
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -8,11 +8,14 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
+from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
+from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
+from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_client import ClientPacket
+from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
@@ -47,6 +50,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
+        self.handlers: Dict[Type[ClientPacket], Callable] = {}
 
         self.add_api_websocket_route(
             "/",
@@ -54,13 +58,11 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             dependencies=[Authenticator.authenticate_websocket_dependency()]
         )
 
-        self.handlers: Dict[Type[BasePacket], Coroutine[Any, Any, BasePacket]] = {}
-
     def handle(
             self,
-            packet: Type[BasePacket]
+            packet: Type[ClientPacket]
     ) -> Callable:
-        def decorator(func: Coroutine[Any, Any, BasePacket]) -> None:
+        def decorator(func: Callable) -> None:
             self.handlers.update({packet: func})
 
         return decorator
@@ -77,9 +79,10 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
                         websocket,
                         **dp
                     )
-                except Exception as e:
-                    # raise InternalServerError("Internal server error")
+                except WebSocketError as e:
                     raise e
+                except Exception as e:
+                    raise InternalServerError("Internal server error", e)
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
@@ -91,32 +94,75 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         packet: str = await websocket.receive_text()
 
         try:
-            packet_type: Type[BasePacket] = BasePacket.withdraw_packet_type(packet)
-            packet: BasePacket = packet_type.unpack(packet)
+            packet_type: Type[ClientPacket] = ClientPacket.withdraw_packet_type(packet)
+            packet: ClientPacket = packet_type.unpack(packet)
         except InvalidPacketError:
             raise InvalidPacketDataError("Provided packet data is invalid")
 
-        handler: Any = self.handlers.get(packet_type, None)
-        if handler is None:
-            raise UnknownPacketError("Unknown packet type")
+        if packet_type not in self.handlers:
+            raise UnknownPacketError("Unknown packet")
 
-        prepared_args: Dict[str, Any] = self.__prepare_args(
+        handler: Any = self.handlers[packet_type]
+
+        handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
             handler,
             packet=packet,
             websocket=websocket,
             **kwargs
         )
-        response_packet: BasePacket | None = await handler(**prepared_args)
+
+        prepared_args: Dict[str, Any] = self.__prepare_args(
+            handler,
+            packet=packet,
+            websocket=websocket,
+            **handler_dependencies,
+            **kwargs
+        )
+
+        response_packet: ServerPacket | None = await handler(**prepared_args)
 
         if response_packet is not None:
             await websocket.send_text(response_packet.pack())
 
-    @staticmethod
-    def __prepare_args(
-            func: Coroutine[Any, Any, BasePacket],
+    async def __inject_dependencies(
+            self,
+            handler: Callable,
             **kwargs: Any
     ) -> Dict[str, Any]:
+        handler_dependencies: Dict[str, Any] = {}
+
+        if not hasattr(handler, "__annotations__"):
+            return handler_dependencies
+
+        for name, annotation in getattr(handler, "__annotations__").items():
+            if not hasattr(annotation, "__metadata__"):
+                continue
+
+            func: Callable = annotation.__metadata__[0]
+
+            func_dependencies: Dict[str, Any] = await self.__inject_dependencies(
+                func,
+                **kwargs
+            )
+
+            prepared_args: Dict[str, Any] = self.__prepare_args(
+                func,
+                **func_dependencies,
+                **kwargs
+            )
+
+            handler_dependencies.update({name: await func(**prepared_args)})
+
+        return handler_dependencies
+
+    @staticmethod
+    def __prepare_args(
+            func: Callable,
+            **kwargs: Any
+    ) -> Dict[str, Any]:
+        args: Tuple[str, ...] = tuple(getfullargspec(func)[0])
+
         return {
             k: arg for k, arg in kwargs.items()
-            if k in getfullargspec(func)[0]
+            if k in args
         }

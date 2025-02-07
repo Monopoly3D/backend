@@ -5,8 +5,8 @@ from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.packets.base_client import ClientPacket
 
 
-class ClientPlayerJoinGamePacket(ClientPacket):
-    PACKET_TAG = "player_join_game"
+class ClientPlayerMovePacket(ClientPacket):
+    PACKET_TAG = "player_move"
 
     PACKET_KEYS = ["game_id"]
 

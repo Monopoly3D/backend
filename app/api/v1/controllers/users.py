@@ -5,7 +5,7 @@ from fastapi import Depends
 from redis.asyncio import Redis
 
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.exceptions.http.not_found_error import NotFoundError
+from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 
@@ -18,7 +18,8 @@ class UsersController(RedisController):
             *,
             username: str
     ) -> User:
-        user: User = User(uuid4(), username=username, controller=self)
+        user = User(uuid4(), username)
+        user.controller = self
         await user.save()
 
         return user
@@ -32,19 +33,23 @@ class UsersController(RedisController):
         if user is None:
             return
 
-        return User.from_json(user, self)
+        user: User = User.from_json(user)
+        user.controller = self
+        return user
 
     async def get_user_by_username(
             self,
             username: str
-    ) -> User:
+    ) -> User | None:
         users: Tuple[str, ...] = await self.get_keys(pattern="users")
 
         for user_key in users:
             user: Dict[str, Any] = await self.get(user_key, exact_key=True)
 
             if user is not None and user.get("username") == username:
-                return User.from_json(user, self)
+                user: User = User.from_json(user)
+                user.controller = self
+                return user
 
     async def remove_game(
             self,

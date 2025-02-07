@@ -1,26 +1,14 @@
 from typing import Dict, Any
 
-from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.http.invalid_packet_error import InvalidPacketError
-from app.api.v1.packets.base import BasePacket
+from app.api.v1.packets.base_client import ClientPacket
 
 
-class ClientPingPacket(BasePacket):
-    PACKET_TAG = "client_ping"
-    PACKET_CLASS = PacketClass.CLIENT
+class ClientPingPacket(ClientPacket):
+    PACKET_TAG = "ping"
 
-    def __init__(
-            self,
-            request: str
-    ) -> None:
-        self.request = request
+    def __init__(self) -> None:
+        pass
 
     @classmethod
-    def from_json(cls, packet: Dict[str, Any]) -> 'BasePacket':
-        if "request" not in packet:
-            raise InvalidPacketError("Provided packet data is invalid")
-
-        return cls(packet["request"])
-
-    def to_json(self) -> Dict[str, Any]:
-        return {"request": self.request}
+    def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':
+        return cls()
