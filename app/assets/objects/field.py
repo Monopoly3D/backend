@@ -6,7 +6,6 @@ from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.monopoly_object import MonopolyObject
-from app.assets.objects.player import Player
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
@@ -32,7 +31,7 @@ class Field(MonopolyObject, ABC):
     @abstractmethod
     async def on_stand(
             self,
-            player: Player
+            player: Any
     ) -> None:
         pass
 

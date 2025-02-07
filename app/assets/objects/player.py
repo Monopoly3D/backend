@@ -1,10 +1,13 @@
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 from uuid import UUID
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
+from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
+from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
+from app.assets.objects.field import Field
 from app.assets.objects.monopoly_object import MonopolyObject
 
 
@@ -55,3 +58,27 @@ class Player(MonopolyObject):
     @game.setter
     def game(self, value: Any) -> None:
         self.__game_instance = value
+
+    async def move(
+            self,
+            dices: Tuple[int, int]
+    ) -> None:
+        self.field += sum(dices)
+        got_start_bonus: bool = False
+
+        if self.field >= len(self.game.fields):
+            self.field %= len(self.game.fields)
+
+            if self.game.start_bonus_round_amount < self.game.round:
+                got_start_bonus = True
+                self.balance += self.game.start_bonus
+
+        await self.game.send(ServerPlayerMovePacket(self.game.game_id, self.player_id, dices, self.field))
+
+        if got_start_bonus:
+            await self.game.send(
+                ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.game.start_bonus)
+            )
+
+        field: Field = self.game.fields[self.field]
+        await field.on_stand(self)

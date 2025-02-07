@@ -15,8 +15,6 @@ from app.api.v1.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
-from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
-from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.field import Field
 from app.assets.objects.fields.casino import Casino
@@ -54,7 +52,7 @@ class Game(RedisObject):
 
     awaiting_move: bool = False
     start_bonus: int = 2000
-    has_start_bonus: bool = True
+    start_bonus_round_amount: int = 65
 
     players: Dict[UUID, Player] = dataclass_field(default_factory=dict)
     fields: List[Field] = dataclass_field(default_factory=list)
@@ -107,7 +105,7 @@ class Game(RedisObject):
             "max_players": self.max_players,
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
-            "has_start_bonus": self.has_start_bonus,
+            "start_bonus_round_amount": self.start_bonus_round_amount,
             "players": self.players_json(),
             "fields": self.fields_json()
         }
@@ -150,27 +148,9 @@ class Game(RedisObject):
 
     async def move_player(self) -> None:
         player: Player = self.players_list[self.move]
-
         dices: Tuple[int, int] = self.throw_dices()
-        amount: int = 39  # sum(dices)
-        got_start_bonus: bool = False
 
-        player.field += amount
-
-        if player.field >= len(self.fields):
-            player.field %= len(self.fields)
-
-            if self.has_start_bonus:
-                got_start_bonus = True
-                player.balance += self.start_bonus
-
-        await self.send(ServerPlayerMovePacket(self.game_id, player.player_id, dices, player.field))
-
-        if got_start_bonus:
-            await self.send(ServerPlayerGotStartBonusPacket(self.game_id, player.player_id, self.start_bonus))
-
-        field: Field = self.fields[player.field]
-        await field.on_stand(player)
+        await player.move(dices)
 
     def add_player(
             self,
