@@ -24,11 +24,11 @@ class ServerGameStartPacket(ServerPacket):
             "game_id": str(self.game_id),
             "players": [
                 {
-                    "player_id": player.player_id,
+                    "player_id": str(player.player_id),
                     "balance": player.balance,
                     "field": player.field
                 }
                 for player in self.players
             ],
-            "fields": [field.to_json()for field in self.fields]
+            "fields": [field.to_json() for field in self.fields]
         }

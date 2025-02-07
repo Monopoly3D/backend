@@ -136,7 +136,7 @@ class Game(RedisObject):
         self.awaiting_move = True
         self.shuffle_players()
 
-        await self.send(ServerGameStartPacket(self.game_id, self.players_list))
+        await self.send(ServerGameStartPacket(self.game_id, self.players_list, self.fields))
         await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
 
         await self.save()
