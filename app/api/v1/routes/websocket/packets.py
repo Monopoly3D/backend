@@ -1,6 +1,6 @@
 import asyncio
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Annotated, Tuple
+from typing import Dict, Any, Callable, Type, Annotated, Tuple, List
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -50,6 +50,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     ) -> None:
         super().__init__(prefix=prefix)
         self.handlers: Dict[Type[ClientPacket], Callable] = {}
+        self.awaiting: List[Tuple[Type[ClientPacket], Callable]] = []
 
         self.add_api_websocket_route(
             "/",
@@ -63,6 +64,15 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     ) -> Callable:
         def decorator(func: Callable) -> None:
             self.handlers.update({packet: func})
+
+        return decorator
+
+    def await_packet(
+            self,
+            packet: Type[ClientPacket]
+    ) -> Callable:
+        def decorator(func: Callable) -> None:
+            self.awaiting.append((packet, func))
 
         return decorator
 
@@ -86,35 +96,55 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     ) -> None:
         try:
             packet: ClientPacket = ClientPacket.withdraw_packet(packet)
+            is_awaiting: bool = False
+
+            for awaiting in self.awaiting:
+                awaiting_packet: Type[ClientPacket] = awaiting[0]
+                awaiting_handler: Callable = awaiting[1]
+
+                if awaiting_packet == type(packet):
+                    is_awaiting = True
+                    await self.__execute_handler(awaiting_handler, packet, websocket, **kwargs)
+
+            if is_awaiting:
+                return
 
             if type(packet) not in self.handlers:
                 raise UnknownPacketError("Unknown packet")
 
-            handler: Any = self.handlers[type(packet)]
-
-            handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
-                handler,
-                packet=packet,
-                websocket=websocket,
-                **kwargs
-            )
-
-            prepared_args: Dict[str, Any] = self.__prepare_args(
-                handler,
-                packet=packet,
-                websocket=websocket,
-                **handler_dependencies,
-                **kwargs
-            )
-
-            response_packet: ServerPacket | None = await handler(**prepared_args)
-
-            if response_packet is not None:
-                await websocket.send_text(response_packet.pack())
+            await self.__execute_handler(self.handlers[type(packet)], packet, websocket, **kwargs)
         except WebSocketError as e:
             raise e
         except Exception as e:
             raise InternalServerError("Internal server error", e)
+
+    async def __execute_handler(
+            self,
+            handler: Any,
+            packet: ClientPacket,
+            websocket: WebSocket,
+            **kwargs: Any
+    ) -> None:
+        handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
+            handler,
+            packet=packet,
+            websocket=websocket,
+            **kwargs
+        )
+
+        prepared_args: Dict[str, Any] = self.__prepare_args(
+            handler,
+            packet=packet,
+            websocket=websocket,
+            router=self,
+            **handler_dependencies,
+            **kwargs
+        )
+
+        response_packet: ServerPacket | None = await handler(**prepared_args)
+
+        if response_packet is not None:
+            await websocket.send_text(response_packet.pack())
 
     async def __inject_dependencies(
             self,
