@@ -4,6 +4,7 @@ from typing import Dict, Any, Type, List
 
 from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
+from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base import BasePacket
 
 
@@ -25,6 +26,17 @@ class ClientPacket(BasePacket, ABC):
             raise InvalidPacketError("Provided packet meta is invalid")
 
         return cls.from_json(packet["data"])
+
+    @classmethod
+    def withdraw_packet(
+            cls,
+            packet: str
+    ) -> 'ClientPacket':
+        try:
+            packet_type: Type[ClientPacket] = ClientPacket.withdraw_packet_type(packet)
+            return packet_type.unpack(packet)
+        except InvalidPacketError:
+            raise InvalidPacketDataError("Provided packet data is invalid")
 
     @classmethod
     def withdraw_packet_type(

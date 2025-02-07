@@ -9,9 +9,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
-from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
@@ -87,16 +85,12 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             **kwargs
     ) -> None:
         try:
-            try:
-                packet_type: Type[ClientPacket] = ClientPacket.withdraw_packet_type(packet)
-                packet: ClientPacket = packet_type.unpack(packet)
-            except InvalidPacketError:
-                raise InvalidPacketDataError("Provided packet data is invalid")
+            packet: ClientPacket = ClientPacket.withdraw_packet(packet)
 
-            if packet_type not in self.handlers:
+            if type(packet) not in self.handlers:
                 raise UnknownPacketError("Unknown packet")
 
-            handler: Any = self.handlers[packet_type]
+            handler: Any = self.handlers[type(packet)]
 
             handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
                 handler,
