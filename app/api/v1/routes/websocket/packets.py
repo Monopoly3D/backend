@@ -1,6 +1,7 @@
 import asyncio
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Annotated, Tuple, List
+from typing import Dict, Any, Callable, Type, Annotated, Tuple, TypeVar
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -10,6 +11,7 @@ from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
+from app.api.v1.exceptions.websocket.packet_timeout import PacketTimeoutError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
@@ -20,6 +22,8 @@ from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
+
+T = TypeVar("T", bound=ClientPacket)
 
 
 async def dependencies(
@@ -49,8 +53,8 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
-        self.handlers: Dict[Type[ClientPacket], Callable] = {}
-        self.awaiting: List[Tuple[Type[ClientPacket], Callable]] = []
+        self.__handlers: Dict[Type[ClientPacket], Callable] = {}
+        self.__awaiting: Dict[Type[ClientPacket], Dict[UUID, Any]] = {}
 
         self.add_api_websocket_route(
             "/",
@@ -63,18 +67,37 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             packet: Type[ClientPacket]
     ) -> Callable:
         def decorator(func: Callable) -> None:
-            self.handlers.update({packet: func})
+            self.__handlers.update({packet: func})
 
         return decorator
 
-    def await_packet(
+    async def await_packet(
             self,
-            packet: Type[ClientPacket]
-    ) -> Callable:
-        def decorator(func: Callable) -> None:
-            self.awaiting.append((packet, func))
+            packet: Type[T],
+            *,
+            timeout: float = 300,
+            polling_timeout: float = 0.1
+    ) -> T:
+        if packet not in self.__awaiting:
+            self.__awaiting[packet] = {}
 
-        return decorator
+        awaiting_uuid: UUID = uuid4()
+
+        self.__awaiting[packet][awaiting_uuid] = None
+
+        for _ in range(int(timeout / polling_timeout)):
+            awaiting: Any = self.__awaiting[packet][awaiting_uuid]
+
+            if awaiting is not None:
+                self.__awaiting[packet].pop(awaiting_uuid)
+                if not self.__awaiting[packet]:
+                    self.__awaiting.pop(packet)
+
+                return awaiting
+
+            await asyncio.sleep(polling_timeout)
+
+        raise PacketTimeoutError("Awaited too long to retrieve packet")
 
     async def handle_packets(
             self,
@@ -98,21 +121,18 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             packet: ClientPacket = ClientPacket.withdraw_packet(packet)
             is_awaiting: bool = False
 
-            for awaiting in self.awaiting:
-                awaiting_packet: Type[ClientPacket] = awaiting[0]
-                awaiting_handler: Callable = awaiting[1]
-
+            for awaiting_packet, awaiting in self.__awaiting.items():
                 if awaiting_packet == type(packet):
+                    self.__awaiting[awaiting_packet] = {uid: packet for uid in self.__awaiting[awaiting_packet].keys()}
                     is_awaiting = True
-                    await self.__execute_handler(awaiting_handler, packet, websocket, **kwargs)
 
             if is_awaiting:
                 return
 
-            if type(packet) not in self.handlers:
+            if type(packet) not in self.__handlers:
                 raise UnknownPacketError("Unknown packet")
 
-            await self.__execute_handler(self.handlers[type(packet)], packet, websocket, **kwargs)
+            await self.__execute_handler(self.__handlers[type(packet)], packet, websocket, **kwargs)
         except WebSocketError as e:
             raise e
         except Exception as e:
