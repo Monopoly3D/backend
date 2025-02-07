@@ -119,6 +119,10 @@ class Game(RedisObject):
         return all([player.is_ready for player in self.players_list])
 
     @property
+    def police(self) -> int:
+        return [field.field_type for field in self.fields].index(FieldType.POLICE)
+
+    @property
     def controller(self) -> RedisController:
         return self.__controller_instance
 
