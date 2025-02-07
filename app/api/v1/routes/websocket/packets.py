@@ -1,5 +1,5 @@
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Annotated, List, Tuple
+from typing import Dict, Any, Callable, Type, Annotated, Tuple
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis

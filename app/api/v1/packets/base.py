@@ -1,9 +1,8 @@
-import json
 from abc import abstractmethod, ABC
-from typing import Dict, Any, List, Type
+from abc import abstractmethod, ABC
+from typing import Any
 
 from app.api.v1.enums.packet_class import PacketClass
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 
 
 class BasePacket(ABC):

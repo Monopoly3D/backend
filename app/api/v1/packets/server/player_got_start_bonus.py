@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 from uuid import UUID
 
 from app.api.v1.packets.base_server import ServerPacket
