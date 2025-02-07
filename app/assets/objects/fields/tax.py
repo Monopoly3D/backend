@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 from pydantic.dataclasses import dataclass
 
+from app.api.v1.packets.server.player_got_tax import ServerPlayerGotTaxPacket
 from app.assets.objects.field import Field
 from app.assets.objects.player import Player
 
@@ -37,4 +38,6 @@ class Tax(Field):
             self,
             player: Player
     ) -> None:
-        pass
+        await self.game.send(
+            ServerPlayerGotTaxPacket(self.game.game_id, player.player_id, self.tax_amount)
+        )
