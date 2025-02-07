@@ -11,6 +11,7 @@ class Police(Field):
             self,
             player: Player
     ) -> None:
+        player.is_imprisoned = True
         player.field = self.game.police
 
         await self.game.send(
