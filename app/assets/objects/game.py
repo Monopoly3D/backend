@@ -56,13 +56,11 @@ class Game(RedisObject):
 
     players: Dict[UUID, Player] = dataclass_field(default_factory=dict)
     fields: List[Field] = dataclass_field(default_factory=list)
+    map_path: str = DEFAULT_MAP_PATH
 
     __controller_instance: RedisController | None = None
 
     def __post_init__(self):
-        if not self.fields:
-            self.fields = self.default_map()
-
         self.__setup_players()
         self.__setup_fields()
 
@@ -134,7 +132,9 @@ class Game(RedisObject):
     async def start(self) -> None:
         self.is_started = True
         self.awaiting_move = True
+
         self.shuffle_players()
+        self.fields = self.get_map(self.map_path)
 
         await self.send(ServerGameStartPacket(self.game_id, self.players_list, self.fields))
         await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
@@ -190,9 +190,6 @@ class Game(RedisObject):
     ) -> None:
         for connection in self.connections:
             await connection.send_text(packet.pack())
-
-    def default_map(self) -> List[Field]:
-        return self.get_map(self.DEFAULT_MAP_PATH)
 
     def get_map(
             self,
