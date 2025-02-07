@@ -7,8 +7,6 @@ from app.api.v1.packets.base_server import ServerPacket
 class ServerGameMovePacket(ServerPacket):
     PACKET_TAG = "game_move"
 
-    PACKET_KEYS = ["game_id", "round", "move"]
-
     def __init__(
             self,
             game_id: UUID,

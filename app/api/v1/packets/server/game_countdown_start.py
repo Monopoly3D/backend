@@ -7,8 +7,6 @@ from app.api.v1.packets.base_server import ServerPacket
 class ServerGameCountdownStartPacket(ServerPacket):
     PACKET_TAG = "game_countdown_start"
 
-    PACKET_KEYS = ["game_id"]
-
     def __init__(
             self,
             game_id: UUID

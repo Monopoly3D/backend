@@ -7,8 +7,6 @@ from app.api.v1.packets.base_server import ServerPacket
 class ServerPlayerGotStartBonusPacket(ServerPacket):
     PACKET_TAG = "player_got_start_bonus"
 
-    PACKET_KEYS = ["game_id", "player_id", "amount"]
-
     def __init__(
             self,
             game_id: UUID,

@@ -51,7 +51,7 @@ async def on_client_join_game(
 
     game.add_player(player)
     await game.save()
-    await game.send(ServerPlayerJoinGamePacket(game.game_id, player))
+    await game.send(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username))
 
 
 @games_packets_router.handle(ClientPlayerReadyPacket)
@@ -82,7 +82,7 @@ async def on_client_move(
         player: Annotated[Player, WebSocketDependency.get_player(game_has_started=True)]
 ) -> None:
     if not game.awaiting_move or game.players_list[game.move].player_id != player.player_id:
-        raise GameNotAwaitingMoveError("You are not allowed to move now")
+        raise GameNotAwaitingMoveError("Player is not awaited to move")
 
     await game.move_player()
     await game.save()

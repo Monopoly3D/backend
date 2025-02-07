@@ -7,8 +7,6 @@ from app.api.v1.packets.base_server import ServerPacket
 class ServerAuthPacket(ServerPacket):
     PACKET_TAG = "auth"
 
-    PACKET_KEYS = ["user_id", "username"]
-
     def __init__(
             self,
             user_id: UUID,

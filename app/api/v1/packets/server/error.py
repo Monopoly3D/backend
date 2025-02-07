@@ -7,8 +7,6 @@ from app.api.v1.packets.base_server import ServerPacket
 class ServerErrorPacket(ServerPacket):
     PACKET_TAG = "error"
 
-    PACKET_KEYS = ["status_code", "detail"]
-
     def __init__(
             self,
             status_code: int,
