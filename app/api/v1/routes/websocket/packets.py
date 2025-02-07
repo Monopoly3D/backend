@@ -28,8 +28,8 @@ async def dependencies(
         redis: Annotated[Redis, Depends(Dependency.redis_websocket)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-        users_controller: Annotated[UsersController, Depends(UsersController.websocket_dependency)],
-        games_controller: Annotated[GamesController, Depends(GamesController.websocket_dependency)],
+        users_controller: Annotated[UsersController, Depends(Dependency.users_controller_websocket)],
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller_websocket)],
         user: Annotated[User, Authenticator.get_websocket_user()]
 ) -> Dict[str, Any]:
     return {

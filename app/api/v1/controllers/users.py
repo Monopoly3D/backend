@@ -1,13 +1,9 @@
-from typing import Dict, Any, Annotated, Tuple
+from typing import Dict, Any, Tuple
 from uuid import UUID, uuid4
-
-from fastapi import Depends
-from redis.asyncio import Redis
 
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.assets.objects.user import User
-from app.dependencies import Dependency
 
 
 class UsersController(RedisController):
@@ -60,10 +56,4 @@ class UsersController(RedisController):
 
         await self.remove(self.REDIS_KEY.format(user_id=user_id))
 
-    @staticmethod
-    async def dependency(redis: Annotated[Redis, Depends(Dependency.redis)]) -> 'UsersController':
-        return UsersController(redis)
 
-    @staticmethod
-    async def websocket_dependency(redis: Annotated[Redis, Depends(Dependency.redis_websocket)]) -> 'UsersController':
-        return UsersController(redis)
