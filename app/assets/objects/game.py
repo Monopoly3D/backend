@@ -106,13 +106,17 @@ class Game(RedisObject):
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
             "start_bonus_round_amount": self.start_bonus_round_amount,
-            "players": self.players_json(),
-            "fields": self.fields_json()
+            "players": [player.to_json() for player in self.players_list],
+            "fields": [field.to_json() for field in self.fields]
         }
 
     @property
     def players_list(self) -> List[Player]:
         return list(self.players.values())
+
+    @property
+    def is_ready(self) -> bool:
+        return all([player.is_ready for player in self.players_list])
 
     @property
     def controller(self) -> RedisController:
@@ -123,11 +127,9 @@ class Game(RedisObject):
         super().__init__(value.REDIS_KEY.format(game_id=self.game_id), value)
         self.__controller_instance = value
 
-    def players_json(self) -> List[Dict[str, Any]]:
-        return [player.to_json() for player in self.players_list]
-
-    def fields_json(self) -> List[Dict[str, Any]]:
-        return [field.to_json() for field in self.fields]
+    @property
+    def connections(self) -> Tuple[WebSocket, ...]:
+        return tuple([c for c in map(lambda player: player.connection, self.players_list) if c is not None])
 
     async def start(self) -> None:
         self.is_started = True
@@ -188,14 +190,6 @@ class Game(RedisObject):
     ) -> None:
         for connection in self.connections:
             await connection.send_text(packet.pack())
-
-    @property
-    def is_ready(self) -> bool:
-        return all([player.is_ready for player in self.players_list])
-
-    @property
-    def connections(self) -> Tuple[WebSocket, ...]:
-        return tuple([c for c in map(lambda player: player.connection, self.players_list) if c is not None])
 
     def default_map(self) -> List[Field]:
         return self.get_map(self.DEFAULT_MAP_PATH)
