@@ -52,6 +52,7 @@ class Game(RedisObject):
 
     awaiting_move: bool = False
     start_bonus: int = 2000
+    start_reward: int = 1000
     start_bonus_round_amount: int = 65
 
     players: Dict[UUID, Player] = dataclass_field(default_factory=dict)
@@ -103,6 +104,7 @@ class Game(RedisObject):
             "max_players": self.max_players,
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
+            "start_reward": self.start_reward,
             "start_bonus_round_amount": self.start_bonus_round_amount,
             "players": [player.to_json() for player in self.players_list],
             "fields": [field.to_json() for field in self.fields]

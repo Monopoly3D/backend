@@ -4,8 +4,8 @@ from uuid import UUID
 from app.api.v1.packets.base_server import ServerPacket
 
 
-class ServerPlayerGotStartBonusPacket(ServerPacket):
-    PACKET_TAG = "player_got_start_bonus"
+class ServerPlayerGotStartRewardPacket(ServerPacket):
+    PACKET_TAG = "player_got_start_reward"
 
     def __init__(
             self,

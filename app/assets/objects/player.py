@@ -63,7 +63,9 @@ class Player(MonopolyObject):
             self,
             dices: Tuple[int, int]
     ) -> None:
-        self.field += sum(dices)
+        amount: int = sum(dices)
+
+        self.field += amount
         got_start_bonus: bool = False
 
         if self.field >= len(self.game.fields):
@@ -77,7 +79,7 @@ class Player(MonopolyObject):
 
         if got_start_bonus:
             await self.game.send(
-                ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.game.start_bonus)
+                ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.balance)
             )
 
         field: Field = self.game.fields[self.field]
