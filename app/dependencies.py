@@ -11,7 +11,7 @@ from config import Config
 
 class Dependency:
     @staticmethod
-    def inject(
+    async def inject(
             fastapi_app: FastAPI,
             config: Config,
             database,
@@ -23,8 +23,13 @@ class Dependency:
         fastapi_app.state.redis = redis
         fastapi_app.state.connections = connections
 
-        fastapi_app.state.users_controller = UsersController(redis)
-        fastapi_app.state.games_controller = GamesController(redis)
+        users_controller = UsersController(redis)
+        games_controller = GamesController(redis)
+        await users_controller.retrieve_users()
+        await games_controller.retrieve_games(connections)
+
+        fastapi_app.state.users_controller = users_controller
+        fastapi_app.state.games_controller = games_controller
 
     @staticmethod
     async def config(request: Request) -> Config:
