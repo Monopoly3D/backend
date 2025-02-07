@@ -16,7 +16,7 @@ from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownSto
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
-from app.api.v1.routes.websocket.dependencies import WebsocketDependencies
+from app.api.v1.routes.websocket import dependencies
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
@@ -38,7 +38,7 @@ async def on_ping() -> ServerPingPacket:
 async def on_client_join_game(
         websocket: WebSocket,
         user: User,
-        game: Annotated[Game, WebsocketDependencies.get_game(is_started=False)]
+        game: Annotated[Game, dependencies.get_game(is_started=False, has_player=False)]
 ) -> None:
     if len(game.players) >= game.max_players:
         raise TooManyPlayersError("Game with provided UUID has too many players")
@@ -57,16 +57,17 @@ async def on_client_join_game(
 @games_packets_router.handle(ClientPlayerReadyPacket)
 async def on_client_ready(
         packet: ClientPlayerReadyPacket,
-        game: Annotated[Game, WebsocketDependencies.get_game(is_started=False)],
-        player: Annotated[Player, WebsocketDependencies.get_player(game_has_started=False)]
+        player: Annotated[Player, dependencies.get_player(game_has_started=False)]
 ) -> None:
     player.is_ready = packet.is_ready
+    game: Game = player.game
+
     await game.save()
     await game.send(ServerPlayerReadyPacket(game.game_id, player.player_id, packet.is_ready))
 
     task: Task | None = get_task(f"start:{game.game_id}")
 
-    if game.is_ready and len(game.players) >= game.min_players and task is None:
+    if game.is_ready and task is None and len(game.players) >= game.min_players:
         task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
         await game.send(ServerGameCountdownStartPacket(game.game_id))
         await task
@@ -77,8 +78,8 @@ async def on_client_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
-        game: Annotated[Game, WebsocketDependencies.get_game()],
-        player: Annotated[Player, WebsocketDependencies.get_player(game_has_started=True)]
+        game: Annotated[Game, dependencies.get_game()],
+        player: Annotated[Player, dependencies.get_player(game_has_started=True)]
 ) -> None:
     if not game.awaiting_move or game.players_list[game.move].player_id != player.player_id:
         raise GameNotAwaitingMoveError("You are not allowed to move now")

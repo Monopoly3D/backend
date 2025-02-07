@@ -1,5 +1,5 @@
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Coroutine, Annotated
+from typing import Dict, Any, Callable, Type, Annotated, List, Tuple
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -50,7 +50,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
-        self.handlers: Dict[Type[ClientPacket], Coroutine[Any, Any, ServerPacket | None]] = {}
+        self.handlers: Dict[Type[ClientPacket], Callable] = {}
 
         self.add_api_websocket_route(
             "/",
@@ -62,7 +62,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             self,
             packet: Type[ClientPacket]
     ) -> Callable:
-        def decorator(func: Coroutine[Any, Any, ServerPacket]) -> None:
+        def decorator(func: Callable) -> None:
             self.handlers.update({packet: func})
 
         return decorator
@@ -99,9 +99,10 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         except InvalidPacketError:
             raise InvalidPacketDataError("Provided packet data is invalid")
 
-        handler: Any = self.handlers.get(packet_type, None)
-        if handler is None:
+        if packet_type not in self.handlers:
             raise UnknownPacketError("Unknown packet")
+
+        handler: Any = self.handlers[packet_type]
 
         handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
             handler,
@@ -159,7 +160,9 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
             func: Callable,
             **kwargs: Any
     ) -> Dict[str, Any]:
+        args: Tuple[str, ...] = tuple(getfullargspec(func)[0])
+
         return {
             k: arg for k, arg in kwargs.items()
-            if k in getfullargspec(func)[0]
+            if k in args
         }

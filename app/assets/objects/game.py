@@ -65,6 +65,9 @@ class Game(RedisObject):
         if not self.fields:
             self.fields = self.default_map()
 
+        self.__setup_players()
+        self.__setup_fields()
+
     @classmethod
     def from_json(
             cls,
@@ -234,7 +237,6 @@ class Game(RedisObject):
             if new_field is None:
                 continue
 
-            new_field.game = self
             fields.append(new_field)
 
         return fields
@@ -242,6 +244,14 @@ class Game(RedisObject):
     @staticmethod
     def throw_dices() -> Tuple[int, int]:
         return randint(1, 6), randint(1, 6)
+
+    def __setup_players(self) -> None:
+        for player in self.players_list:
+            player.game = self
+
+    def __setup_fields(self) -> None:
+        for field in self.fields:
+            field.game = self
 
     @classmethod
     def __get_field(
