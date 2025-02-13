@@ -10,6 +10,7 @@ from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.user import User
+from app.dependencies import Dependency
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 
@@ -21,7 +22,7 @@ auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 )
 async def register(
         username: str,
-        users_controller: Annotated[UsersController, Depends(UsersController.dependency)],
+        users_controller: Annotated[UsersController, Depends(Dependency.users_controller)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
     user: User = await users_controller.create_user(username=username)
@@ -41,7 +42,7 @@ async def register(
 )
 async def login(
         username: str,
-        users_controller: Annotated[UsersController, Depends(UsersController.dependency)],
+        users_controller: Annotated[UsersController, Depends(Dependency.users_controller)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
     user: User | None = await users_controller.get_user_by_username(username=username)

@@ -1,4 +1,5 @@
 import json
+from base64 import decode
 from typing import Any, Tuple
 
 from redis import Redis
@@ -37,7 +38,8 @@ class RedisController:
             pattern: str = "",
             exact_pattern: bool = False
     ) -> Tuple[str, ...]:
-        return tuple(await self._redis.keys(f"*{pattern}*" if exact_pattern else f"*monopoly:{pattern}*"))
+        keys: Tuple[bytes, ...] = await self._redis.keys(f"*{pattern}*" if exact_pattern else f"*monopoly:{pattern}*")
+        return tuple([key.decode() for key in keys])
 
     async def exists(
             self,

@@ -1,5 +1,4 @@
 from abc import abstractmethod, ABC
-from abc import abstractmethod, ABC
 from typing import Any
 
 from app.api.v1.enums.packet_class import PacketClass

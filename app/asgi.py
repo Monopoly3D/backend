@@ -30,7 +30,7 @@ async def lifespan(fastapi_app: FastAPI):
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
     connections: ConnectionsController = ConnectionsController(redis)
 
-    Dependency.inject(
+    await Dependency.inject(
         fastapi_app,
         config,
         database,

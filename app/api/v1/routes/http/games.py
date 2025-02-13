@@ -10,6 +10,7 @@ from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.objects.game import Game
+from app.dependencies import Dependency
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 
@@ -21,7 +22,7 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
     dependencies=[Authenticator.verify_access_token_dependency()]
 )
 async def create_game(
-        games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> GameResponseModel:
     game: Game = await games_controller.create_game()
     return GameResponseModel.from_game(game)
@@ -36,7 +37,7 @@ async def create_game(
 async def get_game(
         game_id: UUID,
         connections: Annotated[ConnectionsController, Depends(ConnectionsController.dependency)],
-        games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> GameResponseModel:
     game: Game | None = await games_controller.get_game(game_id, connections)
 
@@ -53,7 +54,7 @@ async def get_game(
 )
 async def remove_game(
         game_id: UUID,
-        games_controller: Annotated[GamesController, Depends(GamesController.dependency)]
+        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
 ) -> None:
     if not await games_controller.exists_game(game_id):
         raise NotFoundError("Game with provided UUID was not found")
