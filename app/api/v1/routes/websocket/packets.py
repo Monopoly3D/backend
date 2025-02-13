@@ -20,8 +20,6 @@ from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
 
-T = TypeVar("T", bound=ClientPacket)
-
 
 async def dependencies(
         config: Annotated[Config, Depends(Dependency.config_websocket)],
