@@ -1,7 +1,5 @@
-import asyncio
 from inspect import getfullargspec
 from typing import Dict, Any, Callable, Type, Annotated, Tuple, TypeVar
-from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
@@ -11,7 +9,6 @@ from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
-from app.api.v1.exceptions.websocket.packet_timeout import PacketTimeoutError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
@@ -54,7 +51,6 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     ) -> None:
         super().__init__(prefix=prefix)
         self.__handlers: Dict[Type[ClientPacket], Callable] = {}
-        self.__awaiting: Dict[Type[ClientPacket], Dict[UUID, Any]] = {}
 
         self.add_api_websocket_route(
             "/",
@@ -71,34 +67,6 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
 
         return decorator
 
-    async def await_packet(
-            self,
-            packet: Type[T],
-            *,
-            timeout: float = 300,
-            polling_timeout: float = 0.1
-    ) -> T:
-        if packet not in self.__awaiting:
-            self.__awaiting[packet] = {}
-
-        awaiting_uuid: UUID = uuid4()
-
-        self.__awaiting[packet][awaiting_uuid] = None
-
-        for _ in range(int(timeout / polling_timeout)):
-            awaiting: Any = self.__awaiting[packet][awaiting_uuid]
-
-            if awaiting is not None:
-                self.__awaiting[packet].pop(awaiting_uuid)
-                if not self.__awaiting[packet]:
-                    self.__awaiting.pop(packet)
-
-                return awaiting
-
-            await asyncio.sleep(polling_timeout)
-
-        raise PacketTimeoutError("Awaited too long to retrieve packet")
-
     async def handle_packets(
             self,
             websocket: WebSocket,
@@ -107,7 +75,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
         try:
             while True:
                 packet: str = await websocket.receive_text()
-                asyncio.create_task(self.__handle_packet(packet, websocket, **dp))
+                await self.__handle_packet(packet, websocket, **dp)  # At some point it must create asyncio tasks
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
@@ -119,15 +87,6 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
     ) -> None:
         try:
             packet: ClientPacket = ClientPacket.withdraw_packet(packet)
-            is_awaiting: bool = False
-
-            for awaiting_packet, awaiting in self.__awaiting.items():
-                if awaiting_packet == type(packet):
-                    self.__awaiting[awaiting_packet] = {uid: packet for uid in self.__awaiting[awaiting_packet].keys()}
-                    is_awaiting = True
-
-            if is_awaiting:
-                return
 
             if type(packet) not in self.__handlers:
                 raise UnknownPacketError("Unknown packet")
