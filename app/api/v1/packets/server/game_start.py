@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 from uuid import UUID
 
 from app.api.v1.packets.base_server import ServerPacket
-from app.assets.objects.field import Field
+from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player
 
 

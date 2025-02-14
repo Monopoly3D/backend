@@ -16,7 +16,7 @@ from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.field import Field
+from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company

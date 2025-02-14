@@ -3,12 +3,15 @@ from typing import Any, Dict
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_got_tax import ServerPlayerGotTaxPacket
-from app.assets.objects.field import Field
+from app.assets.enums.field_type import FieldType
+from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player
 
 
 @dataclass
 class Tax(Field):
+    field_type = FieldType.TAX
+
     tax_amount: int = 0
 
     @classmethod

@@ -1,11 +1,14 @@
 from pydantic.dataclasses import dataclass
 
-from app.assets.objects.field import Field
+from app.assets.enums.field_type import FieldType
+from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player
 
 
 @dataclass
 class Chance(Field):
+    field_type = FieldType.CHANCE
+
     async def on_stand(
             self,
             player: Player

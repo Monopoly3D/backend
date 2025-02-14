@@ -7,7 +7,7 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
-from app.assets.objects.field import Field
+from app.assets.objects.fields.field import Field
 from app.assets.objects.monopoly_object import MonopolyObject
 
 

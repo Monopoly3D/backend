@@ -5,12 +5,14 @@ from uuid import UUID
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.field import Field
+from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player
 
 
 @dataclass
 class Company(Field):
+    field_type = FieldType.COMPANY
+
     owner_id: UUID | None = None
     is_monopoly: bool = False
     field_dependant: bool = False

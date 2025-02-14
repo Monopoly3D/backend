@@ -1,12 +1,15 @@
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_got_start_reward import ServerPlayerGotStartRewardPacket
-from app.assets.objects.field import Field
+from app.assets.enums.field_type import FieldType
+from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player
 
 
 @dataclass
 class Start(Field):
+    field_type = FieldType.START
+
     async def on_stand(
             self,
             player: Player
