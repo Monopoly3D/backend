@@ -11,7 +11,7 @@ from app.assets.objects.player import Player
 
 @dataclass
 class Company(Field):
-    field_type = FieldType.COMPANY
+    field_type: FieldType = FieldType.COMPANY
 
     owner_id: UUID | None = None
     is_monopoly: bool = False

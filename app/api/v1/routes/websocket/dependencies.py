@@ -3,11 +3,13 @@ from typing import Callable, Annotated
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
+from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
 from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
 from app.api.v1.exceptions.websocket.game_not_started import GameNotStartedError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.base_client import ClientPacket
+from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.assets.objects.user import User
@@ -18,6 +20,7 @@ class WebSocketDependency:
     def get_game(
             *,
             is_started: bool | None = True,
+            action: ActionType | None = None,
             has_player: bool | None = True
     ) -> Callable:
         async def __get_game(
@@ -39,6 +42,10 @@ class WebSocketDependency:
                     raise GameAlreadyStartedError("Game with provided UUID has already started")
                 if not game.is_started and is_started:
                     raise GameNotStartedError("Game with provided UUID has not been started")
+
+            if action is not None:
+                if game.action.action_type != action:
+                    raise GameInvalidActionError("Game with provided UUID awaits different action")
 
             return game
 

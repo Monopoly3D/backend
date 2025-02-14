@@ -7,7 +7,7 @@ from app.assets.objects.player import Player
 
 @dataclass
 class Chance(Field):
-    field_type = FieldType.CHANCE
+    field_type: FieldType = FieldType.CHANCE
 
     async def on_stand(
             self,

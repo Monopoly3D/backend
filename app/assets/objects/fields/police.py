@@ -8,7 +8,7 @@ from app.assets.objects.player import Player
 
 @dataclass
 class Police(Field):
-    field_type = FieldType.POLICE
+    field_type: FieldType = FieldType.POLICE
 
     async def on_stand(
             self,

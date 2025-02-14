@@ -7,7 +7,7 @@ from app.assets.objects.player import Player
 
 @dataclass
 class Prison(Field):
-    field_type = FieldType.PRISON
+    field_type: FieldType = FieldType.PRISON
 
     async def on_stand(
             self,

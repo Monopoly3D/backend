@@ -8,7 +8,7 @@ from app.assets.objects.player import Player
 
 @dataclass
 class Start(Field):
-    field_type = FieldType.START
+    field_type: FieldType = FieldType.START
 
     async def on_stand(
             self,

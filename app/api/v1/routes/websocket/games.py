@@ -18,6 +18,7 @@ from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacke
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
+from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.assets.objects.user import User
@@ -78,10 +79,10 @@ async def on_client_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
-        game: Annotated[Game, WebSocketDependency.get_game()],
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)],
         player: Annotated[Player, WebSocketDependency.get_player(game_has_started=True)]
 ) -> None:
-    if not game.awaiting_move or game.players_list[game.move].player_id != player.player_id:
+    if game.players_list[game.move].player_id != player.player_id:
         raise GameNotAwaitingMoveError("Player is not awaited to move")
 
     await game.move_player()
