@@ -1,14 +1,13 @@
 from typing import Dict, List, Any, TypeVar
 
 from app.api.v1.models.response.field import FieldResponseModel
-from app.assets.controllers.context import ContextController
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
 
 T = TypeVar('T', bound=Field)
 
 
-class FieldsController(ContextController):
+class FieldsController:
     def __init__(self) -> None:
         self.__fields: List[T] = []
         self.game_instance: Any = None

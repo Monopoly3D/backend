@@ -4,11 +4,10 @@ from uuid import UUID
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
-from app.assets.controllers.context import ContextController
 from app.assets.objects.player import Player
 
 
-class PlayersController(ContextController):
+class PlayersController:
     def __init__(self) -> None:
         self.__players: Dict[UUID, Player] = {}
         self.game_instance: Any = None
