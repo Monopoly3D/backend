@@ -69,6 +69,10 @@ class Game(RedisObject):
 
     __controller_instance: RedisController | None = None
 
+    def __post_init__(self):
+        self.players.setup(game_instance=self)
+        self.fields.setup(game_instance=self)
+
     @classmethod
     def from_json(
             cls,
@@ -87,6 +91,8 @@ class Game(RedisObject):
 
         game.players.setup(players, game_instance=game)
         game.fields.setup(fields, game_instance=game)
+
+        return game
 
     def to_json(self) -> Dict[str, Any]:
         return {

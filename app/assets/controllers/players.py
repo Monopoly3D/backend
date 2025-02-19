@@ -41,6 +41,7 @@ class PlayersController(ContextController):
             player: Player
     ) -> None:
         if not self.exists(player.player_id):
+            player.game = self.game_instance
             self.__players[player.player_id] = player
 
     def get(
@@ -70,6 +71,10 @@ class PlayersController(ContextController):
     ) -> None:
         if self.exists(uuid):
             self.__players.pop(uuid)
+
+    @property
+    def ids(self) -> List[UUID]:
+        return list(self.__players.keys())
 
     @property
     def list(self) -> List[Player]:

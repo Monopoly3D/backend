@@ -69,8 +69,8 @@ class Player(MonopolyObject):
         self.field += amount
         got_start_bonus: bool = False
 
-        if self.field >= len(self.game.fields):
-            self.field %= len(self.game.fields)
+        if self.field >= self.game.fields.size:
+            self.field %= self.game.fields.size
 
             if self.game.start_bonus_round_amount < self.game.round:
                 got_start_bonus = True
@@ -83,7 +83,7 @@ class Player(MonopolyObject):
                 ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.balance)
             )
 
-        field: Field = self.game.fields[self.field]
+        field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
 
     async def send(
