@@ -79,10 +79,9 @@ async def on_client_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)],
-        player: Annotated[Player, WebSocketDependency.get_player(game_has_started=True)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
 ) -> None:
-    if game.players.get_by_move(game.move).player_id != player.player_id:
+    if game.action.player != game.move:
         raise GameNotAwaitingMoveError("Player is not awaited to move")
 
     await game.move_player()

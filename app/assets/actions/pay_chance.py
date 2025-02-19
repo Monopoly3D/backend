@@ -7,15 +7,17 @@ from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class MoveAction(Action):
-    action_type: ActionType = ActionType.MOVE
+class PayChanceAction(Action):
+    action_type: ActionType = ActionType.PAY_CHANCE
 
-    player: int = 0
+    amount: int = 0
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
-        return cls(player=data.get("player"))
+        return cls(amount=data.get("amount"))
 
     def to_json(self) -> Dict[str, Any]:
-        return {"action_type": self.action_type.value,"player": self.player}
-
+        return {
+            "action_type": self.action_type.value,
+            "amount": self.amount
+        }

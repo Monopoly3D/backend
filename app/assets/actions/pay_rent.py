@@ -17,4 +17,7 @@ class PayRentAction(Action):
         return cls(amount=data.get("amount"))
 
     def to_json(self) -> Dict[str, Any]:
-        return {"action_type": self.action_type.value, "amount": self.amount}
+        return {
+            "action_type": self.action_type.value,
+            "amount": self.amount
+        }

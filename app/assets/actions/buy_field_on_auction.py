@@ -7,17 +7,22 @@ from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class PayTaxAction(Action):
-    action_type: ActionType = ActionType.PAY_TAX
+class BuyFieldOnAuctionAction(Action):
+    action_type: ActionType = ActionType.BUY_FIELD_ON_AUCTION
 
-    amount: int = 0
+    cost: int = 0
+    player: int = 0
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
-        return cls(amount=data.get("amount"))
+        return cls(
+            cost=data.get("cost"),
+            player=data.get("player")
+        )
 
     def to_json(self) -> Dict[str, Any]:
         return {
             "action_type": self.action_type.value,
-            "amount": self.amount
+            "cost": self.cost,
+            "player": self.player
         }

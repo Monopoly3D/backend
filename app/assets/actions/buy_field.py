@@ -17,4 +17,7 @@ class BuyFieldAction(Action):
         return cls(cost=data.get("cost"))
 
     def to_json(self) -> Dict[str, Any]:
-        return {"action_type": self.action_type.value, "cost": self.cost}
+        return {
+            "action_type": self.action_type.value,
+            "cost": self.cost
+        }

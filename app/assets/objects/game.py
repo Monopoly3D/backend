@@ -3,7 +3,7 @@ import json
 from asyncio import CancelledError
 from dataclasses import field as dataclass_field
 from random import randint
-from typing import Dict, Any, List, Tuple, ClassVar, Type
+from typing import Dict, Any, List, Tuple, ClassVar, Type, TypeVar
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -15,7 +15,16 @@ from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.actions.action import Action
+from app.assets.actions.buy_field import BuyFieldAction
+from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.actions.casino import CasinoAction
+from app.assets.actions.contract import ContractAction
 from app.assets.actions.move import MoveAction
+from app.assets.actions.pay_chance import PayChanceAction
+from app.assets.actions.pay_prison import PayPrisonAction
+from app.assets.actions.pay_rent import PayRentAction
+from app.assets.actions.pay_tax import PayTaxAction
+from app.assets.actions.prison import PrisonAction
 from app.assets.controllers.fields import FieldsController
 from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
@@ -30,6 +39,8 @@ from app.assets.objects.fields.start import Start
 from app.assets.objects.fields.tax import Tax
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
+
+T = TypeVar('T', bound=Action)
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
@@ -47,7 +58,16 @@ class Game(RedisObject):
     }
 
     ACTIONS: ClassVar[Dict[ActionType, Type[Action]]] = {
-        ActionType.MOVE: MoveAction
+        ActionType.MOVE: MoveAction,
+        ActionType.BUY_FIELD: BuyFieldAction,
+        ActionType.BUY_FIELD_ON_AUCTION: BuyFieldOnAuctionAction,
+        ActionType.PAY_RENT: PayRentAction,
+        ActionType.PAY_CHANCE: PayChanceAction,
+        ActionType.PAY_TAX: PayTaxAction,
+        ActionType.PAY_PRISON: PayPrisonAction,
+        ActionType.PRISON_ACTION: PrisonAction,
+        ActionType.CASINO_ACTION: CasinoAction,
+        ActionType.CONTRACT_ACTION: ContractAction
     }
 
     game_id: UUID
@@ -58,7 +78,7 @@ class Game(RedisObject):
     max_players: int = 5
     start_delay: int = 3
 
-    action: Action | None = None
+    action: T | None = None
     start_bonus: int = 2000
     start_reward: int = 1000
     start_bonus_round_amount: int = 65
