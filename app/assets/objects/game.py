@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
-from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
@@ -19,10 +18,10 @@ from app.assets.actions.action import Action
 from app.assets.actions.move import Move
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company
+from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.police import Police
 from app.assets.objects.fields.prison import Prison
 from app.assets.objects.fields.start import Start
@@ -140,16 +139,13 @@ class Game(RedisObject):
         super().__init__(value.REDIS_KEY.format(game_id=self.game_id), value)
         self.__controller_instance = value
 
-    @property
-    def connections(self) -> Tuple[WebSocket, ...]:
-        return tuple([c for c in map(lambda player: player.connection, self.players_list) if c is not None])
-
     async def start(self) -> None:
         self.is_started = True
         self.action = Move()
 
         self.shuffle_players()
         self.fields = self.get_map(self.map_path)
+        self.__setup_fields()
 
         await self.send(ServerGameStartPacket(self.game_id, self.players_list, self.fields))
         await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
@@ -203,8 +199,8 @@ class Game(RedisObject):
             self,
             packet: ServerPacket
     ) -> None:
-        for connection in self.connections:
-            await connection.send_text(packet.pack())
+        for player in self.players_list:
+            await player.send(packet)
 
     def get_map(
             self,
@@ -223,6 +219,7 @@ class Game(RedisObject):
             if new_field is None:
                 continue
 
+            new_field.game = self
             fields.append(new_field)
 
         return fields

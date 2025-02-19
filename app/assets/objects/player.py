@@ -5,6 +5,7 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
+from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.assets.objects.fields.field import Field
@@ -83,4 +84,11 @@ class Player(MonopolyObject):
             )
 
         field: Field = self.game.fields[self.field]
-        await field.on_stand(self)
+        await field.on_stand(self, amount)
+
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        if self.connection is not None:
+            await self.connection.send_text(packet.pack())

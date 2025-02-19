@@ -31,7 +31,8 @@ class Field(MonopolyObject, ABC):
     @abstractmethod
     async def on_stand(
             self,
-            player: Any
+            player: Any,
+            amount: int
     ) -> None:
         pass
 

@@ -4,6 +4,10 @@ from uuid import UUID
 
 from pydantic.dataclasses import dataclass
 
+from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
+from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
+from app.assets.actions.buy_field import BuyField
+from app.assets.actions.pay_rent import PayRent
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player
@@ -61,21 +65,26 @@ class Company(Field):
     async def on_stand(
             self,
             player: Player,
-            amount: int = 0
+            amount: int
     ) -> None:
         if self.owner_id is None:
-            print("You can buy it")
+            self.game.action = BuyField(cost=self.cost)
+            await player.send(
+                ServerPlayerBuyFieldPacket(self.game.game_id, player.player_id, self.field_id, self.cost)
+            )
             return
 
-        if self.owner_id == player.player_id:
-            self.game.awaiting_move = True
+        if self.owner_id == player.player_id or self.mortgage >= 0:
             return
 
-        if self.mortgage >= 0:
-            self.game.awaiting_move = True
-            return
+        stand_amount: int = self.stand_amount(amount)
 
-    def stand_cost(
+        self.game.action = PayRent(amount=stand_amount)
+        await player.send(
+            ServerPlayerPayRentPacket(self.game.game_id, player.player_id, self.field_id, stand_amount)
+        )
+
+    def stand_amount(
             self,
             amount: int
     ) -> int:

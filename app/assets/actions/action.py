@@ -13,7 +13,7 @@ class Action(ABC):
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
-        return cls(action_type=ActionType[data.get("action_type")])
+        return cls(action_type=ActionType(data.get("action_type")))
 
     def to_json(self) -> Dict[str, Any]:
         return {"action_type": self.action_type.value}
