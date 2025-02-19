@@ -9,9 +9,14 @@ class ServerGameCountdownStartPacket(ServerPacket):
 
     def __init__(
             self,
-            game_id: UUID
+            game_id: UUID,
+            delay: int
     ) -> None:
         self.game_id = game_id
+        self.delay = delay
 
     def to_json(self) -> Dict[str, Any]:
-        return {"game_id": str(self.game_id)}
+        return {
+            "game_id": str(self.game_id),
+            "delay": self.delay
+        }
