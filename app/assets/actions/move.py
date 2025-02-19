@@ -17,5 +17,5 @@ class MoveAction(Action):
         return cls(player=data.get("player"))
 
     def to_json(self) -> Dict[str, Any]:
-        return {"action_type": self.action_type.value,"player": self.player}
+        return {"action_type": self.action_type.value, "player": self.player}
 
