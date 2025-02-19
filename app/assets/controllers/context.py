@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class ContextController(ABC):
+    @abstractmethod
+    def __init__(self) -> None:
+        pass
+
     @abstractmethod
     def add(
             self,
@@ -15,7 +20,7 @@ class ContextController(ABC):
             self,
             *args,
             **kwargs
-    ) -> None:
+    ) -> Any:
         pass
 
     @abstractmethod
@@ -23,7 +28,7 @@ class ContextController(ABC):
             self,
             *args,
             **kwargs
-    ) -> None:
+    ) -> bool:
         pass
 
     @abstractmethod

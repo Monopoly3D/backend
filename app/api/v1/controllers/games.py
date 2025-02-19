@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, Tuple
 from uuid import UUID, uuid4
 
 from redis import Redis

@@ -60,7 +60,7 @@ class WebSocketDependency:
                 user: User,
                 game: Annotated[Game, WebSocketDependency.get_game(is_started=game_has_started)]
         ) -> Player:
-            player: Player | None = game.get_player(user.user_id)
+            player: Player | None = game.players.get(user.user_id)
 
             if player is None:
                 raise PlayerNotFoundError("Player is not in game")
