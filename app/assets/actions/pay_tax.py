@@ -7,7 +7,7 @@ from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class PayTax(Action):
+class PayTaxAction(Action):
     action_type: ActionType = ActionType.PAY_TAX
 
     amount: int = 0

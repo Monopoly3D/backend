@@ -1,6 +1,6 @@
 from pydantic.dataclasses import dataclass
 
-from app.assets.actions.casino_action import CasinoAction
+from app.assets.actions.casino import CasinoAction
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
 from app.assets.objects.player import Player

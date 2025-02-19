@@ -15,7 +15,7 @@ from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.actions.action import Action
-from app.assets.actions.move import Move
+from app.assets.actions.move import MoveAction
 from app.assets.controllers.fields import FieldsController
 from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
@@ -47,7 +47,7 @@ class Game(RedisObject):
     }
 
     ACTIONS: ClassVar[Dict[ActionType, Type[Action]]] = {
-        ActionType.MOVE: Move
+        ActionType.MOVE: MoveAction
     }
 
     game_id: UUID
@@ -89,8 +89,8 @@ class Game(RedisObject):
 
         game: Game = cls(**data)
 
-        game.players.setup(players, game_instance=game)
-        game.fields.setup(fields, game_instance=game)
+        game.players.setup(players, connections=connections)
+        game.fields.setup(fields)
 
         return game
 
@@ -111,6 +111,13 @@ class Game(RedisObject):
             "fields": self.fields.to_json()
         }
 
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        for player in self.players.list:
+            await player.send(packet)
+
     @property
     def controller(self) -> RedisController:
         return self.__controller_instance
@@ -122,7 +129,7 @@ class Game(RedisObject):
 
     async def start(self) -> None:
         self.is_started = True
-        self.action = Move()
+        self.action = MoveAction()
 
         self.players.shuffle()
         self.fields = self.get_map(self.map_path)
@@ -145,18 +152,11 @@ class Game(RedisObject):
 
         await player.move(dices)
 
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        for player in self.players.list:
-            await player.send(packet)
-
     def get_map(
             self,
-            game_path: str
+            map_path: str
     ) -> FieldsController:
-        with open(game_path, "r") as file:
+        with open(map_path, "r") as file:
             data: List[Dict[str, Any]] = json.load(file)
 
         fields: FieldsController = FieldsController()

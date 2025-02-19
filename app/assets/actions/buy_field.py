@@ -7,7 +7,7 @@ from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class BuyField(Action):
+class BuyFieldAction(Action):
     action_type: ActionType = ActionType.BUY_FIELD
 
     cost: int = 0

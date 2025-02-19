@@ -44,6 +44,13 @@ class Player(MonopolyObject):
             "contract_amount": self.contract_amount
         }
 
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        if self.connection is not None:
+            await self.connection.send_text(packet.pack())
+
     @property
     def connection(self) -> WebSocket | None:
         return self.__connection_instance
@@ -85,10 +92,3 @@ class Player(MonopolyObject):
 
         field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
-
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        if self.connection is not None:
-            await self.connection.send_text(packet.pack())
