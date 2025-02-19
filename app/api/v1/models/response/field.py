@@ -5,8 +5,8 @@ from pydantic import BaseModel, model_serializer
 from app.api.v1.models.response.company import CompanyResponseModel
 from app.api.v1.models.response.tax import TaxResponseModel
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.company import Company
+from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.tax import Tax
 
 

@@ -34,7 +34,7 @@ class WebSocketDependency:
 
             game: Game | None = await games_controller.get_game(getattr(packet, "game_id"), connections)
 
-            if game is None or (user.user_id not in game.players and has_player):
+            if game is None or (user.user_id not in game.players.ids and has_player):
                 raise GameNotFoundError("Game with provided UUID was not found")
 
             if is_started is not None:
@@ -60,7 +60,7 @@ class WebSocketDependency:
                 user: User,
                 game: Annotated[Game, WebSocketDependency.get_game(is_started=game_has_started)]
         ) -> Player:
-            player: Player | None = game.get_player(user.user_id)
+            player: Player | None = game.players.get(user.user_id)
 
             if player is None:
                 raise PlayerNotFoundError("Player is not in game")

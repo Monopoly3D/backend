@@ -2,7 +2,7 @@ import asyncio
 import json
 from asyncio import CancelledError
 from dataclasses import field as dataclass_field
-from random import shuffle, randint
+from random import randint
 from typing import Dict, Any, List, Tuple, ClassVar, Type
 from uuid import UUID
 
@@ -15,7 +15,9 @@ from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.actions.action import Action
-from app.assets.actions.move import Move
+from app.assets.actions.move import MoveAction
+from app.assets.controllers.fields import FieldsController
+from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.casino import Casino
@@ -45,7 +47,7 @@ class Game(RedisObject):
     }
 
     ACTIONS: ClassVar[Dict[ActionType, Type[Action]]] = {
-        ActionType.MOVE: Move
+        ActionType.MOVE: MoveAction
     }
 
     game_id: UUID
@@ -61,15 +63,15 @@ class Game(RedisObject):
     start_reward: int = 1000
     start_bonus_round_amount: int = 65
 
-    players: Dict[UUID, Player] = dataclass_field(default_factory=dict)
-    fields: List[Field] = dataclass_field(default_factory=list)
+    players: PlayersController = dataclass_field(default_factory=PlayersController)
+    fields: FieldsController = dataclass_field(default_factory=FieldsController)
     map_path: str = DEFAULT_MAP_PATH
 
     __controller_instance: RedisController | None = None
 
     def __post_init__(self):
-        self.__setup_players()
-        self.__setup_fields()
+        self.players.setup(game_instance=self)
+        self.fields.setup(game_instance=self)
 
     @classmethod
     def from_json(
@@ -78,28 +80,19 @@ class Game(RedisObject):
             *,
             connections: ConnectionsController | None = None
     ) -> Any:
-        players: Dict[UUID, Player] = {}
-        fields: List[Field] = []
+        players: List[Dict[str, Any]] = data["players"]
+        fields: List[Dict[str, Any]] = data["fields"]
 
+        del data["players"]
+        del data["fields"]
         data["action"] = cls.__get_field(data)
 
-        for data_player in data.get("players", []):
-            player: Player | None = Player.from_json(data_player)
-            if player is None:
-                continue
-            player.connection = connections.connections.get(player.player_id)
-            players[player.player_id] = player
+        game: Game = cls(**data)
 
-        for data_field in data.get("fields", []):
-            field: Field | None = cls.__get_field(data_field)
-            if field is None:
-                continue
-            fields.append(field)
+        game.players.setup(players, connections=connections)
+        game.fields.setup(fields)
 
-        data["players"] = players
-        data["fields"] = fields
-
-        return cls(**data)
+        return game
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -114,21 +107,16 @@ class Game(RedisObject):
             "start_bonus": self.start_bonus,
             "start_reward": self.start_reward,
             "start_bonus_round_amount": self.start_bonus_round_amount,
-            "players": [player.to_json() for player in self.players_list],
-            "fields": [field.to_json() for field in self.fields]
+            "players": self.players.to_json(),
+            "fields": self.fields.to_json()
         }
 
-    @property
-    def players_list(self) -> List[Player]:
-        return list(self.players.values())
-
-    @property
-    def is_ready(self) -> bool:
-        return all([player.is_ready for player in self.players_list])
-
-    @property
-    def police(self) -> int:
-        return [field.field_type for field in self.fields].index(FieldType.POLICE)
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        for player in self.players.list:
+            await player.send(packet)
 
     @property
     def controller(self) -> RedisController:
@@ -141,13 +129,12 @@ class Game(RedisObject):
 
     async def start(self) -> None:
         self.is_started = True
-        self.action = Move()
+        self.action = MoveAction()
 
-        self.shuffle_players()
+        self.players.shuffle()
         self.fields = self.get_map(self.map_path)
-        self.__setup_fields()
 
-        await self.send(ServerGameStartPacket(self.game_id, self.players_list, self.fields))
+        await self.send(ServerGameStartPacket(self.game_id, self.players.list, self.fields.list))
         await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
 
         await self.save()
@@ -160,56 +147,19 @@ class Game(RedisObject):
             pass
 
     async def move_player(self) -> None:
-        player: Player = self.players_list[self.move]
+        player: Player = self.players.get_by_move(self.move)
         dices: Tuple[int, int] = self.throw_dices()
 
         await player.move(dices)
 
-    def add_player(
-            self,
-            player: Player
-    ) -> None:
-        player.game = self
-        self.players.update({player.player_id: player})
-
-    def get_player(
-            self,
-            player_id: UUID
-    ) -> Player | None:
-        return self.players.get(player_id)
-
-    def has_player(
-            self,
-            player_id: UUID
-    ) -> bool:
-        return player_id in self.players
-
-    def remove_player(
-            self,
-            player_id: UUID
-    ) -> None:
-        self.players.pop(player_id)
-
-    def shuffle_players(self) -> None:
-        players_items: List[Tuple[UUID, Player]] = list(self.players.items())
-        shuffle(players_items)
-        self.players = dict(players_items)
-
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        for player in self.players_list:
-            await player.send(packet)
-
     def get_map(
             self,
-            game_path: str
-    ) -> List[Field]:
-        with open(game_path, "r") as file:
+            map_path: str
+    ) -> FieldsController:
+        with open(map_path, "r") as file:
             data: List[Dict[str, Any]] = json.load(file)
 
-        fields: List[Field] = []
+        fields: FieldsController = FieldsController()
 
         for index, field in enumerate(data):
             field.update({"field_id": index})
@@ -220,21 +170,14 @@ class Game(RedisObject):
                 continue
 
             new_field.game = self
-            fields.append(new_field)
+            fields.add(new_field)
 
+        fields.setup(game_instance=self)
         return fields
 
     @staticmethod
     def throw_dices() -> Tuple[int, int]:
         return randint(1, 6), randint(1, 6)
-
-    def __setup_players(self) -> None:
-        for player in self.players_list:
-            player.game = self
-
-    def __setup_fields(self) -> None:
-        for field in self.fields:
-            field.game = self
 
     @classmethod
     def __get_field(

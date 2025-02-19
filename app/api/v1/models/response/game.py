@@ -36,8 +36,8 @@ class GameResponseModel(BaseModel):
             move=game.move,
             min_players=game.min_players,
             max_players=game.max_players,
-            players=[PlayerResponseModel.from_player(player) for player in game.players_list],
-            fields=[FieldResponseModel.from_field(field) for field in game.fields],
+            players=game.players.models_list,
+            fields=game.fields.models_list,
             with_players=with_players,
             with_fields=with_fields
         )

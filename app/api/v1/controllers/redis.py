@@ -1,5 +1,4 @@
 import json
-from base64 import decode
 from typing import Any, Tuple
 
 from redis import Redis

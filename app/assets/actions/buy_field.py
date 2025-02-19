@@ -7,7 +7,7 @@ from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class BuyField(Action):
+class BuyFieldAction(Action):
     action_type: ActionType = ActionType.BUY_FIELD
 
     cost: int = 0
@@ -17,4 +17,4 @@ class BuyField(Action):
         return cls(cost=data.get("cost"))
 
     def to_json(self) -> Dict[str, Any]:
-        return {"action_type": self.action_type.value,"cost": self.cost}
+        return {"action_type": self.action_type.value, "cost": self.cost}

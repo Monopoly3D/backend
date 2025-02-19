@@ -41,16 +41,16 @@ async def on_client_join_game(
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=False)]
 ) -> None:
-    if len(game.players) >= game.max_players:
+    if game.players.size >= game.max_players:
         raise TooManyPlayersError("Game with provided UUID has too many players")
 
-    if game.has_player(user.user_id):
+    if game.players.exists(user.user_id):
         raise PlayerAlreadyInGameError("You are already in game")
 
     player = Player(user.user_id, username=user.username)
     player.connection = websocket
 
-    game.add_player(player)
+    game.players.add(player)
     await game.save()
     await game.send(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username))
 
@@ -68,11 +68,11 @@ async def on_client_ready(
 
     task: Task | None = get_task(f"start:{game.game_id}")
 
-    if game.is_ready and task is None and len(game.players) >= game.min_players:
+    if game.players.are_ready and task is None and game.players.size >= game.min_players:
         task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
         await game.send(ServerGameCountdownStartPacket(game.game_id))
         await task
-    elif not game.is_ready and task is not None:
+    elif not game.players.are_ready and task is not None:
         await game.send(ServerGameCountdownStopPacket(game.game_id))
         task.cancel()
 
@@ -82,7 +82,7 @@ async def on_client_move(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)],
         player: Annotated[Player, WebSocketDependency.get_player(game_has_started=True)]
 ) -> None:
-    if game.players_list[game.move].player_id != player.player_id:
+    if game.players.get_by_move(game.move).player_id != player.player_id:
         raise GameNotAwaitingMoveError("Player is not awaited to move")
 
     await game.move_player()

@@ -42,6 +42,12 @@ class ConnectionsController(RedisController):
 
         self.connections[user_id] = websocket
 
+    def get_connection(
+            self,
+            user_id: UUID
+    ) -> WebSocket:
+        return self.connections.get(user_id)
+
     async def get_user_id(
             self,
             websocket: WebSocket
