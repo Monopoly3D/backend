@@ -6,4 +6,4 @@ from app.assets.enums.action_type import ActionType
 
 @dataclass
 class PrisonAction(Action):
-    action_type: ActionType = ActionType.PRISON_ACTION
+    action_type: ActionType = ActionType.PRISON

@@ -65,9 +65,9 @@ class Game(RedisObject):
         ActionType.PAY_CHANCE: PayChanceAction,
         ActionType.PAY_TAX: PayTaxAction,
         ActionType.PAY_PRISON: PayPrisonAction,
-        ActionType.PRISON_ACTION: PrisonAction,
-        ActionType.CASINO_ACTION: CasinoAction,
-        ActionType.CONTRACT_ACTION: ContractAction
+        ActionType.PRISON: PrisonAction,
+        ActionType.CASINO: CasinoAction,
+        ActionType.CONTRACT: ContractAction
     }
 
     game_id: UUID
