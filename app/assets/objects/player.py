@@ -74,21 +74,17 @@ class Player(MonopolyObject):
         amount: int = sum(dices)
 
         self.field += amount
-        got_start_bonus: bool = False
+        got_start_bonus: bool = (
+                self.field >= self.game.fields.size
+                and self.game.start_bonus_round_amount < self.game.round
+        )
 
-        if self.field >= self.game.fields.size:
-            self.field %= self.game.fields.size
-
-            if self.game.start_bonus_round_amount < self.game.round:
-                got_start_bonus = True
-                self.balance += self.game.start_bonus
-
+        self.field %= self.game.fields.size
         await self.game.send(ServerPlayerMovePacket(self.game.game_id, self.player_id, dices, self.field))
 
         if got_start_bonus:
-            await self.game.send(
-                ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.balance)
-            )
+            self.balance += amount
+            await self.game.send(ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.balance))
 
         field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
