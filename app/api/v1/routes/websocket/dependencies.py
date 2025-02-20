@@ -50,21 +50,3 @@ class WebSocketDependency:
             return game
 
         return __get_game
-
-    @staticmethod
-    def get_player(
-            *,
-            game_has_started: bool | None = None
-    ) -> Callable:
-        async def __get_player(
-                user: User,
-                game: Annotated[Game, WebSocketDependency.get_game(is_started=game_has_started)]
-        ) -> Player:
-            player: Player | None = game.players.get(user.user_id)
-
-            if player is None:
-                raise PlayerNotFoundError("Player is not in game")
-
-            return player
-
-        return __get_player

@@ -3,10 +3,16 @@ from typing import Annotated
 
 from starlette.websockets import WebSocket
 
+from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
+from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
 from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
+from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
+from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
+from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.client.ping import ClientPingPacket
+from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
@@ -16,6 +22,8 @@ from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.enums.action_type import ActionType
+from app.assets.objects.fields.company import Company
+from app.assets.objects.fields.field import Field
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.assets.objects.user import User
@@ -54,10 +62,10 @@ async def on_client_join_game(
 @games_packets_router.handle(ClientPlayerReadyPacket)
 async def on_client_ready(
         packet: ClientPlayerReadyPacket,
-        player: Annotated[Player, WebSocketDependency.get_player(game_has_started=False)]
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=True)]
 ) -> None:
-    player.is_ready = packet.is_ready
-    game: Game = player.game
+    player: Player = game.players.get(user.user_id)
 
     await game.save()
     await game.send(ServerPlayerReadyPacket(game.game_id, player.player_id, packet.is_ready))
@@ -72,10 +80,40 @@ async def on_client_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_client_move(
+        user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
 ) -> None:
-    if game.action.player != game.move:
+    if game.players.get_by_move() != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to move")
 
     await game.move_player()
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerBuyFieldPacket)
+async def on_client_buy_field(
+        packet: ClientPlayerBuyFieldPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD)]
+) -> None:
+    player: Player | None = game.players.get_by_move()
+
+    if player != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to buy field")
+
+    field: Field | None = game.fields.get(packet.field)
+
+    if field is None:
+        raise FieldNotFoundError("Field with provided index was not found")
+
+    if not isinstance(field, Company):
+        raise InvalidFieldTypeError("Provided field is not a company")
+
+    if field.owner_id is not None:
+        raise FieldAlreadyOwnedError("Provided field is already owned")
+
+    if field.cost > player.balance:
+        raise NotEnoughBalanceError("Player has insufficient balance")
+
+    await player.buy_field(field.field_id)
     await game.save()

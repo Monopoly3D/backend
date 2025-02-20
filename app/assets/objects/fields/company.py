@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic.dataclasses import dataclass
 
-from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
+from app.api.v1.packets.server.player_can_buy_field import ServerPlayerCanBuyFieldPacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.pay_rent import PayRentAction
@@ -70,7 +70,7 @@ class Company(Field):
         if self.owner_id is None:
             self.game.action = BuyFieldAction(cost=self.cost)
             await player.send(
-                ServerPlayerBuyFieldPacket(self.game.game_id, player.player_id, self.field_id, self.cost)
+                ServerPlayerCanBuyFieldPacket(self.game.game_id, player.player_id, self.field_id, self.cost)
             )
             return
 

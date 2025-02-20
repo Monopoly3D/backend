@@ -191,7 +191,7 @@ class Game(RedisObject):
             task.cancel()
 
     async def move_player(self) -> None:
-        player: Player = self.players.get_by_move(self.move)
+        player: Player = self.players.get_by_move()
         dices: Tuple[int, int] = self.roll_dices()
 
         await player.move(dices)

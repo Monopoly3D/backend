@@ -10,7 +10,7 @@ from app.assets.objects.player import Player
 class PlayersController:
     def __init__(self) -> None:
         self.__players: Dict[UUID, Player] = {}
-        self.game_instance: Any = None
+        self.__game_instance: Any = None
 
     def setup(
             self,
@@ -19,7 +19,7 @@ class PlayersController:
             game_instance: Any = None,
             connections: ConnectionsController | None = None
     ) -> None:
-        self.game_instance = game_instance
+        self.__game_instance = game_instance
 
         if players is None:
             return
@@ -40,7 +40,7 @@ class PlayersController:
             player: Player
     ) -> None:
         if not self.exists(player.player_id):
-            player.game = self.game_instance
+            player.game = self.__game_instance
             self.__players[player.player_id] = player
 
     def get(
@@ -51,9 +51,14 @@ class PlayersController:
 
     def get_by_move(
             self,
-            move: int
+            move: int | None = None
     ) -> Player | None:
         try:
+            if move is None and self.__game_instance is not None:
+                return self.list[self.__game_instance.move]
+            elif move is None:
+                return
+
             return self.list[move]
         except IndexError:
             return

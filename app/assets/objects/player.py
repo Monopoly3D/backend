@@ -6,8 +6,10 @@ from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
+from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 from app.assets.objects.monopoly_object import MonopolyObject
 
@@ -71,7 +73,7 @@ class Player(MonopolyObject):
             self,
             dices: Tuple[int, int]
     ) -> None:
-        amount: int = sum(dices)
+        amount: int = 5  # sum(dices)
 
         self.field += amount
         got_start_bonus: bool = (
@@ -88,3 +90,16 @@ class Player(MonopolyObject):
 
         field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
+
+    async def buy_field(
+            self,
+            field: int
+    ) -> None:
+        field: Company = self.game.fields.get(field)
+
+        field.owner_id = self.player_id
+        self.balance -= field.cost
+
+        await self.game.send(
+            ServerPlayerBuyFieldPacket(self.game.game_id, self.player_id, field.field_id, self.balance)
+        )
