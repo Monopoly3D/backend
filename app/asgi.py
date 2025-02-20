@@ -16,7 +16,6 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.dependencies import Dependency
-from app.imports import import_required_assets
 from config import Config
 
 config: Config = Config(_env_file=".env")
@@ -24,8 +23,6 @@ config: Config = Config(_env_file=".env")
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    import_required_assets()
-
     database = None
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
     connections: ConnectionsController = ConnectionsController(redis)
