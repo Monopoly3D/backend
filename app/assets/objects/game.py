@@ -1,6 +1,6 @@
 import asyncio
 import json
-from asyncio import CancelledError
+from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
 from random import randint
 from typing import Dict, Any, List, Tuple, ClassVar, Type, TypeVar
@@ -12,6 +12,8 @@ from pydantic.dataclasses import dataclass
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
+from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.assets.actions.action import Action
@@ -76,7 +78,7 @@ class Game(RedisObject):
     move: int = 0
     min_players: int = 1
     max_players: int = 5
-    start_delay: int = 3
+    start_delay: int = 1
 
     action: T | None = None
     start_bonus: int = 2000
@@ -88,10 +90,13 @@ class Game(RedisObject):
     map_path: str = DEFAULT_MAP_PATH
 
     __controller_instance: RedisController | None = None
+    __start_task_name: str | None = None
 
     def __post_init__(self):
         self.players.setup(game_instance=self)
         self.fields.setup(game_instance=self)
+
+        self.__start_task_name = f"start:{self.game_id}"
 
     @classmethod
     def from_json(
@@ -159,12 +164,31 @@ class Game(RedisObject):
 
         await self.save()
 
-    async def delayed_start(self) -> None:
+    async def __delayed_start(self) -> None:
         try:
             await asyncio.sleep(self.start_delay)
             await self.start()
         except CancelledError:
             pass
+
+    async def start_countdown(self) -> None:
+        task: Task | None = self.get_start_task()
+
+        if task is not None:
+            task.cancel()
+
+        task: Task = asyncio.create_task(self.__delayed_start(), name=self.__start_task_name)
+        await self.send(ServerGameCountdownStartPacket(self.game_id, self.start_delay))
+
+        await task
+
+    async def stop_countdown(self) -> None:
+        await self.send(ServerGameCountdownStopPacket(self.game_id))
+
+        task: Task | None = self.get_start_task()
+
+        if task is not None:
+            task.cancel()
 
     async def move_player(self) -> None:
         player: Player = self.players.get_by_move(self.move)
@@ -194,6 +218,14 @@ class Game(RedisObject):
 
         fields.setup(game_instance=self)
         return fields
+
+    def get_start_task(self) -> Task | None:
+        tasks: List[Task] = [task for task in asyncio.all_tasks() if task.get_name() == self.__start_task_name]
+
+        if not tasks:
+            return
+
+        return tasks[0]
 
     @staticmethod
     def roll_dices() -> Tuple[int, int]:

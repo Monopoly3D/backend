@@ -1,4 +1,3 @@
-import asyncio
 from asyncio import Task
 from typing import Annotated
 
@@ -11,8 +10,6 @@ from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
-from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
-from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
@@ -22,7 +19,6 @@ from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.assets.objects.user import User
-from app.assets.utils import get_task
 from config import Config
 
 config: Config = Config(_env_file=".env")
@@ -66,15 +62,12 @@ async def on_client_ready(
     await game.save()
     await game.send(ServerPlayerReadyPacket(game.game_id, player.player_id, packet.is_ready))
 
-    task: Task | None = get_task(f"start:{game.game_id}")
+    task: Task | None = game.get_start_task()
 
     if game.players.are_ready and task is None and game.players.size >= game.min_players:
-        task = asyncio.create_task(game.delayed_start(), name=f"start:{game.game_id}")
-        await game.send(ServerGameCountdownStartPacket(game.game_id, game.start_delay))
-        await task
+        await game.start_countdown()
     elif not game.players.are_ready and task is not None:
-        await game.send(ServerGameCountdownStopPacket(game.game_id))
-        task.cancel()
+        await game.stop_countdown()
 
 
 @games_packets_router.handle(ClientPlayerMovePacket)
