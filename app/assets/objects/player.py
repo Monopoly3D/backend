@@ -12,13 +12,14 @@ from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 from app.assets.objects.monopoly_object import MonopolyObject
+from app.assets.parameters import Parameters
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Player(MonopolyObject):
     player_id: UUID
     username: str
-    balance: int = 15000
+    balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
     is_ready: bool = False
     is_playing: bool = True

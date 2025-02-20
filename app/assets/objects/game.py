@@ -41,14 +41,13 @@ from app.assets.objects.fields.start import Start
 from app.assets.objects.fields.tax import Tax
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
+from app.assets.parameters import Parameters
 
 T = TypeVar('T', bound=Action)
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Game(RedisObject):
-    DEFAULT_MAP_PATH: ClassVar[str] = "app/assets/maps/default_map.json"
-
     FIELDS: ClassVar[Dict[FieldType, Type[Field]]] = {
         FieldType.COMPANY: Company,
         FieldType.START: Start,
@@ -76,18 +75,18 @@ class Game(RedisObject):
     is_started: bool = False
     round: int = 0
     move: int = 0
-    min_players: int = 1
-    max_players: int = 5
-    start_delay: int = 1
+    min_players: int = Parameters.MIN_PLAYERS
+    max_players: int = Parameters.MAX_PLAYERS
+    start_delay: int = Parameters.START_BONUS
 
     action: T | None = None
-    start_bonus: int = 2000
-    start_reward: int = 1000
-    start_bonus_round_amount: int = 65
+    start_bonus: int = Parameters.START_BONUS
+    start_reward: int = Parameters.START_REWARD
+    start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
 
     players: PlayersController = dataclass_field(default_factory=PlayersController)
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
-    map_path: str = DEFAULT_MAP_PATH
+    map_path: str = Parameters.DEFAULT_MAP_PATH
 
     __controller_instance: RedisController | None = None
     __start_task_name: str | None = None
