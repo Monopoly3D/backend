@@ -168,7 +168,7 @@ class Game(RedisObject):
 
     async def move_player(self) -> None:
         player: Player = self.players.get_by_move(self.move)
-        dices: Tuple[int, int] = self.throw_dices()
+        dices: Tuple[int, int] = self.roll_dices()
 
         await player.move(dices)
 
@@ -196,7 +196,7 @@ class Game(RedisObject):
         return fields
 
     @staticmethod
-    def throw_dices() -> Tuple[int, int]:
+    def roll_dices() -> Tuple[int, int]:
         return randint(1, 6), randint(1, 6)
 
     @classmethod
