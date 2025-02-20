@@ -10,7 +10,6 @@ from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.pay_rent import PayRentAction
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
-from app.assets.objects.player import Player
 
 
 @dataclass
@@ -64,7 +63,7 @@ class Company(Field):
 
     async def on_stand(
             self,
-            player: Player,
+            player: Any,
             amount: int
     ) -> None:
         if self.owner_id is None:

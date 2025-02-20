@@ -56,8 +56,6 @@ class PlayersController:
         try:
             if move is None and self.__game_instance is not None:
                 return self.list[self.__game_instance.move]
-            elif move is None:
-                return
 
             return self.list[move]
         except IndexError:

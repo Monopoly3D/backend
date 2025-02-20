@@ -10,7 +10,6 @@ from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeE
 from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
 from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
-from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
@@ -66,6 +65,7 @@ async def on_client_ready(
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=True)]
 ) -> None:
     player: Player = game.players.get(user.user_id)
+    player.is_ready = packet.is_ready
 
     await game.save()
     await game.send(ServerPlayerReadyPacket(game.game_id, player.player_id, packet.is_ready))
@@ -83,7 +83,7 @@ async def on_client_move(
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
 ) -> None:
-    if game.players.get_by_move() != user.user_id:
+    if game.players.get_by_move().player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to move")
 
     await game.move_player()
@@ -98,7 +98,7 @@ async def on_client_buy_field(
 ) -> None:
     player: Player | None = game.players.get_by_move()
 
-    if player != user.user_id:
+    if player.player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to buy field")
 
     field: Field | None = game.fields.get(packet.field)
