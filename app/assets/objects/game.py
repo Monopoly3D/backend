@@ -77,7 +77,7 @@ class Game(RedisObject):
     move: int = 0
     min_players: int = Parameters.MIN_PLAYERS
     max_players: int = Parameters.MAX_PLAYERS
-    start_delay: int = Parameters.START_BONUS
+    start_delay: int = Parameters.START_DELAY
 
     action: T | None = None
     start_bonus: int = Parameters.START_BONUS
