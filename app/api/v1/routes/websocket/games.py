@@ -16,6 +16,7 @@ from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacke
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_pay_rent import ClientPlayerPayRentPacket
+from app.api.v1.packets.client.player_pay_tax import ClientPlayerPayTaxPacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
@@ -23,9 +24,11 @@ from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.actions.pay_rent import PayRentAction
+from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.tax import Tax
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.assets.objects.user import User
@@ -153,4 +156,32 @@ async def on_player_pay_rent(
         raise NotEnoughBalanceError("Player has insufficient balance")
 
     await player.pay_rent(field.field_id)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerPayTaxPacket)
+async def on_player_pay_tax(
+        packet: ClientPlayerPayTaxPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_TAX)]
+) -> None:
+    player: Player | None = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
+    field: Field | None = game.fields.get(packet.field)
+
+    if field is None:
+        raise FieldNotFoundError("Field with provided index was not found")
+
+    if not isinstance(field, Tax):
+        raise InvalidFieldTypeError("Provided field is not a tax field")
+
+    action: PayTaxAction = game.action
+
+    if action.amount > player.balance:
+        raise NotEnoughBalanceError("Player has insufficient balance")
+
+    await player.pay_tax()
     await game.save()
