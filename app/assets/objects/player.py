@@ -5,16 +5,25 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
+from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
+from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
+from app.api.v1.exceptions.websocket.field_not_owned import FieldNotOwnedError
+from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
+from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
+from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.api.v1.packets.server.player_pay_tax import ServerPlayerPayTaxPacket
+from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
+from app.assets.actions.action import Action
 from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.tax import Tax
 from app.assets.objects.monopoly_object import MonopolyObject
 from app.assets.parameters import Parameters
 
@@ -74,6 +83,19 @@ class Player(MonopolyObject):
     def game(self, value: Any) -> None:
         self.__game_instance = value
 
+    async def set_ready(
+            self,
+            is_ready: bool
+    ) -> None:
+        self.is_ready = is_ready
+        await self.game.send(
+            ServerPlayerReadyPacket(
+                self.game.game_id,
+                self.player_id,
+                self.is_ready
+            )
+        )
+
     async def move(
             self,
             dices: Tuple[int, int]
@@ -100,22 +122,59 @@ class Player(MonopolyObject):
             self,
             field: int
     ) -> None:
-        field: Company = self.game.fields.get(field)
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id is not None:
+            raise FieldAlreadyOwnedError("Provided field is already owned")
+
+        if field.cost > self.balance:
+            raise NotEnoughBalanceError("Player has insufficient balance")
 
         field.owner_id = self.player_id
         self.balance -= field.cost
 
         await self.game.send(
-            ServerPlayerBuyFieldPacket(self.game.game_id, self.player_id, field.field_id, self.balance)
+            ServerPlayerBuyFieldPacket(
+                self.game.game_id,
+                self.player_id,
+                field.field_id,
+                self.balance
+            )
         )
 
     async def pay_rent(
             self,
             field: int
     ) -> None:
-        field: Company = self.game.fields.get(field)
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id is None:
+            raise FieldNotOwnedError("Provided field is not owned")
+
+        if field.owner_id == self.player_id:
+            raise FieldAlreadyOwnedError("Provided field is already owned")
+
+        action: Action = self.game.action
+
+        if not isinstance(action, PayRentAction):
+            raise GameInvalidActionError("Game with provided UUID awaits different action")
+
+        if action.amount > self.balance:
+            raise NotEnoughBalanceError("Player has insufficient balance")
+
         owner: Player = self.game.players.get(field.owner_id)
-        action: PayRentAction = self.game.action
 
         self.balance -= action.amount
         owner.balance += action.amount
@@ -131,8 +190,25 @@ class Player(MonopolyObject):
             )
         )
 
-    async def pay_tax(self) -> None:
-        action: PayTaxAction = self.game.action
+    async def pay_tax(
+            self,
+            field: int
+    ) -> None:
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Tax):
+            raise InvalidFieldTypeError("Provided field is not a tax field")
+
+        action: Action = self.game.action
+
+        if not isinstance(action, PayTaxAction):
+            raise GameInvalidActionError("Game with provided UUID awaits different action")
+
+        if action.amount > self.balance:
+            raise NotEnoughBalanceError("Player has insufficient balance")
 
         self.balance -= action.amount
 

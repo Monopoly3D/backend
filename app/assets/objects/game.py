@@ -189,12 +189,6 @@ class Game(RedisObject):
         if task is not None:
             task.cancel()
 
-    async def move_player(self) -> None:
-        player: Player = self.players.get_by_move()
-        dices: Tuple[int, int] = self.roll_dices()
-
-        await player.move(dices)
-
     def get_map(
             self,
             map_path: str
