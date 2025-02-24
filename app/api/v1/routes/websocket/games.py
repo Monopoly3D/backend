@@ -5,6 +5,7 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
 from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
+from app.api.v1.exceptions.websocket.field_not_owned import FieldNotOwnedError
 from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
@@ -14,12 +15,14 @@ from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
+from app.api.v1.packets.client.player_pay_rent import ClientPlayerPayRentPacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
+from app.assets.actions.pay_rent import PayRentAction
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
@@ -39,7 +42,7 @@ async def on_ping() -> ServerPingPacket:
 
 
 @games_packets_router.handle(ClientPlayerJoinGamePacket)
-async def on_client_join_game(
+async def on_player_join_game(
         websocket: WebSocket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=False)]
@@ -59,7 +62,7 @@ async def on_client_join_game(
 
 
 @games_packets_router.handle(ClientPlayerReadyPacket)
-async def on_client_ready(
+async def on_player_ready(
         packet: ClientPlayerReadyPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=True)]
@@ -79,7 +82,7 @@ async def on_client_ready(
 
 
 @games_packets_router.handle(ClientPlayerMovePacket)
-async def on_client_move(
+async def on_player_move(
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
 ) -> None:
@@ -91,7 +94,7 @@ async def on_client_move(
 
 
 @games_packets_router.handle(ClientPlayerBuyFieldPacket)
-async def on_client_buy_field(
+async def on_player_buy_field(
         packet: ClientPlayerBuyFieldPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD)]
@@ -116,4 +119,38 @@ async def on_client_buy_field(
         raise NotEnoughBalanceError("Player has insufficient balance")
 
     await player.buy_field(field.field_id)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerPayRentPacket)
+async def on_player_pay_rent(
+        packet: ClientPlayerPayRentPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_RENT)]
+) -> None:
+    player: Player | None = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay rent")
+
+    field: Field | None = game.fields.get(packet.field)
+
+    if field is None:
+        raise FieldNotFoundError("Field with provided index was not found")
+
+    if not isinstance(field, Company):
+        raise InvalidFieldTypeError("Provided field is not a company")
+
+    if field.owner_id is None:
+        raise FieldNotOwnedError("Provided field is not owned")
+
+    if field.owner_id == player.player_id:
+        raise FieldAlreadyOwnedError("Provided field is already owned")
+
+    action: PayRentAction = game.action
+
+    if action.amount > player.balance:
+        raise NotEnoughBalanceError("Player has insufficient balance")
+
+    await player.pay_rent(field.field_id)
     await game.save()

@@ -9,6 +9,8 @@ from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
+from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
+from app.assets.actions.pay_rent import PayRentAction
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 from app.assets.objects.monopoly_object import MonopolyObject
@@ -103,4 +105,26 @@ class Player(MonopolyObject):
 
         await self.game.send(
             ServerPlayerBuyFieldPacket(self.game.game_id, self.player_id, field.field_id, self.balance)
+        )
+
+    async def pay_rent(
+            self,
+            field: int
+    ) -> None:
+        field: Company = self.game.fields.get(field)
+        owner: Player = self.game.players.get(field.owner_id)
+        action: PayRentAction = self.game.action
+
+        self.balance -= action.amount
+        owner.balance += action.amount
+
+        await self.game.send(
+            ServerPlayerPayRentPacket(
+                self.game.game_id,
+                self.player_id,
+                owner.player_id,
+                field.field_id,
+                self.balance,
+                owner.balance
+            )
         )
