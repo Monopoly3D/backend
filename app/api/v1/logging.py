@@ -1,6 +1,8 @@
 import logging
 from typing import Any, Dict
 
+logger_name: str = "monopoly"
+
 API_LOG_CONFIG: Dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -28,11 +30,11 @@ API_LOG_CONFIG: Dict[str, Any] = {
         }
     },
     "loggers": {
-        "monopoly": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        logger_name: {"handlers": ["default"], "level": "INFO", "propagate": False},
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
         "uvicorn.error": {"level": "INFO"},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False}
     }
 }
 
-logger = logging.getLogger("monopoly")
+logger = logging.getLogger(logger_name)
