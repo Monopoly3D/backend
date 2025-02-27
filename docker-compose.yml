@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  server:
+    build: .
+    command: "uvicorn --host 0.0.0.0 --port 8000 --loop asyncio --log-config app/api/v1/logging.json app.asgi:app"
+    ports:
+      - "8000:8000"
