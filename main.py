@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "app.asgi:app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=8000,
         loop="asyncio",
         log_config=API_LOG_CONFIG
