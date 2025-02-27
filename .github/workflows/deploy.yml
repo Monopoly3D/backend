@@ -30,6 +30,9 @@ jobs:
         options: --privileged
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Docker BuildX
         uses: docker/setup-buildx-action@v3
 
