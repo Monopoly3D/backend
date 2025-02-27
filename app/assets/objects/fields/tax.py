@@ -6,7 +6,6 @@ from app.api.v1.packets.server.player_got_tax import ServerPlayerGotTaxPacket
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
-from app.assets.objects.player import Player
 
 
 @dataclass
@@ -40,7 +39,7 @@ class Tax(Field):
 
     async def on_stand(
             self,
-            player: Player,
+            player: Any,
             amount: int
     ) -> None:
         self.game.action = PayTaxAction(amount=self.tax_amount)
