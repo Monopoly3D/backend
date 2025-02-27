@@ -1,5 +1,6 @@
 .venv
 .idea
+.git
 README.md
 
 __pycache__/
