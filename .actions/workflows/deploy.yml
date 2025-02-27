@@ -1,0 +1,68 @@
+name: Build and Deploy Monopoly3D Backend Server
+
+on:
+  push:
+    branches:
+      - main
+      - feature_cicd  # ONLY FOR TESTING
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@4
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    permissions:
+      contents: read
+      packages: write
+
+    services:
+      docker:
+        image: docker:28.0.1
+        options: --privileged
+
+    steps:
+      - name: Setup Docker BuildX
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push docker image to GitHub Container Registry
+        run: |
+          REPOSITORY_NAME=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_TAG="${GITHUB_REF_NAME}"
+          docker build --pull -f Dockerfile -t ghcr.io/$REPOSITORY_NAME:$IMAGE_TAG .
+          docker push ghcr.io/$REPOSITORY_NAME:$IMAGE_TAG
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_PRIVATE_KEY }}
+
+      - name: Deploy to Server
+        run: |
+          IMAGE_TAG="${GITHUB_REF_NAME}"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << EOF
+            cd ${{ secrets.TEST_SERVER_PATH }}
+            sed -i "s/\(DOCKER_APP_IMAGE_NAME=.*:\).*/\1${IMAGE_TAG}/" meta
+            source meta && docker-compose pull
+          EOF
