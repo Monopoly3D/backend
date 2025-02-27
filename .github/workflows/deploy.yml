@@ -57,15 +57,13 @@ jobs:
 
     steps:
       - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_ecdsa
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ecdsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
       - name: Deploy to Server
-        run: |
-          IMAGE_TAG="${GITHUB_REF_NAME}"
-          ssh -o StrictHostKeyChecking=no ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << EOF
-            cd ${{ secrets.TEST_SERVER_PATH }}
-            sed -i "s/\(DOCKER_APP_IMAGE_NAME=.*:\).*/\1${IMAGE_TAG}/" meta
-            source meta && docker-compose pull
-          EOF
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && docker compose pull && docker compose up -d && exit"
+
+      - name: Cleanup SSH
+        run: rm -rf ~/.ssh
