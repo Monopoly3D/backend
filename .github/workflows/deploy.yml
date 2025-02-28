@@ -41,7 +41,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.DEPLOY_TOKEN }}
 
       - name: Build and push docker image to GitHub Container Registry
         run: |
@@ -71,8 +71,6 @@ jobs:
 
       - name: Deploy to Server
         run: |
-          echo ${{ github.actor }}
-          echo ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY_NAME=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
           IMAGE_TAG="${GITHUB_REF_NAME}"
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && docker pull ghcr.io/$REPOSITORY_NAME/$IMAGE_TAG && docker compose up -d && exit"
