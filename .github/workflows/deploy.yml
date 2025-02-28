@@ -64,7 +64,7 @@ jobs:
 
       - name: Login to GitHub Container Registry and Deploy to Server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && echo ${{ secrets.DEPLOY_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin && docker pull ghcr.io/monopoly3d/main:latest && docker compose up -d && exit"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && echo ${{ secrets.DEPLOY_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin && docker pull ghcr.io/monopoly3d/main:latest && docker compose up -f docker-compose.yaml -d && exit"
 
       - name: Cleanup SSH
         run: rm -rf ~/.ssh
