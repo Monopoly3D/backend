@@ -12,18 +12,13 @@ class ClientPlayerPayTaxPacket(ClientPacket):
 
     def __init__(
             self,
-            game_id: UUID,
-            field: int
+            game_id: UUID
     ) -> None:
         self.game_id = game_id
-        self.field = field
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':
         try:
-            return cls(
-                UUID(packet["game_id"]),
-                packet["field"]
-            )
+            return cls(UUID(packet["game_id"]))
         except ValueError:
             raise InvalidPacketError("Provided packet data is invalid")

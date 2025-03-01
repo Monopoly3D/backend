@@ -109,20 +109,30 @@ class Player(MonopolyObject):
         )
 
         self.field %= self.game.fields.size
-        await self.game.send(ServerPlayerMovePacket(self.game.game_id, self.player_id, dices, self.field))
+        await self.game.send(
+            ServerPlayerMovePacket(
+                self.game.game_id,
+                self.player_id,
+                dices,
+                self.field
+            )
+        )
 
         if got_start_bonus:
             self.balance += amount
-            await self.game.send(ServerPlayerGotStartBonusPacket(self.game.game_id, self.player_id, self.balance))
+            await self.game.send(
+                ServerPlayerGotStartBonusPacket(
+                    self.game.game_id,
+                    self.player_id,
+                    self.balance
+                )
+            )
 
         field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
 
-    async def buy_field(
-            self,
-            field: int
-    ) -> None:
-        field: Field | None = self.game.fields.get(field)
+    async def buy_field(self) -> None:
+        field: Field | None = self.game.fields.get(self.field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -148,11 +158,8 @@ class Player(MonopolyObject):
             )
         )
 
-    async def pay_rent(
-            self,
-            field: int
-    ) -> None:
-        field: Field | None = self.game.fields.get(field)
+    async def pay_rent(self) -> None:
+        field: Field | None = self.game.fields.get(self.field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -190,11 +197,8 @@ class Player(MonopolyObject):
             )
         )
 
-    async def pay_tax(
-            self,
-            field: int
-    ) -> None:
-        field: Field | None = self.game.fields.get(field)
+    async def pay_tax(self) -> None:
+        field: Field | None = self.game.fields.get(self.field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -213,5 +217,9 @@ class Player(MonopolyObject):
         self.balance -= action.amount
 
         await self.game.send(
-            ServerPlayerPayTaxPacket(self.game.game_id, self.player_id, self.balance)
+            ServerPlayerPayTaxPacket(
+                self.game.game_id,
+                self.player_id,
+                self.balance
+            )
         )

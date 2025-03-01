@@ -90,7 +90,6 @@ async def on_player_move(
 
 @games_packets_router.handle(ClientPlayerBuyFieldPacket)
 async def on_player_buy_field(
-        packet: ClientPlayerBuyFieldPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD)]
 ) -> None:
@@ -99,13 +98,12 @@ async def on_player_buy_field(
     if player.player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to buy field")
 
-    await player.buy_field(packet.field)
+    await player.buy_field()
     await game.save()
 
 
 @games_packets_router.handle(ClientPlayerPayRentPacket)
 async def on_player_pay_rent(
-        packet: ClientPlayerPayRentPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_RENT)]
 ) -> None:
@@ -114,13 +112,12 @@ async def on_player_pay_rent(
     if player.player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to pay rent")
 
-    await player.pay_rent(packet.field)
+    await player.pay_rent()
     await game.save()
 
 
 @games_packets_router.handle(ClientPlayerPayTaxPacket)
 async def on_player_pay_tax(
-        packet: ClientPlayerPayTaxPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_TAX)]
 ) -> None:
@@ -129,5 +126,5 @@ async def on_player_pay_tax(
     if player.player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
 
-    await player.pay_tax(packet.field)
+    await player.pay_tax()
     await game.save()
