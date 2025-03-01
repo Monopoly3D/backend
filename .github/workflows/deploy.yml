@@ -56,7 +56,7 @@ jobs:
           echo ${{ secrets.DEPLOY_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull ghcr.io/monopoly3d/main:latest
           docker compose up -d
-          docker system prune
+          docker system prune -f
           exit
           "
 
