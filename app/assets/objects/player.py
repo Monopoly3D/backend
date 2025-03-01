@@ -108,6 +108,8 @@ class Player(MonopolyObject):
                 and self.game.start_bonus_round_amount < self.game.round
         )
 
+        got_double: bool = dices[0] == dices[1]
+
         self.field %= self.game.fields.size
         await self.game.send(
             ServerPlayerMovePacket(
@@ -127,6 +129,11 @@ class Player(MonopolyObject):
                     self.balance
                 )
             )
+
+        if got_double:
+            self.double_amount += 1
+        else:
+            self.double_amount = 0
 
         field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
@@ -157,6 +164,8 @@ class Player(MonopolyObject):
                 self.balance
             )
         )
+
+        await self.game.next()
 
     async def pay_rent(self) -> None:
         field: Field | None = self.game.fields.get(self.field)
@@ -197,6 +206,8 @@ class Player(MonopolyObject):
             )
         )
 
+        await self.game.next()
+
     async def pay_tax(self) -> None:
         field: Field | None = self.game.fields.get(self.field)
 
@@ -223,3 +234,5 @@ class Player(MonopolyObject):
                 self.balance
             )
         )
+
+        await self.game.next()

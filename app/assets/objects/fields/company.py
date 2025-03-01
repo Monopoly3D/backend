@@ -74,6 +74,7 @@ class Company(Field):
             return
 
         if self.owner_id == player.player_id or self.mortgage >= 0:
+            await self.game.next()
             return
 
         stand_amount: int = self.stand_amount(amount)

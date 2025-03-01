@@ -158,17 +158,22 @@ class Game(RedisObject):
         self.players.shuffle()
         self.fields = self.get_map(self.map_path)
 
-        await self.send(ServerGameStartPacket(self.game_id, self.players.list, self.fields.list))
-        await self.send(ServerGameMovePacket(self.game_id, self.round, self.move))
+        await self.send(
+            ServerGameStartPacket(
+                self.game_id,
+                self.players.list,
+                self.fields.list
+            )
+        )
+        await self.send(
+            ServerGameMovePacket(
+                self.game_id,
+                self.round,
+                self.move
+            )
+        )
 
         await self.save()
-
-    async def __delayed_start(self) -> None:
-        try:
-            await asyncio.sleep(self.start_delay)
-            await self.start()
-        except CancelledError:
-            pass
 
     async def start_countdown(self) -> None:
         task: Task | None = self.get_start_task()
@@ -177,17 +182,46 @@ class Game(RedisObject):
             task.cancel()
 
         task: Task = asyncio.create_task(self.__delayed_start(), name=self.__start_task_name)
-        await self.send(ServerGameCountdownStartPacket(self.game_id, self.start_delay))
+        await self.send(
+            ServerGameCountdownStartPacket(
+                self.game_id,
+                self.start_delay
+            )
+        )
 
         await task
 
     async def stop_countdown(self) -> None:
-        await self.send(ServerGameCountdownStopPacket(self.game_id))
+        await self.send(
+            ServerGameCountdownStopPacket(
+                self.game_id
+            )
+        )
 
         task: Task | None = self.get_start_task()
 
         if task is not None:
             task.cancel()
+
+    async def next(self) -> None:
+        player: Player = self.players.get_by_move()
+
+        if player.double_amount <= 0 or player.is_imprisoned:
+            self.move += 1
+
+            if self.move >= self.players.size:
+                self.move = 0
+                self.round += 1
+
+        player.double_amount = 0
+
+        await self.send(
+            ServerGameMovePacket(
+                self.game_id,
+                self.round,
+                self.move
+            )
+        )
 
     def get_map(
             self,
@@ -223,6 +257,13 @@ class Game(RedisObject):
     @staticmethod
     def roll_dices() -> Tuple[int, int]:
         return randint(1, 6), randint(1, 6)
+
+    async def __delayed_start(self) -> None:
+        try:
+            await asyncio.sleep(self.start_delay)
+            await self.start()
+        except CancelledError:
+            pass
 
     @classmethod
     def __get_field(
