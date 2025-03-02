@@ -103,6 +103,7 @@ class Game(RedisObject):
     def __post_init__(self):
         self.players.setup(game_instance=self)
         self.fields.setup(game_instance=self)
+        self.monopolies.setup(self.fields.list, game_instance=self)
 
         self.__start_task_name = f"start:{self.game_id}"
 
