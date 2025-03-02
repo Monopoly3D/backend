@@ -64,6 +64,14 @@ class Company(Field):
             }
         }
 
+    @property
+    def field_dependant(self) -> bool:
+        return self.company_type == CompanyType.FIELD_DEPENDANT
+
+    @property
+    def dice_dependant(self) -> bool:
+        return self.company_type == CompanyType.DICE_DEPENDANT
+
     async def on_stand(
             self,
             player: Any,
@@ -91,7 +99,9 @@ class Company(Field):
             self,
             amount: int
     ) -> int:
-        if self.company_type == CompanyType.FIELD_DEPENDANT:
+        print(self)
+
+        if self.field_dependant:
             field_count: int = 0
             for field in self.game.fields.list:
                 if field.field_type == FieldType.COMPANY and field.field_dependant and field.owner_id == self.owner_id:
@@ -101,7 +111,7 @@ class Company(Field):
             except IndexError:
                 return 0
 
-        if self.company_type == CompanyType.DICE_DEPENDANT:
+        if self.dice_dependant:
             field_count: int = 0
             for field in self.game.fields.list:
                 if field.field_type == FieldType.COMPANY and field.dice_dependant and field.owner_id == self.owner_id:
