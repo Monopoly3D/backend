@@ -148,7 +148,7 @@ class Player(GameObject):
     ) -> None:
         field: Field | None = self.game.fields.get(self.field if field is None else field)
 
-        self.__buy_field(field)
+        await self.__buy_field(field)
 
         await self.game.send(
             ServerPlayerBuyFieldPacket(
@@ -168,7 +168,7 @@ class Player(GameObject):
     ) -> None:
         field: Field | None = self.game.fields.get(field)
 
-        self.__buy_field(field, cost)
+        await self.__buy_field(field, cost)
 
         await self.game.send(
             ServerPlayerBuyFieldOnAuctionPacket(
@@ -315,7 +315,7 @@ class Player(GameObject):
 
         await self.game.next()
 
-    def __buy_field(
+    async def __buy_field(
             self,
             field: Field,
             cost: int | None = None
@@ -335,5 +335,5 @@ class Player(GameObject):
         if cost > self.balance:
             raise NotEnoughBalanceError("Player has insufficient balance")
 
-        field.set_new_owner_id(self.player_id)
+        await field.set_new_owner_id(self.player_id)
         self.balance -= cost

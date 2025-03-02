@@ -5,6 +5,8 @@ from uuid import UUID
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_can_buy_field import ServerPlayerCanBuyFieldPacket
+from app.api.v1.packets.server.player_gain_monopoly import ServerPlayerGainMonopolyPacket
+from app.api.v1.packets.server.player_lose_monopoly import ServerPlayerLoseMonopolyPacket
 from app.api.v1.packets.server.player_must_pay_rent import ServerPlayerMustPayRentPacket
 from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.pay_rent import PayRentAction
@@ -72,23 +74,41 @@ class Company(Field):
     def dice_dependant(self) -> bool:
         return self.company_type == CompanyType.DICE_DEPENDANT
 
-    def set_new_owner_id(
+    async def set_new_owner_id(
             self,
-            owner_id: UUID | None = None
+            new_owner_id: UUID | None = None
     ) -> None:
-        if self.owner_id == owner_id:
+        previous_owner_id = self.owner_id
+
+        if previous_owner_id == new_owner_id:
             return
 
         fields: List[Company] = self.game.monopolies.get_fields(self.monopoly_type)
 
         was_monopoly: bool = self.game.monopolies.is_monopoly(fields)
-        self.owner_id = owner_id
+        self.owner_id = new_owner_id
         is_monopoly: bool = self.game.monopolies.is_monopoly(fields)
 
         if not was_monopoly and is_monopoly:
             self.game.monopolies.set_monopoly(fields, True)
+
+            await self.game.send(
+                ServerPlayerGainMonopolyPacket(
+                    self.game.game_id,
+                    new_owner_id,
+                    self.monopoly_type
+                )
+            )
         elif was_monopoly and not is_monopoly:
             self.game.monopolies.set_monopoly(fields, False)
+
+            await self.game.send(
+                ServerPlayerLoseMonopolyPacket(
+                    self.game.game_id,
+                    previous_owner_id,
+                    self.monopoly_type
+                )
+            )
 
     async def on_stand(
             self,
