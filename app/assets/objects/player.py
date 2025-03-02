@@ -19,7 +19,6 @@ from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStar
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.api.v1.packets.server.player_pay_tax import ServerPlayerPayTaxPacket
-from app.api.v1.packets.server.player_put_field_for_auction import ServerPlayerPutFieldForAuctionPacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.assets.actions.action import Action
@@ -105,7 +104,7 @@ class Player(MonopolyObject):
             self,
             dices: Tuple[int, int]
     ) -> None:
-        amount: int = 5  # sum(dices)
+        amount: int = sum(dices)
 
         self.field += amount
         got_start_bonus: bool = (

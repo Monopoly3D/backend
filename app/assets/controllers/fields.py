@@ -10,7 +10,7 @@ T = TypeVar('T', bound=Field)
 class FieldsController:
     def __init__(self) -> None:
         self.__fields: List[T] = []
-        self.game_instance: Any = None
+        self.__game_instance: Any = None
 
     def setup(
             self,
@@ -18,18 +18,19 @@ class FieldsController:
             *,
             game_instance: Any = None
     ) -> None:
-        self.game_instance = game_instance
+        self.__game_instance = game_instance
 
         if fields is None:
             return
 
-        for data_field in fields:
-            field: Field | None = Field.from_json(data_field)
+        if self.__game_instance is not None:
+            for data_field in fields:
+                field: Field | None = self.__game_instance.get_field(data_field)
 
-            if field is None:
-                continue
+                if field is None:
+                    continue
 
-            self.add(field)
+                self.add(field)
 
     def add(
             self,

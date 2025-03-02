@@ -2,7 +2,6 @@ import asyncio
 import json
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
-from random import randint
 from typing import Dict, Any, List, Tuple, ClassVar, Type, TypeVar
 from uuid import UUID
 
@@ -117,12 +116,12 @@ class Game(RedisObject):
 
         del data["players"]
         del data["fields"]
-        data["action"] = cls.__get_field(data)
+        data["action"] = cls.get_field(data)
 
         game: Game = cls(**data)
 
-        game.players.setup(players, connections=connections)
-        game.fields.setup(fields)
+        game.players.setup(players, game_instance=game, connections=connections)
+        game.fields.setup(fields, game_instance=game)
 
         return game
 
@@ -164,7 +163,7 @@ class Game(RedisObject):
         self.is_started = True
         self.action = MoveAction()
 
-        self.players.shuffle()
+        #  self.players.shuffle()  TESTING
         self.fields = self.get_map(self.map_path)
 
         await self.send(
@@ -308,7 +307,7 @@ class Game(RedisObject):
         for index, field in enumerate(data):
             field.update({"field_id": index})
 
-            new_field: Field | None = self.__get_field(field)
+            new_field: Field | None = self.get_field(field)
 
             if new_field is None:
                 continue
@@ -329,7 +328,7 @@ class Game(RedisObject):
 
     @staticmethod
     def roll_dices() -> Tuple[int, int]:
-        return randint(1, 6), randint(1, 6)
+        return 2, 3  # return randint(1, 6), randint(1, 6)  TESTING
 
     @staticmethod
     def get_auction_players(
@@ -349,7 +348,7 @@ class Game(RedisObject):
             pass
 
     @classmethod
-    def __get_field(
+    def get_field(
             cls,
             data: Dict[str, Any]
     ) -> Field | None:
@@ -359,7 +358,7 @@ class Game(RedisObject):
         return cls.FIELDS[FieldType(data.get("field_type"))].from_json(data)
 
     @classmethod
-    def __get_action(
+    def get_action(
             cls,
             data: Dict[str, Any]
     ) -> Action | None:

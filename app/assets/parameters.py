@@ -1,5 +1,5 @@
 class Parameters:
-    MIN_PLAYERS = 1
+    MIN_PLAYERS = 2
     MAX_PLAYERS = 5
 
     START_DELAY = 1

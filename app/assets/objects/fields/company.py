@@ -90,8 +90,8 @@ class Company(Field):
     ) -> int:
         if self.field_dependant:
             field_count: int = 0
-            for field in self.game.fields:
-                if field.FIELD_TYPE == FieldType.COMPANY and field.rent_dependant and field.owner_id == self.owner_id:
+            for field in self.game.fields.list:
+                if field.field_type == FieldType.COMPANY and field.field_dependant and field.owner_id == self.owner_id:
                     field_count += 1
             try:
                 return self.rent[field_count - 1]
@@ -100,8 +100,8 @@ class Company(Field):
 
         if self.dice_dependant:
             field_count: int = 0
-            for field in self.game.fields:
-                if field.FIELD_TYPE == FieldType.COMPANY and field.dice_dependant and field.owner_id == self.owner_id:
+            for field in self.game.fields.list:
+                if field.field_type == FieldType.COMPANY and field.dice_dependant and field.owner_id == self.owner_id:
                     field_count += 1
             try:
                 return self.rent[field_count - 1] * amount
