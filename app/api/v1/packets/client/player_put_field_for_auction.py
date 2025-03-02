@@ -5,8 +5,8 @@ from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.packets.base_client import ClientPacket
 
 
-class ClientPlayerBuyFieldPacket(ClientPacket):
-    PACKET_TAG = "player_buy_field"
+class ClientPlayerPutFieldForAuctionPacket(ClientPacket):
+    PACKET_TAG = "player_put_field_for_auction"
 
     PACKET_KEYS = ["game_id"]
 

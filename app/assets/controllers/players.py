@@ -4,6 +4,8 @@ from uuid import UUID
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
+from app.assets.actions.action import Action
+from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.objects.player import Player
 
 
@@ -61,6 +63,14 @@ class PlayersController:
         except IndexError:
             return
 
+    def get_by_auction(self) -> Player | None:
+        action: Action | None = self.__game_instance.action
+
+        if not isinstance(action, BuyFieldOnAuctionAction):
+            return
+
+        return self.get(action.players[action.player])
+
     def exists(
             self,
             uuid: UUID
@@ -101,3 +111,13 @@ class PlayersController:
         players_items: List[Tuple[UUID, Player]] = list(self.__players.items())
         shuffle(players_items)
         self.__players = dict(players_items)
+
+    def get_players_with_sufficient_balance(
+            self,
+            balance: int,
+            players: List[Player] | None = None
+    ) -> List[Player]:
+        if players is None:
+            return [player for player in self.list if player.balance >= balance]
+
+        return [player for player in players if player.balance >= balance]

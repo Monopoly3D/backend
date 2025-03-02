@@ -12,13 +12,17 @@ from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActio
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.player_accept_auction import ServerPlayerAcceptAuctionPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.api.v1.packets.server.player_pay_tax import ServerPlayerPayTaxPacket
+from app.api.v1.packets.server.player_put_field_on_auction import ServerPlayerPutFieldOnAuctionPacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
+from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.assets.actions.action import Action
+from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.objects.fields.company import Company
@@ -138,23 +142,13 @@ class Player(MonopolyObject):
         field: Field = self.game.fields.get(self.field)
         await field.on_stand(self, amount)
 
-    async def buy_field(self) -> None:
-        field: Field | None = self.game.fields.get(self.field)
+    async def buy_field(
+            self,
+            field: int | None = None
+    ) -> None:
+        field: Field | None = self.game.fields.get(self.field if field is None else field)
 
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id is not None:
-            raise FieldAlreadyOwnedError("Provided field is already owned")
-
-        if field.cost > self.balance:
-            raise NotEnoughBalanceError("Player has insufficient balance")
-
-        field.owner_id = self.player_id
-        self.balance -= field.cost
+        self.__buy_field(field)
 
         await self.game.send(
             ServerPlayerBuyFieldPacket(
@@ -167,8 +161,90 @@ class Player(MonopolyObject):
 
         await self.game.next()
 
-    async def pay_rent(self) -> None:
-        field: Field | None = self.game.fields.get(self.field)
+    async def buy_field_on_auction(
+            self,
+            field: int
+    ) -> None:
+        field: Field | None = self.game.fields.get(field)
+
+        self.__buy_field(field)
+
+        await self.game.send(
+            ServerPlayerPutFieldOnAuctionPacket(
+                self.game.game_id,
+                self.player_id,
+                field.field_id,
+                self.balance
+            )
+        )
+
+        await self.game.next()
+
+    async def put_field_on_auction(
+            self,
+            field: int | None = None
+    ) -> None:
+        field: Field | None = self.game.fields.get(self.field if field is None else field)
+
+        self.game.start_auction(self, field)
+
+    async def accept_auction(
+            self
+    ) -> None:
+        action: Action | None = self.game.action
+
+        if not isinstance(action, BuyFieldOnAuctionAction):
+            raise GameInvalidActionError("Game with provided UUID awaits different action")
+
+        if len(action.players) == 1:
+            await self.buy_field_on_auction(action.field)
+
+            await self.game.next()
+            return
+
+        action.cost += self.game.auction_minimum_bet
+
+        action.players = self.game.get_auction_players(
+            self.game.players.get_players_with_sufficient_balance(
+                action.cost,
+                players=[self.game.players.get(player_id) for player_id in action.players]
+            )
+        )
+
+        await self.game.send(
+            ServerPlayerAcceptAuctionPacket(
+                self.game.game_id,
+                self.player_id,
+                action.cost
+            )
+        )
+
+        await self.game.ask_next_player_on_auction()
+
+    async def refuse_auction(
+            self
+    ) -> None:
+        action: Action | None = self.game.action
+
+        if not isinstance(action, BuyFieldOnAuctionAction):
+            raise GameInvalidActionError("Game with provided UUID awaits different action")
+
+        action.players.pop(action.player)
+
+        await self.game.send(
+            ServerPlayerRefuseAuctionPacket(
+                self.game.game_id,
+                self.player_id
+            )
+        )
+
+        await self.game.ask_next_player_on_auction()
+
+    async def pay_rent(
+            self,
+            field: int | None = None
+    ) -> None:
+        field: Field | None = self.game.fields.get(self.field if field is None else field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -208,8 +284,11 @@ class Player(MonopolyObject):
 
         await self.game.next()
 
-    async def pay_tax(self) -> None:
-        field: Field | None = self.game.fields.get(self.field)
+    async def pay_tax(
+            self,
+            field: int | None = None
+    ) -> None:
+        field: Field | None = self.game.fields.get(self.field if field is None else field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -236,3 +315,22 @@ class Player(MonopolyObject):
         )
 
         await self.game.next()
+
+    def __buy_field(
+            self,
+            field: Field
+    ) -> None:
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id is not None:
+            raise FieldAlreadyOwnedError("Provided field is already owned")
+
+        if field.cost > self.balance:
+            raise NotEnoughBalanceError("Player has insufficient balance")
+
+        field.owner_id = self.player_id
+        self.balance -= field.cost

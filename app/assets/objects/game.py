@@ -11,11 +11,18 @@ from pydantic.dataclasses import dataclass
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
+from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
+from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
+from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
+from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
 from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
 from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
+from app.api.v1.packets.server.game_players_refused_auction import ServerGamePlayersRefusedAuctionPacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
+from app.api.v1.packets.server.player_put_field_on_auction import ServerPlayerPutFieldOnAuctionPacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
@@ -83,6 +90,7 @@ class Game(RedisObject):
     start_bonus: int = Parameters.START_BONUS
     start_reward: int = Parameters.START_REWARD
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
+    auction_minimum_bet: int = Parameters.AUCTION_MINIMUM_BET
 
     players: PlayersController = dataclass_field(default_factory=PlayersController)
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
@@ -131,6 +139,7 @@ class Game(RedisObject):
             "start_bonus": self.start_bonus,
             "start_reward": self.start_reward,
             "start_bonus_round_amount": self.start_bonus_round_amount,
+            "auction_minimum_bet": self.auction_minimum_bet,
             "players": self.players.to_json(),
             "fields": self.fields.to_json()
         }
@@ -215,11 +224,75 @@ class Game(RedisObject):
 
         player.double_amount = 0
 
+        self.action = MoveAction()
+
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
                 self.round,
                 self.move
+            )
+        )
+
+    async def start_auction(
+            self,
+            player: Player,
+            field: Field
+    ) -> None:
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id is not None:
+            raise FieldAlreadyOwnedError("Provided field is already owned")
+
+        cost: int = field.cost + self.auction_minimum_bet
+        auction_players: List[UUID] = self.get_auction_players(
+            self.players.get_players_with_sufficient_balance(cost),
+            player.player_id
+        )
+
+        self.action = BuyFieldOnAuctionAction(field=field.field_id, cost=cost, players=auction_players)
+
+        await self.send(
+            ServerPlayerPutFieldOnAuctionPacket(
+                self.game_id,
+                player.player_id,
+                field.field_id,
+                cost
+            )
+        )
+
+        await self.ask_next_player_on_auction()
+
+    async def ask_next_player_on_auction(self) -> None:
+        if not isinstance(self.action, BuyFieldOnAuctionAction):
+            raise GameInvalidActionError("Game with provided UUID awaits different action")
+
+        if len(self.action.players) == 0:
+            await self.send(
+                ServerGamePlayersRefusedAuctionPacket(
+                    self.game_id
+                )
+            )
+
+            await self.next()
+            return
+
+        self.action.player = self.action.player + 1
+        if self.action.player >= len(self.action.players):
+            self.action.player = 0
+
+        player: Player = self.players.get_by_auction()
+
+        await self.send(
+            ServerGameAskPlayerOnAuctionPacket(
+                self.game_id,
+                player.player_id,
+                self.action.field,
+                self.action.cost
             )
         )
 
@@ -257,6 +330,16 @@ class Game(RedisObject):
     @staticmethod
     def roll_dices() -> Tuple[int, int]:
         return randint(1, 6), randint(1, 6)
+
+    @staticmethod
+    def get_auction_players(
+            players: List[Player],
+            player_id: UUID | None = None
+    ) -> List[UUID]:
+        return [
+            auction_player.player_id for auction_player in players
+            if player_id is None or auction_player.player_id != player_id
+        ]
 
     async def __delayed_start(self) -> None:
         try:
