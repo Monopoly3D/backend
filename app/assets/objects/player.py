@@ -14,11 +14,12 @@ from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceE
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.player_accept_auction import ServerPlayerAcceptAuctionPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
+from app.api.v1.packets.server.player_buy_field_on_auction import ServerPlayerBuyFieldOnAuctionPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.api.v1.packets.server.player_pay_tax import ServerPlayerPayTaxPacket
-from app.api.v1.packets.server.player_put_field_on_auction import ServerPlayerPutFieldOnAuctionPacket
+from app.api.v1.packets.server.player_put_field_for_auction import ServerPlayerPutFieldForAuctionPacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.assets.actions.action import Action
@@ -170,7 +171,7 @@ class Player(MonopolyObject):
         self.__buy_field(field)
 
         await self.game.send(
-            ServerPlayerPutFieldOnAuctionPacket(
+            ServerPlayerBuyFieldOnAuctionPacket(
                 self.game.game_id,
                 self.player_id,
                 field.field_id,
@@ -186,7 +187,7 @@ class Player(MonopolyObject):
     ) -> None:
         field: Field | None = self.game.fields.get(self.field if field is None else field)
 
-        self.game.start_auction(self, field)
+        await self.game.start_auction(self, field)
 
     async def accept_auction(
             self

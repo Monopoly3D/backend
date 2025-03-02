@@ -4,8 +4,8 @@ from uuid import UUID
 from app.api.v1.packets.base_server import ServerPacket
 
 
-class ServerPlayerPutFieldOnAuctionPacket(ServerPacket):
-    PACKET_TAG = "player_put_field_on_auction"
+class ServerPlayerPutFieldForAuctionPacket(ServerPacket):
+    PACKET_TAG = "player_put_field_for_auction"
 
     def __init__(
             self,

@@ -22,7 +22,7 @@ from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownSto
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_players_refused_auction import ServerGamePlayersRefusedAuctionPacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
-from app.api.v1.packets.server.player_put_field_on_auction import ServerPlayerPutFieldOnAuctionPacket
+from app.api.v1.packets.server.player_put_field_for_auction import ServerPlayerPutFieldForAuctionPacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
@@ -257,7 +257,7 @@ class Game(RedisObject):
         self.action = BuyFieldOnAuctionAction(field=field.field_id, cost=cost, players=auction_players)
 
         await self.send(
-            ServerPlayerPutFieldOnAuctionPacket(
+            ServerPlayerPutFieldForAuctionPacket(
                 self.game_id,
                 player.player_id,
                 field.field_id,
