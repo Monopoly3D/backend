@@ -8,7 +8,9 @@ from app.api.v1.packets.server.player_can_buy_field import ServerPlayerCanBuyFie
 from app.api.v1.packets.server.player_must_pay_rent import ServerPlayerMustPayRentPacket
 from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.pay_rent import PayRentAction
+from app.assets.enums.company_type import CompanyType
 from app.assets.enums.field_type import FieldType
+from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.field import Field
 
 
@@ -17,9 +19,10 @@ class Company(Field):
     field_type: FieldType = FieldType.COMPANY
 
     owner_id: UUID | None = None
+    monopoly_type: MonopolyType = MonopolyType.BASE
+    company_type: CompanyType = CompanyType.BASE
+
     is_monopoly: bool = False
-    field_dependant: bool = False
-    dice_dependant: bool = False
     rent: List[int] = dataclass_field(default_factory=list)
     mortgage: int = -1
     filiation: int = 0
@@ -48,9 +51,9 @@ class Company(Field):
             "field_type": self.field_type.value,
             "company": {
                 "owner_id": str(self.owner_id) if self.owner_id else None,
+                "monopoly_type": self.monopoly_type.value,
+                "company_type": self.company_type.value,
                 "is_monopoly": self.is_monopoly,
-                "field_dependant": self.field_dependant,
-                "dice_dependant": self.dice_dependant,
                 "rent": self.rent,
                 "mortgage": self.mortgage,
                 "filiation": self.filiation,
@@ -88,7 +91,7 @@ class Company(Field):
             self,
             amount: int
     ) -> int:
-        if self.field_dependant:
+        if self.company_type == CompanyType.FIELD_DEPENDANT:
             field_count: int = 0
             for field in self.game.fields.list:
                 if field.field_type == FieldType.COMPANY and field.field_dependant and field.owner_id == self.owner_id:
@@ -98,7 +101,7 @@ class Company(Field):
             except IndexError:
                 return 0
 
-        if self.dice_dependant:
+        if self.company_type == CompanyType.DICE_DEPENDANT:
             field_count: int = 0
             for field in self.game.fields.list:
                 if field.field_type == FieldType.COMPANY and field.dice_dependant and field.owner_id == self.owner_id:

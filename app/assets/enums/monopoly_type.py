@@ -2,6 +2,8 @@ from enum import StrEnum
 
 
 class MonopolyType(StrEnum):
+    BASE = "base"
+
     POLISH_GROCERIES = "polish_groceries"
     FASHION = "fashion"
     WEB_SERVICES = "web services"
