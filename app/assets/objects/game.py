@@ -168,6 +168,7 @@ class Game(RedisObject):
 
         #  self.players.shuffle()  TESTING
         self.fields = self.get_map(self.map_path)
+        self.monopolies.setup(self.fields.list, game_instance=self)
 
         await self.send(
             ServerGameStartPacket(

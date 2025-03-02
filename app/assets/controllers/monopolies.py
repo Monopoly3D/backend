@@ -24,12 +24,7 @@ class MonopoliesController:
             return
 
         if self.__game_instance is not None:
-            for data_field in fields:
-                field: Field | None = self.__game_instance.get_field(data_field)
-
-                if field is None:
-                    continue
-
+            for field in fields:
                 if not isinstance(field, Company):
                     continue
 
@@ -50,6 +45,17 @@ class MonopoliesController:
     ) -> Set[int] | None:
         return self.__monopolies.get(monopoly_type)
 
+    def get_fields(
+            self,
+            monopoly_type: MonopolyType
+    ) -> List[Company]:
+        fields: Set[int] | None = self.get(monopoly_type)
+
+        if fields is None:
+            return []
+
+        return [self.__game_instance.fields.get(field) for field in fields]
+
     def exists(
             self,
             monopoly_type: MonopolyType
@@ -62,3 +68,18 @@ class MonopoliesController:
     ) -> None:
         if self.exists(monopoly_type):
             self.__monopolies.pop(monopoly_type)
+
+    @staticmethod
+    def is_monopoly(fields: List[Company]) -> bool:
+        if not len(fields):
+            return False
+
+        return len(set(field.owner_id for field in fields)) == 1 and fields[0].owner_id is not None
+
+    @staticmethod
+    def set_monopoly(
+            fields: List[Company],
+            is_monopoly: bool
+    ) -> None:
+        for field in fields:
+            field.is_monopoly = is_monopoly

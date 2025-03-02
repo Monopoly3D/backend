@@ -72,6 +72,24 @@ class Company(Field):
     def dice_dependant(self) -> bool:
         return self.company_type == CompanyType.DICE_DEPENDANT
 
+    def set_new_owner_id(
+            self,
+            owner_id: UUID | None = None
+    ) -> None:
+        if self.owner_id == owner_id:
+            return
+
+        fields: List[Company] = self.game.monopolies.get_fields(self.monopoly_type)
+
+        was_monopoly: bool = self.game.monopolies.is_monopoly(fields)
+        self.owner_id = owner_id
+        is_monopoly: bool = self.game.monopolies.is_monopoly(fields)
+
+        if not was_monopoly and is_monopoly:
+            self.game.monopolies.set_monopoly(fields, True)
+        elif was_monopoly and not is_monopoly:
+            self.game.monopolies.set_monopoly(fields, False)
+
     async def on_stand(
             self,
             player: Any,

@@ -335,5 +335,5 @@ class Player(GameObject):
         if cost > self.balance:
             raise NotEnoughBalanceError("Player has insufficient balance")
 
-        field.owner_id = self.player_id
+        field.set_new_owner_id(self.player_id)
         self.balance -= cost
