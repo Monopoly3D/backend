@@ -99,8 +99,6 @@ class Company(Field):
             self,
             amount: int
     ) -> int:
-        print(self)
-
         if self.field_dependant:
             field_count: int = 0
             for field in self.game.fields.list:

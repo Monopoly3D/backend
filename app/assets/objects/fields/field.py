@@ -5,11 +5,11 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.monopoly_object import MonopolyObject
+from app.assets.objects.game_object import GameObject
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
-class Field(MonopolyObject, ABC):
+class Field(GameObject, ABC):
     field_id: int
     field_type: FieldType
 

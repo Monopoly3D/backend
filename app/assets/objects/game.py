@@ -34,6 +34,7 @@ from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.actions.prison import PrisonAction
 from app.assets.controllers.fields import FieldsController
+from app.assets.controllers.monopolies import MonopoliesController
 from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
@@ -93,6 +94,7 @@ class Game(RedisObject):
 
     players: PlayersController = dataclass_field(default_factory=PlayersController)
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
+    monopolies: MonopoliesController = dataclass_field(default_factory=MonopoliesController)
     map_path: str = Parameters.DEFAULT_MAP_PATH
 
     __controller_instance: RedisController | None = None
@@ -122,6 +124,7 @@ class Game(RedisObject):
 
         game.players.setup(players, game_instance=game, connections=connections)
         game.fields.setup(fields, game_instance=game)
+        game.monopolies.setup(game.fields.list, game_instance=game)
 
         return game
 

@@ -28,12 +28,12 @@ from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.tax import Tax
-from app.assets.objects.monopoly_object import MonopolyObject
+from app.assets.objects.game_object import GameObject
 from app.assets.parameters import Parameters
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
-class Player(MonopolyObject):
+class Player(GameObject):
     player_id: UUID
     username: str
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE

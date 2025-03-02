@@ -1,10 +1,10 @@
 from abc import ABC
 
 from app.api.v1.controllers.redis import RedisController
-from app.assets.objects.monopoly_object import MonopolyObject
+from app.assets.objects.game_object import GameObject
 
 
-class RedisObject(MonopolyObject, ABC):
+class RedisObject(GameObject, ABC):
     def __init__(
             self,
             redis_key: str,

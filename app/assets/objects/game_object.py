@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 
-class MonopolyObject(ABC):
+class GameObject(ABC):
     @classmethod
     @abstractmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
