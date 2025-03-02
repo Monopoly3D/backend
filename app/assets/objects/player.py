@@ -163,11 +163,12 @@ class Player(MonopolyObject):
 
     async def buy_field_on_auction(
             self,
-            field: int
+            field: int,
+            cost: int | None = None
     ) -> None:
         field: Field | None = self.game.fields.get(field)
 
-        self.__buy_field(field)
+        self.__buy_field(field, cost)
 
         await self.game.send(
             ServerPlayerBuyFieldOnAuctionPacket(
@@ -197,9 +198,7 @@ class Player(MonopolyObject):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
 
         if len(action.players) == 1:
-            await self.buy_field_on_auction(action.field)
-
-            await self.game.next()
+            await self.buy_field_on_auction(action.field, action.cost)
             return
 
         action.cost += self.game.auction_minimum_bet
@@ -318,7 +317,8 @@ class Player(MonopolyObject):
 
     def __buy_field(
             self,
-            field: Field
+            field: Field,
+            cost: int | None = None
     ) -> None:
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -329,8 +329,11 @@ class Player(MonopolyObject):
         if field.owner_id is not None:
             raise FieldAlreadyOwnedError("Provided field is already owned")
 
-        if field.cost > self.balance:
+        if cost is None:
+            cost: int = field.cost
+
+        if cost > self.balance:
             raise NotEnoughBalanceError("Player has insufficient balance")
 
         field.owner_id = self.player_id
-        self.balance -= field.cost
+        self.balance -= cost
