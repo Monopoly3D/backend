@@ -52,9 +52,8 @@ async def on_player_join_game(
     player = Player(user.user_id, username=user.username)
     player.connection = websocket
 
-    game.players.add(player)
+    await game.players.join(player)
     await game.save()
-    await game.send(ServerPlayerJoinGamePacket(game.game_id, player.player_id, player.username))
 
 
 @games_packets_router.handle(ClientPlayerReadyPacket)
@@ -64,8 +63,8 @@ async def on_player_ready(
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False)]
 ) -> None:
     player: Player = game.players.get(user.user_id)
-    await player.set_ready(packet.is_ready)
 
+    await player.set_ready(packet.is_ready)
     await game.save()
 
     task: Task | None = game.get_start_task()

@@ -328,7 +328,7 @@ class Game(RedisObject):
 
     @staticmethod
     def roll_dices() -> Tuple[int, int]:
-        return 2, 3  # return randint(1, 6), randint(1, 6)  TESTING
+        return 7, 5  # return randint(1, 6), randint(1, 6)  TESTING
 
     @staticmethod
     def get_auction_players(

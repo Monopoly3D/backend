@@ -4,6 +4,7 @@ from uuid import UUID
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
+from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.objects.player import Player
@@ -83,6 +84,19 @@ class PlayersController:
     ) -> None:
         if self.exists(uuid):
             self.__players.pop(uuid)
+
+    async def join(
+            self,
+            player: Player
+    ) -> None:
+        self.add(player)
+
+        await self.__game_instance.send(
+            ServerPlayerJoinGamePacket(
+                self.__game_instance.game_id,
+                self.list
+            )
+        )
 
     @property
     def ids(self) -> List[UUID]:
