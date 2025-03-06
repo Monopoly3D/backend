@@ -17,10 +17,8 @@ from app.api.v1.packets.client.player_put_field_for_auction import ClientPlayerP
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.client.player_refuse_auction import ClientPlayerRefuseAuctionPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
-from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
-from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player

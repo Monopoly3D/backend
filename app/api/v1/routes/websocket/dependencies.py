@@ -1,4 +1,4 @@
-from typing import Callable, Annotated
+from typing import Callable
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
@@ -7,11 +7,9 @@ from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActio
 from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
 from app.api.v1.exceptions.websocket.game_not_started import GameNotStartedError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
-from app.api.v1.exceptions.websocket.player_not_found import PlayerNotFoundError
 from app.api.v1.packets.base_client import ClientPacket
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
-from app.assets.objects.player import Player
 from app.assets.objects.user import User
 
 
