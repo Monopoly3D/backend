@@ -220,7 +220,7 @@ class Game(RedisObject):
     async def next(self) -> None:
         player: Player = self.players.get_by_move()
 
-        if player.double_amount <= 0 or player.is_imprisoned:
+        if player.double_amount <= 0 or player.prison >= 0:
             self.move += 1
 
             if self.move >= self.players.size:

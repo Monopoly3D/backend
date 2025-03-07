@@ -43,7 +43,7 @@ class Player(GameObject):
     field: int = 0
     is_ready: bool = False
     is_playing: bool = True
-    is_imprisoned: bool = False
+    prison: int = -1
     double_amount: int = 0
     contract_amount: int = 0
 
@@ -62,7 +62,7 @@ class Player(GameObject):
             "field": self.field,
             "is_ready": self.is_ready,
             "is_playing": self.is_playing,
-            "is_imprisoned": self.is_imprisoned,
+            "prison": self.prison,
             "double_amount": self.double_amount,
             "contract_amount": self.contract_amount
         }
