@@ -1,0 +1,31 @@
+from typing import Dict, Any
+from uuid import UUID
+
+from app.api.v1.packets.base_server import ServerPacket
+
+
+class ServerPlayerSellFiliationPacket(ServerPacket):
+    PACKET_TAG = "player_sell_filiation"
+
+    def __init__(
+            self,
+            game_id: UUID,
+            player_id: UUID,
+            field: int,
+            filiation: int,
+            balance: int
+    ) -> None:
+        self.game_id = game_id
+        self.player_id = player_id
+        self.field = field
+        self.filiation = filiation
+        self.balance = balance
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "game_id": str(self.game_id),
+            "player_id": str(self.player_id),
+            "field": self.field,
+            "filiation": self.filiation,
+            "balance": self.balance
+        }

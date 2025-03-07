@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Set
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -7,12 +7,16 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.websocket.field_already_mortgaged import FieldAlreadyMortgagedError
 from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
+from app.api.v1.exceptions.websocket.field_is_monopoly import FieldIsMonopolyError
+from app.api.v1.exceptions.websocket.field_is_not_monopoly import FieldIsNotMonopolyError
 from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
 from app.api.v1.exceptions.websocket.field_not_mortgaged import FieldNotMortgagedError
 from app.api.v1.exceptions.websocket.field_not_owned import FieldNotOwnedError
 from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
-from app.api.v1.exceptions.websocket.invalid_casino_dice_choice import InvalidCasinoDiceChoice
+from app.api.v1.exceptions.websocket.invalid_casino_dice_choice import InvalidCasinoDiceChoiceError
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
+from app.api.v1.exceptions.websocket.invalid_filiation_amount import InvalidFiliationAmountError
+from app.api.v1.exceptions.websocket.monopoly_already_filiated import MonopolyAlreadyFiliatedError
 from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
@@ -20,6 +24,7 @@ from app.api.v1.packets.server.player_accept_auction import ServerPlayerAcceptAu
 from app.api.v1.packets.server.player_accept_prison import ServerPlayerAcceptPrisonPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_buy_field_on_auction import ServerPlayerBuyFieldOnAuctionPacket
+from app.api.v1.packets.server.player_buy_filiation import ServerPlayerBuyFiliationPacket
 from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFieldPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
@@ -32,6 +37,7 @@ from app.api.v1.packets.server.player_play_casino import ServerPlayerPlayCasinoP
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
+from app.api.v1.packets.server.player_sell_filiation import ServerPlayerSellFiliationPacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.actions.move import MoveAction
@@ -297,10 +303,10 @@ class Player(GameObject):
             raise NotEnoughBalanceError("Player has insufficient balance")
 
         if not (1 <= len(dices) <= 3):
-            raise InvalidCasinoDiceChoice("Player must choose between 1 and 3 dices")
+            raise InvalidCasinoDiceChoiceError("Player must choose between 1 and 3 dices")
 
         if any(dice < 1 or dice > 6 for dice in dices):
-            raise InvalidCasinoDiceChoice("Player must choose dices between 1 and 6")
+            raise InvalidCasinoDiceChoiceError("Player must choose dices between 1 and 6")
 
         self.balance -= Parameters.DEFAULT_CASINO_BET
 
@@ -484,6 +490,9 @@ class Player(GameObject):
         if field.mortgage == -1:
             raise FieldNotMortgagedError("Field is not mortgaged")
 
+        if field.is_monopoly:
+            raise FieldIsMonopolyError("Field is a monopoly")
+
         if self.balance < field.buyout_cost:
             raise NotEnoughBalanceError("Player has insufficient balance")
 
@@ -495,6 +504,82 @@ class Player(GameObject):
                 self.game.game_id,
                 self.player_id,
                 field.field_id,
+                self.balance
+            )
+        )
+
+    async def buy_filiation(
+            self,
+            field: int
+    ) -> None:
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id != self.player_id:
+            raise FieldNotOwnedError("Provided field is not owned")
+
+        if not field.is_monopoly:
+            raise FieldIsNotMonopolyError("Field is not a monopoly")
+
+        if field.filiation >= Parameters.FILIATION_LIMIT:
+            raise InvalidFiliationAmountError("Unable to buy more filiations")
+
+        if self.game.monopolies.is_filiated(field.monopoly_type):
+            raise MonopolyAlreadyFiliatedError("Monopoly is already filiated")
+
+        if self.balance < field.filiation_cost:
+            raise NotEnoughBalanceError("Player has insufficient balance")
+
+        field.filiation += 1
+        self.balance -= field.filiation_cost
+
+        self.game.monopolies.set_filiated(field.monopoly_type)
+
+        await self.game.send(
+            ServerPlayerBuyFiliationPacket(
+                self.game.game_id,
+                self.player_id,
+                field.field_id,
+                field.filiation,
+                self.balance
+            )
+        )
+
+    async def sell_filiation(
+            self,
+            field: int
+    ) -> None:
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id != self.player_id:
+            raise FieldNotOwnedError("Provided field is not owned")
+
+        if not field.is_monopoly:
+            raise FieldIsNotMonopolyError("Field is not a monopoly")
+
+        if field.filiation <= 0:
+            raise InvalidFiliationAmountError("Field has no filiations to sell")
+
+        field.filiation -= 1
+        self.balance += field.filiation_cost
+
+        await self.game.send(
+            ServerPlayerSellFiliationPacket(
+                self.game.game_id,
+                self.player_id,
+                field.field_id,
+                field.filiation,
                 self.balance
             )
         )

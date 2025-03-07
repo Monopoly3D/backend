@@ -229,6 +229,7 @@ class Game(RedisObject):
                 self.move = 0
                 self.round += 1
                 await self.fields.decrease_mortgages()
+                self.monopolies.reset_filiated()
 
         next_player: Player = self.players.get_by_move()
 
