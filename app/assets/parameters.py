@@ -10,5 +10,6 @@ class Parameters:
     AUCTION_MINIMUM_BET = 100
 
     DEFAULT_PLAYER_BALANCE = 15000
+    DEFAULT_CASINO_BET = 1000
 
     DEFAULT_MAP_PATH = "app/assets/maps/default_map.json"

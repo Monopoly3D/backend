@@ -8,6 +8,7 @@ from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
 from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
+from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
@@ -16,6 +17,7 @@ from app.api.v1.packets.client.player_pay_tax import ClientPlayerPayTaxPacket
 from app.api.v1.packets.client.player_put_field_for_auction import ClientPlayerPutFieldForAuctionPacket
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.client.player_refuse_auction import ClientPlayerRefuseAuctionPacket
+from app.api.v1.packets.client.player_refuse_casino import ClientPlayerRefuseCasinoPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
@@ -170,4 +172,33 @@ async def on_player_pay_tax(
         raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
 
     await player.pay_tax()
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerAcceptCasinoPacket)
+async def on_player_accept_casino(
+        packet: ClientPlayerAcceptCasinoPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO)]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
+    await player.play_casino(packet.dices)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerRefuseCasinoPacket)
+async def on_player_refuse_casino(
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO)]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
+    await player.refuse_casino()
     await game.save()

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
 from typing import Dict, Any, List, Tuple, ClassVar, Type, TypeVar
@@ -332,8 +333,14 @@ class Game(RedisObject):
         return tasks[0]
 
     @staticmethod
-    def roll_dices() -> Tuple[int, int]:
-        return 7, 5  # return randint(1, 6), randint(1, 6)  TESTING
+    def roll_dices(
+            *,
+            amount: int = 2
+    ) -> Tuple[int, ...]:
+        if amount == 2:
+            return 11, 9
+
+        return tuple(random.randint(1, 6) for _ in range(amount))
 
     @staticmethod
     def get_auction_players(

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, List
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -9,6 +9,7 @@ from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwne
 from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
 from app.api.v1.exceptions.websocket.field_not_owned import FieldNotOwnedError
 from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
+from app.api.v1.exceptions.websocket.invalid_casino_dice_choice import InvalidCasinoDiceChoice
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.packets.base_server import ServerPacket
@@ -19,8 +20,10 @@ from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStar
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.api.v1.packets.server.player_pay_tax import ServerPlayerPayTaxPacket
+from app.api.v1.packets.server.player_play_casino import ServerPlayerPlayCasinoPacket
 from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
+from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.actions.pay_rent import PayRentAction
@@ -238,6 +241,51 @@ class Player(GameObject):
         )
 
         await self.game.ask_next_player_on_auction()
+
+    async def play_casino(
+            self,
+            dices: List[int]
+    ) -> None:
+        if self.balance < Parameters.DEFAULT_CASINO_BET:
+            raise NotEnoughBalanceError("Player has insufficient balance")
+
+        if not (1 <= len(dices) <= 3):
+            raise InvalidCasinoDiceChoice("Player must choose between 1 and 3 dices")
+
+        if any(dice < 1 or dice > 6 for dice in dices):
+            raise InvalidCasinoDiceChoice("Player must choose dices between 1 and 6")
+
+        self.balance -= Parameters.DEFAULT_CASINO_BET
+
+        roll: int = self.game.roll_dices(amount=1)[0]
+        won: bool = roll in dices
+        prize: int = Parameters.DEFAULT_CASINO_BET * 6 // len(dices) if won else 0
+
+        self.balance += prize
+
+        await self.game.send(
+            ServerPlayerPlayCasinoPacket(
+                self.game.game_id,
+                self.player_id,
+                self.balance,
+                dices,
+                roll,
+                won,
+                prize
+            )
+        )
+
+        await self.game.next()
+
+    async def refuse_casino(self) -> None:
+        await self.game.send(
+            ServerPlayerRefuseCasinoPacket(
+                self.game.game_id,
+                self.player_id
+            )
+        )
+
+        await self.game.next()
 
     async def pay_rent(
             self,
