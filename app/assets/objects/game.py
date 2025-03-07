@@ -17,6 +17,7 @@ from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActio
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
+from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket
 from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
 from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
@@ -182,6 +183,7 @@ class Game(RedisObject):
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
+                self.players.get_by_move().player_id,
                 self.round,
                 self.move
             )
@@ -227,15 +229,29 @@ class Game(RedisObject):
                 self.move = 0
                 self.round += 1
 
-        self.action = MoveAction()
+        next_player: Player = self.players.get_by_move()
 
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
+                next_player.player_id,
                 self.round,
                 self.move
             )
         )
+
+        if next_player.prison < 0:
+            self.action = MoveAction()
+        else:
+            self.action = PrisonAction()
+
+            await self.send(
+                ServerGameAskPlayerOnPrisonPacket(
+                    self.game_id,
+                    next_player.player_id,
+                    Parameters.PRISON_ESCAPE_COST
+                )
+            )
 
     async def start_auction(
             self,
@@ -336,7 +352,7 @@ class Game(RedisObject):
             amount: int = 2
     ) -> Tuple[int, ...]:
         if amount == 2:  # TESTING
-            return 11, 9
+            return 21, 9
 
         return tuple(random.randint(1, 6) for _ in range(amount))
 

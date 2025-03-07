@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
@@ -18,7 +18,7 @@ class WebSocketDependency:
     def get_game(
             *,
             is_started: bool | None = True,
-            action: ActionType | None = None,
+            action: ActionType | List[ActionType] | None = None,
             has_player: bool | None = True
     ) -> Callable:
         async def __get_game(
@@ -42,7 +42,11 @@ class WebSocketDependency:
                     raise GameNotStartedError("Game with provided UUID has not been started")
 
             if action is not None:
-                if game.action.action_type != action:
+                if isinstance(action, ActionType):
+                    action_list: List[ActionType] = [action]
+                else:
+                    action_list = action
+                if game.action.action_type not in action_list:
                     raise GameInvalidActionError("Game with provided UUID awaits different action")
 
             return game
