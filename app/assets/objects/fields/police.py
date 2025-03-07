@@ -18,6 +18,7 @@ class Police(Field):
             amount: int
     ) -> None:
         player.prison = 0
+        player.double_amount = 0
         player.field = self.game.fields.police
 
         await self.game.send(

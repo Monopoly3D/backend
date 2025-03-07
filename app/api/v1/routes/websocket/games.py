@@ -9,6 +9,7 @@ from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlready
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
 from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
+from app.api.v1.packets.client.player_accept_prison import ClientPlayerAcceptPrisonPacket
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
@@ -86,7 +87,7 @@ async def on_player_move(
     if player.player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to move")
 
-    dices: Tuple[int, int] = game.roll_dices()
+    dices: Tuple[int, ...] = game.roll_dices()
 
     await player.move(dices)
     await game.save()
@@ -173,6 +174,20 @@ async def on_player_pay_tax(
         raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
 
     await player.pay_tax()
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerAcceptPrisonPacket)
+async def on_player_accept_prison(
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON])]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay to escape prison")
+
+    await player.accept_prison()
     await game.save()
 
 

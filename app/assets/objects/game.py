@@ -346,6 +346,13 @@ class Game(RedisObject):
 
         return tasks[0]
 
+    async def __delayed_start(self) -> None:
+        try:
+            await asyncio.sleep(self.start_delay)
+            await self.start()
+        except CancelledError:
+            pass
+
     @staticmethod
     def roll_dices(
             *,
@@ -357,6 +364,10 @@ class Game(RedisObject):
         return tuple(random.randint(1, 6) for _ in range(amount))
 
     @staticmethod
+    def roll_dice() -> int:
+        return random.randint(1, 6)
+
+    @staticmethod
     def get_auction_players(
             players: List[Player],
             player_id: UUID | None = None
@@ -365,13 +376,6 @@ class Game(RedisObject):
             auction_player.player_id for auction_player in players
             if player_id is None or auction_player.player_id != player_id
         ]
-
-    async def __delayed_start(self) -> None:
-        try:
-            await asyncio.sleep(self.start_delay)
-            await self.start()
-        except CancelledError:
-            pass
 
     @classmethod
     def get_field(

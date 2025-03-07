@@ -4,8 +4,8 @@ from uuid import UUID
 from app.api.v1.packets.base_server import ServerPacket
 
 
-class ServerGameAskPlayerOnPrisonPacket(ServerPacket):
-    PACKET_TAG = "game_ask_player_on_prison"
+class ServerPlayerMustPayPrisonPacket(ServerPacket):
+    PACKET_TAG = "player_must_pay_prison"
 
     def __init__(
             self,
