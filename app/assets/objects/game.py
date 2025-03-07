@@ -227,8 +227,6 @@ class Game(RedisObject):
                 self.move = 0
                 self.round += 1
 
-        player.double_amount = 0
-
         self.action = MoveAction()
 
         await self.send(
@@ -337,7 +335,7 @@ class Game(RedisObject):
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        if amount == 2:
+        if amount == 2:  # TESTING
             return 11, 9
 
         return tuple(random.randint(1, 6) for _ in range(amount))
