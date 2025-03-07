@@ -12,6 +12,7 @@ from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCas
 from app.api.v1.packets.client.player_accept_prison import ClientPlayerAcceptPrisonPacket
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
+from app.api.v1.packets.client.player_mortgage_field import ClientPlayerMortgageFieldPacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_pay_prison import ClientPlayerPayPrisonPacket
 from app.api.v1.packets.client.player_pay_rent import ClientPlayerPayRentPacket
@@ -231,4 +232,18 @@ async def on_player_refuse_casino(
         raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
 
     await player.refuse_casino()
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerMortgageFieldPacket)
+async def on_player_mortgage_field(
+        packet: ClientPlayerMortgageFieldPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
     await game.save()

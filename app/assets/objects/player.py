@@ -5,8 +5,10 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
+from app.api.v1.exceptions.websocket.field_already_mortgaged import FieldAlreadyMortgagedError
 from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
 from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
+from app.api.v1.exceptions.websocket.field_not_mortgaged import FieldNotMortgagedError
 from app.api.v1.exceptions.websocket.field_not_owned import FieldNotOwnedError
 from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
 from app.api.v1.exceptions.websocket.invalid_casino_dice_choice import InvalidCasinoDiceChoice
@@ -18,7 +20,9 @@ from app.api.v1.packets.server.player_accept_auction import ServerPlayerAcceptAu
 from app.api.v1.packets.server.player_accept_prison import ServerPlayerAcceptPrisonPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_buy_field_on_auction import ServerPlayerBuyFieldOnAuctionPacket
+from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFieldPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
+from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_must_pay_prison import ServerPlayerMustPayPrisonPacket
 from app.api.v1.packets.server.player_pay_prison import ServerPlayerPayPrisonPacket
@@ -429,6 +433,69 @@ class Player(GameObject):
                 self.player_id,
                 self.game.round,
                 self.game.move
+            )
+        )
+
+    async def mortgage_field(
+            self,
+            field: int
+    ) -> None:
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id != self.player_id:
+            raise FieldNotOwnedError("Provided field is not owned")
+
+        if field.mortgage >= 0:
+            raise FieldAlreadyMortgagedError("Field is already mortgaged")
+
+        self.balance += field.mortgage_cost
+        field.mortgage = Parameters.MORTGAGE_MOVE_LIMIT
+
+        await self.send(
+            ServerPlayerMortgageFieldPacket(
+                self.game.game_id,
+                self.player_id,
+                field.field_id,
+                self.balance
+            )
+        )
+
+    async def buyout_field(
+            self,
+            field: int
+    ) -> None:
+        field: Field | None = self.game.fields.get(field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        if field.owner_id != self.player_id:
+            raise FieldNotOwnedError("Provided field is not owned")
+
+        if field.mortgage == -1:
+            raise FieldNotMortgagedError("Field is not mortgaged")
+
+        if self.balance < field.buyout_cost:
+            raise NotEnoughBalanceError("Player has insufficient balance")
+
+        self.balance -= field.buyout_cost
+        field.mortgage = -1
+
+        await self.send(
+            ServerPlayerBuyoutFieldPacket(
+                self.game.game_id,
+                self.player_id,
+                field.field_id,
+                self.balance
             )
         )
 

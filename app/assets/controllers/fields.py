@@ -1,7 +1,9 @@
 from typing import Dict, List, Any, TypeVar
 
 from app.api.v1.models.response.field import FieldResponseModel
+from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
 from app.assets.enums.field_type import FieldType
+from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 
 T = TypeVar('T', bound=Field)
@@ -85,3 +87,28 @@ class FieldsController:
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.list]
+
+    async def decrease_mortgages(self) -> None:
+        has_any_mortgaged_fields: bool = False
+
+        for field in self.list:
+            if not isinstance(field, Company):
+                continue
+
+            if field.mortgage >= 0:
+                has_any_mortgaged_fields: bool = True
+                field.mortgage -= 1
+
+                if field.mortgage == 0:
+                    field.mortgage = -1
+                    field.owner_id = None
+
+                    await self.__game_instance.send(
+                        ServerPlayerLoseMortgagedFieldPacket(
+                            self.__game_instance.game_id,
+                            field.field_id
+                        )
+                    )
+
+        if has_any_mortgaged_fields:
+            await self.__game_instance.save()

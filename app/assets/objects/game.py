@@ -228,6 +228,7 @@ class Game(RedisObject):
             if self.move >= self.players.size:
                 self.move = 0
                 self.round += 1
+                await self.fields.decrease_mortgages()
 
         next_player: Player = self.players.get_by_move()
 
