@@ -280,6 +280,7 @@ class Player(GameObject):
                     Parameters.DEFAULT_PRISON_ESCAPE_COST
                 )
             )
+
             return
 
         await self.game.next()
