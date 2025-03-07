@@ -11,7 +11,7 @@ class PlayerResponseModel(BaseModel):
     balance: int
     field: int
     is_playing: bool
-    is_imprisoned: bool
+    prison: int
 
     @classmethod
     def from_player(
@@ -24,5 +24,5 @@ class PlayerResponseModel(BaseModel):
             balance=player.balance,
             field=player.field,
             is_playing=player.is_playing,
-            is_imprisoned=player.is_imprisoned
+            prison=player.prison
         )

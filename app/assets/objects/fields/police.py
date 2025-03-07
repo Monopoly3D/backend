@@ -17,11 +17,12 @@ class Police(Field):
             player: Any,
             amount: int
     ) -> None:
-        player.is_imprisoned = True
+        player.prison = 0
+        player.double_amount = 0
         player.field = self.game.fields.police
 
         await self.game.send(
-            ServerPlayerGotImprisonedPacket(self.game.game_id, player.player_id, self.game.police)
+            ServerPlayerGotImprisonedPacket(self.game.game_id, player.player_id, self.game.fields.police)
         )
 
         await self.game.next()

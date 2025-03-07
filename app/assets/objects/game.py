@@ -17,6 +17,7 @@ from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActio
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
+from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket
 from app.api.v1.packets.server.game_countdown_start import ServerGameCountdownStartPacket
 from app.api.v1.packets.server.game_countdown_stop import ServerGameCountdownStopPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
@@ -182,6 +183,7 @@ class Game(RedisObject):
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
+                self.players.get_by_move().player_id,
                 self.round,
                 self.move
             )
@@ -220,24 +222,36 @@ class Game(RedisObject):
     async def next(self) -> None:
         player: Player = self.players.get_by_move()
 
-        if player.double_amount <= 0 or player.is_imprisoned:
+        if player.double_amount <= 0 or player.prison >= 0:
             self.move += 1
 
             if self.move >= self.players.size:
                 self.move = 0
                 self.round += 1
 
-        player.double_amount = 0
-
-        self.action = MoveAction()
+        next_player: Player = self.players.get_by_move()
 
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
+                next_player.player_id,
                 self.round,
                 self.move
             )
         )
+
+        if next_player.prison < 0:
+            self.action = MoveAction()
+        else:
+            self.action = PrisonAction()
+
+            await self.send(
+                ServerGameAskPlayerOnPrisonPacket(
+                    self.game_id,
+                    next_player.player_id,
+                    Parameters.DEFAULT_PRISON_ESCAPE_COST
+                )
+            )
 
     async def start_auction(
             self,
@@ -332,15 +346,26 @@ class Game(RedisObject):
 
         return tasks[0]
 
+    async def __delayed_start(self) -> None:
+        try:
+            await asyncio.sleep(self.start_delay)
+            await self.start()
+        except CancelledError:
+            pass
+
     @staticmethod
     def roll_dices(
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        if amount == 2:
-            return 11, 9
+        if amount == 2:  # TESTING
+            return 21, 9
 
         return tuple(random.randint(1, 6) for _ in range(amount))
+
+    @staticmethod
+    def roll_dice() -> int:
+        return random.randint(1, 6)
 
     @staticmethod
     def get_auction_players(
@@ -351,13 +376,6 @@ class Game(RedisObject):
             auction_player.player_id for auction_player in players
             if player_id is None or auction_player.player_id != player_id
         ]
-
-    async def __delayed_start(self) -> None:
-        try:
-            await asyncio.sleep(self.start_delay)
-            await self.start()
-        except CancelledError:
-            pass
 
     @classmethod
     def get_field(

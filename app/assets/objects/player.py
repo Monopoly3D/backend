@@ -13,11 +13,15 @@ from app.api.v1.exceptions.websocket.invalid_casino_dice_choice import InvalidCa
 from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.player_accept_auction import ServerPlayerAcceptAuctionPacket
+from app.api.v1.packets.server.player_accept_prison import ServerPlayerAcceptPrisonPacket
 from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacket
 from app.api.v1.packets.server.player_buy_field_on_auction import ServerPlayerBuyFieldOnAuctionPacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
+from app.api.v1.packets.server.player_must_pay_prison import ServerPlayerMustPayPrisonPacket
+from app.api.v1.packets.server.player_pay_prison import ServerPlayerPayPrisonPacket
 from app.api.v1.packets.server.player_pay_rent import ServerPlayerPayRentPacket
 from app.api.v1.packets.server.player_pay_tax import ServerPlayerPayTaxPacket
 from app.api.v1.packets.server.player_play_casino import ServerPlayerPlayCasinoPacket
@@ -26,6 +30,8 @@ from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAu
 from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.actions.move import MoveAction
+from app.assets.actions.pay_prison import PayPrisonAction
 from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.objects.fields.company import Company
@@ -43,7 +49,7 @@ class Player(GameObject):
     field: int = 0
     is_ready: bool = False
     is_playing: bool = True
-    is_imprisoned: bool = False
+    prison: int = -1
     double_amount: int = 0
     contract_amount: int = 0
 
@@ -62,7 +68,7 @@ class Player(GameObject):
             "field": self.field,
             "is_ready": self.is_ready,
             "is_playing": self.is_playing,
-            "is_imprisoned": self.is_imprisoned,
+            "prison": self.prison,
             "double_amount": self.double_amount,
             "contract_amount": self.contract_amount
         }
@@ -105,7 +111,9 @@ class Player(GameObject):
 
     async def move(
             self,
-            dices: Tuple[int, int]
+            dices: Tuple[int, ...],
+            *,
+            consider_double: bool = True
     ) -> None:
         amount: int = sum(dices)
 
@@ -137,7 +145,7 @@ class Player(GameObject):
                 )
             )
 
-        if got_double:
+        if got_double and consider_double:
             self.double_amount += 1
         else:
             self.double_amount = 0
@@ -242,6 +250,41 @@ class Player(GameObject):
 
         await self.game.ask_next_player_on_auction()
 
+    async def accept_prison(self) -> None:
+        dices: Tuple[int, ...] = self.game.roll_dices()
+        got_double: bool = dices[0] == dices[1]
+
+        await self.game.send(
+            ServerPlayerAcceptPrisonPacket(
+                self.game.game_id,
+                self.player_id,
+                dices,
+                got_double
+            )
+        )
+
+        if got_double:
+            self.prison = -1
+            await self.move(dices, consider_double=False)
+            return
+
+        self.prison += 1
+
+        if self.prison >= 3:
+            self.game.action = PayPrisonAction()
+
+            await self.game.send(
+                ServerPlayerMustPayPrisonPacket(
+                    self.game.game_id,
+                    self.player_id,
+                    Parameters.DEFAULT_PRISON_ESCAPE_COST
+                )
+            )
+
+            return
+
+        await self.game.next()
+
     async def play_casino(
             self,
             dices: List[int]
@@ -257,7 +300,7 @@ class Player(GameObject):
 
         self.balance -= Parameters.DEFAULT_CASINO_BET
 
-        roll: int = self.game.roll_dices(amount=1)[0]
+        roll: int = self.game.roll_dice()
         won: bool = roll in dices
         prize: int = Parameters.DEFAULT_CASINO_BET * 6 // len(dices) if won else 0
 
@@ -362,6 +405,32 @@ class Player(GameObject):
         )
 
         await self.game.next()
+
+    async def pay_prison(self) -> None:
+        if self.balance < Parameters.DEFAULT_PRISON_ESCAPE_COST:
+            raise NotEnoughBalanceError("Player has insufficient balance")
+
+        self.balance -= Parameters.DEFAULT_PRISON_ESCAPE_COST
+        self.prison = -1
+
+        await self.send(
+            ServerPlayerPayPrisonPacket(
+                self.game.game_id,
+                self.player_id,
+                self.balance
+            )
+        )
+
+        self.game.action = MoveAction()
+
+        await self.send(
+            ServerGameMovePacket(
+                self.game.game_id,
+                self.player_id,
+                self.game.round,
+                self.game.move
+            )
+        )
 
     async def __buy_field(
             self,

@@ -11,7 +11,7 @@ class ServerPlayerMovePacket(ServerPacket):
             self,
             game_id: UUID,
             player_id: UUID,
-            dices: Tuple[int, int],
+            dices: Tuple[int, ...],
             field: int
     ) -> None:
         self.game_id = game_id
