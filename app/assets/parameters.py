@@ -9,7 +9,7 @@ class Parameters:
     START_BONUS = 2000
     START_REWARD = 1000
     AUCTION_MINIMUM_BET = 100
-    PRISON_ESCAPE_COST = 500
+    DEFAULT_PRISON_ESCAPE_COST = 500
     DEFAULT_CASINO_BET = 1000
 
     DEFAULT_MAP_PATH = "app/assets/maps/default_map.json"

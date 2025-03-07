@@ -12,6 +12,7 @@ from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCas
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
+from app.api.v1.packets.client.player_pay_prison import ClientPlayerPayPrisonPacket
 from app.api.v1.packets.client.player_pay_rent import ClientPlayerPayRentPacket
 from app.api.v1.packets.client.player_pay_tax import ClientPlayerPayTaxPacket
 from app.api.v1.packets.client.player_put_field_for_auction import ClientPlayerPutFieldForAuctionPacket
@@ -172,6 +173,20 @@ async def on_player_pay_tax(
         raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
 
     await player.pay_tax()
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerPayPrisonPacket)
+async def on_player_pay_prison(
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON, ActionType.PAY_PRISON])]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay to escape prison")
+
+    await player.pay_prison()
     await game.save()
 
 

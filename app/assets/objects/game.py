@@ -249,7 +249,7 @@ class Game(RedisObject):
                 ServerGameAskPlayerOnPrisonPacket(
                     self.game_id,
                     next_player.player_id,
-                    Parameters.PRISON_ESCAPE_COST
+                    Parameters.DEFAULT_PRISON_ESCAPE_COST
                 )
             )
 
