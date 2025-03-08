@@ -1,6 +1,8 @@
 import json
 from abc import abstractmethod, ABC
-from typing import Dict, Any, Type, List
+from typing import Dict, Any, Type, List, ClassVar
+
+from pydantic.dataclasses import dataclass
 
 from app.api.v1.enums.packet_class import PacketClass
 from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
@@ -8,10 +10,11 @@ from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDat
 from app.api.v1.packets.base import BasePacket
 
 
+@dataclass
 class ClientPacket(BasePacket, ABC):
     PACKET_CLASS = PacketClass.CLIENT
 
-    PACKET_KEYS: Dict[str, Any] | List[str] = []
+    PACKET_KEYS: ClassVar[Dict[str, Any] | List[str]] = []
 
     @classmethod
     @abstractmethod
