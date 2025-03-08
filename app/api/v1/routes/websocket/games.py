@@ -237,7 +237,6 @@ async def on_player_refuse_casino(
 
 @games_packets_router.handle(ClientPlayerMortgageFieldPacket)
 async def on_player_mortgage_field(
-        packet: ClientPlayerMortgageFieldPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
 ) -> None:

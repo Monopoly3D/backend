@@ -116,12 +116,14 @@ class Game(RedisObject):
             *,
             connections: ConnectionsController | None = None
     ) -> Any:
-        players: List[Dict[str, Any]] = data["players"]
-        fields: List[Dict[str, Any]] = data["fields"]
+        players: List[Dict[str, Any]] = data.get("players")
+        fields: List[Dict[str, Any]] = data.get("fields")
 
-        del data["players"]
-        del data["fields"]
-        data["action"] = cls.get_field(data)
+        data.pop("players")
+        data.pop("fields")
+
+        if data.get("action") is not None:
+            data["action"] = cls.get_action(data["action"])
 
         game: Game = cls(**data)
 
@@ -135,7 +137,7 @@ class Game(RedisObject):
         return {
             "game_id": str(self.game_id),
             "is_started": self.is_started,
-            "action": self.action.to_json() if self.action is not None else None,
+            "action": self.action.pack() if self.action is not None else None,
             "round": self.round,
             "move": self.move,
             "min_players": self.min_players,
@@ -397,4 +399,4 @@ class Game(RedisObject):
         if "action_type" not in data:
             return
 
-        return cls.ACTIONS[ActionType(data.get("action_type"))].from_json(data)
+        return cls.ACTIONS[ActionType(data.get("action_type"))].unpack(data)
