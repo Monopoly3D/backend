@@ -18,13 +18,13 @@ class Police(Field):
     ) -> None:
         player.prison = 0
         player.double_amount = 0
-        player.field = self.game.fields.police
+        player.field = self.game.fields.prison
 
         await self.game.send(
             ServerPlayerGotImprisonedPacket(
                 self.game.game_id,
                 player.player_id,
-                self.game.fields.police
+                self.game.fields.prison
             )
         )
 

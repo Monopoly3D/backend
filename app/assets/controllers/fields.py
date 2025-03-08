@@ -82,8 +82,8 @@ class FieldsController:
         return len(self.__fields)
 
     @property
-    def police(self) -> int:
-        return [field.field_type for field in self.__fields].index(FieldType.POLICE)
+    def prison(self) -> int:
+        return [field.field_type for field in self.__fields].index(FieldType.PRISON)
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.list]
