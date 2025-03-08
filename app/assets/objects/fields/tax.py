@@ -10,7 +10,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Tax(Field):
-    field_type: FieldType = FieldType.TAX
+    FIELD_TYPE = FieldType.TAX
 
     tax_amount: int = 0
 
