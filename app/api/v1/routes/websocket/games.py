@@ -3,6 +3,9 @@ from typing import Annotated, Tuple
 
 from starlette.websockets import WebSocket
 
+from app.api.v1.packets.client.player_buy_filiation import ClientPlayerBuyFiliationPacket
+from app.api.v1.packets.client.player_buyout_field import ClientPlayerBuyoutFieldPacket
+from app.api.v1.packets.client.player_sell_filiation import ClientPlayerSellFiliationPacket
 from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
@@ -237,6 +240,7 @@ async def on_player_refuse_casino(
 
 @games_packets_router.handle(ClientPlayerMortgageFieldPacket)
 async def on_player_mortgage_field(
+        packet: ClientPlayerMortgageFieldPacket,
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
 ) -> None:
@@ -245,4 +249,50 @@ async def on_player_mortgage_field(
     if player.player_id != user.user_id:
         raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
 
+    await player.mortgage_field(packet.field)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerBuyoutFieldPacket)
+async def on_player_buyout_field(
+        packet: ClientPlayerBuyoutFieldPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
+    await player.buyout_field(packet.field)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerBuyFiliationPacket)
+async def on_player_buy_filiation(
+        packet: ClientPlayerBuyFiliationPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
+    await player.buy_filiation(packet.field)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerSellFiliationPacket)
+async def on_player_buy_filiation(
+        packet: ClientPlayerSellFiliationPacket,
+        user: User,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
+) -> None:
+    player: Player = game.players.get_by_move()
+
+    if player.player_id != user.user_id:
+        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+
+    await player.sell_filiation(packet.field)
     await game.save()
