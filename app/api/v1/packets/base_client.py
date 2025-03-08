@@ -1,7 +1,8 @@
 import json
 from abc import abstractmethod, ABC
-from typing import Dict, Any, Type, List, ClassVar
+from typing import Dict, Any, Type, List
 
+from pydantic import ValidationError
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.enums.packet_class import PacketClass
@@ -13,8 +14,6 @@ from app.api.v1.packets.base import BasePacket
 @dataclass
 class ClientPacket(BasePacket, ABC):
     PACKET_CLASS = PacketClass.CLIENT
-
-    PACKET_KEYS: ClassVar[Dict[str, Any] | List[str]] = []
 
     @classmethod
     @abstractmethod
@@ -30,7 +29,7 @@ class ClientPacket(BasePacket, ABC):
 
         try:
             return cls.from_json(packet["data"])
-        except KeyError or ValueError:
+        except KeyError or ValueError or ValidationError:
             raise InvalidPacketDataError("Provided packet data is invalid")
 
     @classmethod
@@ -83,26 +82,7 @@ class ClientPacket(BasePacket, ABC):
             if meta_attribute not in packet["meta"]:
                 raise InvalidPacketError("Provided packet meta is invalid")
 
-        if not cls.__validate_keys(packet["data"], cls.PACKET_KEYS):
-            raise InvalidPacketError("Provided packet data is invalid")
-
         return packet
-
-    @classmethod
-    def __validate_keys(
-            cls,
-            packet: Dict[str, Any],
-            keys: Dict[str, Any] | List[str]
-    ) -> bool:
-        if isinstance(keys, dict):
-            for key, value in keys.items():
-                if key not in packet or not cls.__validate_keys(packet[key], value):
-                    return False
-        elif isinstance(keys, list):
-            for key in keys:
-                if key not in packet:
-                    return False
-        return True
 
     @classmethod
     def __get_packets(cls) -> List[Type['ClientPacket']]:
