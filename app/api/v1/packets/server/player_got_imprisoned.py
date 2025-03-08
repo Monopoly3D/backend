@@ -1,10 +1,13 @@
 from typing import Dict, Any
 from uuid import UUID
 
+from pydantic.dataclasses import dataclass
+
 from app.api.v1.packets.base_server import ServerPacket
 from app.assets.enums.imprison_cause import ImprisonCause
 
 
+@dataclass
 class ServerPlayerGotImprisonedPacket(ServerPacket):
     PACKET_TAG = "player_got_imprisoned"
 

@@ -21,7 +21,11 @@ class Police(Field):
         player.field = self.game.fields.police
 
         await self.game.send(
-            ServerPlayerGotImprisonedPacket(self.game.game_id, player.player_id, self.game.fields.police)
+            ServerPlayerGotImprisonedPacket(
+                self.game.game_id,
+                player.player_id,
+                self.game.fields.police
+            )
         )
 
         await self.game.next()
