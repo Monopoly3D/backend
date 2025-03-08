@@ -52,26 +52,6 @@ class PlayersController:
     ) -> Player | None:
         return self.__players.get(uuid)
 
-    def get_by_move(
-            self,
-            move: int | None = None
-    ) -> Player | None:
-        try:
-            if move is None and self.__game_instance is not None:
-                return self.list[self.__game_instance.move]
-
-            return self.list[move]
-        except IndexError:
-            return
-
-    def get_by_auction(self) -> Player | None:
-        action: Action | None = self.__game_instance.action
-
-        if not isinstance(action, BuyFieldOnAuctionAction):
-            return
-
-        return self.get(action.players[action.player])
-
     def exists(
             self,
             uuid: UUID
@@ -117,6 +97,24 @@ class PlayersController:
     @property
     def are_ready(self) -> bool:
         return all(player.is_ready for player in self.list)
+
+    @property
+    def current(self) -> Player | None:
+        if self.__game_instance is not None:
+            try:
+                return self.list[self.__game_instance.move]
+            except IndexError:
+                return
+
+    @property
+    def current_on_auction(self) -> Player | None:
+        if self.__game_instance is not None:
+            action: Action | None = self.__game_instance.action
+
+            if not isinstance(action, BuyFieldOnAuctionAction):
+                return
+
+            return self.get(action.players[action.player])
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [player.to_json() for player in self.list]

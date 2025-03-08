@@ -183,7 +183,7 @@ class Game(RedisObject):
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
-                self.players.get_by_move().player_id,
+                self.players.current.player_id,
                 self.round,
                 self.move
             )
@@ -220,7 +220,7 @@ class Game(RedisObject):
             task.cancel()
 
     async def next(self) -> None:
-        player: Player = self.players.get_by_move()
+        player: Player = self.players.current
 
         if player.double_amount <= 0 or player.prison >= 0:
             self.move += 1
@@ -231,7 +231,7 @@ class Game(RedisObject):
                 await self.fields.decrease_mortgages()
                 self.monopolies.reset_filiated()
 
-        next_player: Player = self.players.get_by_move()
+        next_player: Player = self.players.current
 
         await self.send(
             ServerGameMovePacket(
@@ -306,7 +306,7 @@ class Game(RedisObject):
         if self.action.player >= len(self.action.players):
             self.action.player = 0
 
-        player: Player = self.players.get_by_auction()
+        player: Player = self.players.current_on_auction
 
         await self.send(
             ServerGameAskPlayerOnAuctionPacket(

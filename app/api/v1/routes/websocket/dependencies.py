@@ -55,7 +55,7 @@ class WebSocketDependency:
                 if game.action.ACTION_TYPE not in action_list:
                     raise GameInvalidActionError("Game with provided UUID awaits different action")
 
-            if game.players.get_by_move().player_id != user.user_id and is_players_turn:
+            if game.players.current.player_id != user.user_id and is_players_turn:
                 raise GameNotAwaitingMoveError("Player is not awaited to move")
 
             return game

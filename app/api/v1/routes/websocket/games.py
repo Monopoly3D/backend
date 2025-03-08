@@ -80,7 +80,7 @@ async def on_player_ready(
 async def on_player_move(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     dices: Tuple[int, ...] = game.roll_dices()
 
@@ -92,7 +92,7 @@ async def on_player_move(
 async def on_player_buy_field(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.buy_field()
     await game.save()
@@ -102,7 +102,7 @@ async def on_player_buy_field(
 async def on_player_put_field_for_auction(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.put_field_on_auction()
     await game.save()
@@ -115,7 +115,7 @@ async def on_player_accept_auction(
             is_players_turn=True
         )]
 ) -> None:
-    player: Player = game.players.get_by_auction()
+    player: Player = game.players.current_on_auction
 
     await player.accept_auction()
     await game.save()
@@ -128,7 +128,7 @@ async def on_player_refuse_auction(
             is_players_turn=True
         )]
 ) -> None:
-    player: Player = game.players.get_by_auction()
+    player: Player = game.players.current_on_auction
 
     await player.refuse_auction()
     await game.save()
@@ -138,7 +138,7 @@ async def on_player_refuse_auction(
 async def on_player_pay_rent(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_RENT, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.pay_rent()
     await game.save()
@@ -148,7 +148,7 @@ async def on_player_pay_rent(
 async def on_player_pay_tax(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_TAX, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.pay_tax()
     await game.save()
@@ -158,7 +158,7 @@ async def on_player_pay_tax(
 async def on_player_accept_prison(
         game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON], is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.accept_prison()
     await game.save()
@@ -171,7 +171,7 @@ async def on_player_pay_prison(
             is_players_turn=True
         )]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.pay_prison()
     await game.save()
@@ -182,7 +182,7 @@ async def on_player_accept_casino(
         packet: ClientPlayerAcceptCasinoPacket,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.play_casino(packet.dices)
     await game.save()
@@ -192,7 +192,7 @@ async def on_player_accept_casino(
 async def on_player_refuse_casino(
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.refuse_casino()
     await game.save()
@@ -203,7 +203,7 @@ async def on_player_mortgage_field(
         packet: ClientPlayerMortgageFieldPacket,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.mortgage_field(packet.field)
     await game.save()
@@ -214,7 +214,7 @@ async def on_player_buyout_field(
         packet: ClientPlayerBuyoutFieldPacket,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.buyout_field(packet.field)
     await game.save()
@@ -225,7 +225,7 @@ async def on_player_buy_filiation(
         packet: ClientPlayerBuyFiliationPacket,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.buy_filiation(packet.field)
     await game.save()
@@ -236,7 +236,7 @@ async def on_player_sell_filiation(
         packet: ClientPlayerSellFiliationPacket,
         game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
     await player.sell_filiation(packet.field)
     await game.save()
