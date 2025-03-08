@@ -13,7 +13,7 @@ class ServerPlayerAcceptPrisonPacket(ServerPacket):
     game_id: UUID
     player_id: UUID
     dices: Tuple[int, ...]
-    got_double: int
+    got_double: bool
 
     def to_json(self) -> Dict[str, Any]:
         return {

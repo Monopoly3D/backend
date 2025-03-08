@@ -12,6 +12,7 @@ from app.api.v1.packets.base_client import ClientPacket
 from app.assets.enums.action_type import ActionType
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.assets.objects.game import Game
+from app.assets.objects.player import Player
 from app.assets.objects.user import User
 
 
@@ -55,8 +56,11 @@ class WebSocketDependency:
                 if game.action.ACTION_TYPE not in action_list:
                     raise GameInvalidActionError("Game with provided UUID awaits different action")
 
-            if game.players.current.player_id != user.user_id and is_players_turn:
-                raise GameNotAwaitingMoveError("Player is not awaited to move")
+            if is_players_turn:
+                player: Player | None = game.players.current
+
+                if player is None or player.player_id != user.user_id:
+                    raise GameNotAwaitingMoveError("Player is not awaited to move")
 
             return game
 
