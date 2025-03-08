@@ -7,8 +7,8 @@ from app.api.v1.packets.base_server import ServerPacket
 
 
 @dataclass
-class ServerPlayerGotTaxPacket(ServerPacket):
-    PACKET_TAG = "player_got_tax"
+class ServerPlayerMustPayTaxPacket(ServerPacket):
+    PACKET_TAG = "player_must_pay_tax"
 
     game_id: UUID
     player_id: UUID
