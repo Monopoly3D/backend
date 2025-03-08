@@ -1,22 +1,19 @@
 from typing import Dict, Any
 from uuid import UUID
 
+from pydantic.dataclasses import dataclass
+
 from app.api.v1.packets.base_server import ServerPacket
 from app.assets.enums.monopoly_type import MonopolyType
 
 
+@dataclass
 class ServerPlayerLoseMonopolyPacket(ServerPacket):
     PACKET_TAG = "player_lose_monopoly"
 
-    def __init__(
-            self,
-            game_id: UUID,
-            player_id: UUID,
-            monopoly_type: MonopolyType
-    ) -> None:
-        self.game_id = game_id
-        self.player_id = player_id
-        self.monopoly_type = monopoly_type
+    game_id: UUID
+    player_id: UUID
+    monopoly_type: MonopolyType
 
     def to_json(self) -> Dict[str, Any]:
         return {

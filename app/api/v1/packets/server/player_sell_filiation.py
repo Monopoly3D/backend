@@ -1,25 +1,20 @@
 from typing import Dict, Any
 from uuid import UUID
 
+from pydantic.dataclasses import dataclass
+
 from app.api.v1.packets.base_server import ServerPacket
 
 
+@dataclass
 class ServerPlayerSellFiliationPacket(ServerPacket):
     PACKET_TAG = "player_sell_filiation"
 
-    def __init__(
-            self,
-            game_id: UUID,
-            player_id: UUID,
-            field: int,
-            filiation: int,
-            balance: int
-    ) -> None:
-        self.game_id = game_id
-        self.player_id = player_id
-        self.field = field
-        self.filiation = filiation
-        self.balance = balance
+    game_id: UUID
+    player_id: UUID
+    field: int
+    filiation: int
+    balance: int
 
     def to_json(self) -> Dict[str, Any]:
         return {
