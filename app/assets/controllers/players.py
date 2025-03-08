@@ -15,6 +15,14 @@ class PlayersController:
         self.__players: Dict[UUID, Player] = {}
         self.__game_instance: Any = None
 
+    @property
+    def game(self) -> Any:
+        return self.__game_instance
+
+    @game.setter
+    def game(self, value: Any) -> None:
+        self.__game_instance = value
+
     def setup(
             self,
             players: List[Dict[str, Any]] | None = None,
@@ -22,7 +30,7 @@ class PlayersController:
             game_instance: Any = None,
             connections: ConnectionsController | None = None
     ) -> None:
-        self.__game_instance = game_instance
+        self.game = game_instance
 
         if players is None:
             return
@@ -43,7 +51,7 @@ class PlayersController:
             player: Player
     ) -> None:
         if not self.exists(player.player_id):
-            player.game = self.__game_instance
+            player.game = self.game
             self.__players[player.player_id] = player
 
     def get(
@@ -71,9 +79,9 @@ class PlayersController:
     ) -> None:
         self.add(player)
 
-        await self.__game_instance.send(
+        await self.game.send(
             ServerPlayerJoinGamePacket(
-                self.__game_instance.game_id,
+                self.game.game_id,
                 self.list
             )
         )
@@ -100,16 +108,16 @@ class PlayersController:
 
     @property
     def current(self) -> Player | None:
-        if self.__game_instance is not None:
+        if self.game is not None:
             try:
-                return self.list[self.__game_instance.move]
+                return self.list[self.game.move]
             except IndexError:
                 return
 
     @property
     def current_on_auction(self) -> Player | None:
-        if self.__game_instance is not None:
-            action: Action | None = self.__game_instance.action
+        if self.game is not None:
+            action: Action | None = self.game.action
 
             if not isinstance(action, BuyFieldOnAuctionAction):
                 return

@@ -12,20 +12,28 @@ class FieldsController:
         self.__fields: List[Field] = []
         self.__game_instance: Any = None
 
+    @property
+    def game(self) -> Any:
+        return self.__game_instance
+
+    @game.setter
+    def game(self, value: Any) -> None:
+        self.__game_instance = value
+
     def setup(
             self,
             fields: List[Dict[str, Any]] | None = None,
             *,
             game_instance: Any = None
     ) -> None:
-        self.__game_instance = game_instance
+        self.game = game_instance
 
         if fields is None:
             return
 
-        if self.__game_instance is not None:
+        if self.game is not None:
             for data_field in fields:
-                field: Field | None = self.__game_instance.get_field(data_field)
+                field: Field | None = self.game.get_field(data_field)
 
                 if field is None:
                     continue
@@ -101,12 +109,12 @@ class FieldsController:
                     field.mortgage = -1
                     field.owner_id = None
 
-                    await self.__game_instance.send(
+                    await self.game.send(
                         ServerPlayerLoseMortgagedFieldPacket(
-                            self.__game_instance.game_id,
+                            self.game.game_id,
                             field.field_id
                         )
                     )
 
         if has_any_mortgaged_fields:
-            await self.__game_instance.save()
+            await self.game.save()
