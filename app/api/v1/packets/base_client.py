@@ -28,7 +28,10 @@ class ClientPacket(BasePacket, ABC):
         if packet["meta"]["tag"] != cls.PACKET_TAG or packet["meta"]["class"] != cls.PACKET_CLASS.value:
             raise InvalidPacketError("Provided packet meta is invalid")
 
-        return cls.from_json(packet["data"])
+        try:
+            return cls.from_json(packet["data"])
+        except KeyError or ValueError:
+            raise InvalidPacketDataError("Provided packet data is invalid")
 
     @classmethod
     def withdraw_packet(
