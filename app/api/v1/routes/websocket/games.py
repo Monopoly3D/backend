@@ -3,9 +3,9 @@ from typing import Annotated, Tuple
 
 from starlette.websockets import WebSocket
 
-from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
-from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
-from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
+from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveError
+from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
+from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
 from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
@@ -47,7 +47,7 @@ async def on_player_join_game(
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=False)]
 ) -> None:
     if game.players.size >= game.max_players:
-        raise TooManyPlayersError("Game with provided UUID has too many players")
+        raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
 
     if game.players.exists(user.user_id):
         raise PlayerAlreadyInGameError("You are already in game")

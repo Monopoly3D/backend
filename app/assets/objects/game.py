@@ -11,10 +11,10 @@ from pydantic.dataclasses import dataclass
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
-from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
-from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
-from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
+from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
+from app.assets.exceptions.field_not_found import FieldNotFoundError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
 from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket

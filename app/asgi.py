@@ -13,6 +13,7 @@ from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
+from app.assets.exceptions.game_error import GameError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.dependencies import Dependency
@@ -63,7 +64,23 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
     )
 
 
-@app.exception_handler(WebSocketError)
+@app.exception_handler(GameError)
+async def on_game_error(websocket: WebSocket, exception: GameError) -> None:
+    try:
+        await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
+
+        if isinstance(exception, InternalServerError):
+            raise exception.error
+        else:
+            logger.error(
+                f"(\'{websocket.client.host}\', {websocket.client.port}) "
+                f"Game error {exception.status_code}: {exception}"
+            )
+    except RuntimeError:
+        pass
+
+
+@app.exception_handler(GameError)
 async def on_websocket_error(websocket: WebSocket, exception: WebSocketError) -> None:
     try:
         await websocket.send_text(ServerErrorPacket.from_error(exception).pack())

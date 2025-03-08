@@ -3,6 +3,7 @@ from typing import Dict, Any
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
+from app.assets.exceptions.game_error import GameError
 from app.api.v1.packets.base_server import ServerPacket
 
 
@@ -16,7 +17,7 @@ class ServerErrorPacket(ServerPacket):
     @classmethod
     def from_error(
             cls,
-            error: WebSocketError
+            error: GameError | WebSocketError
     ) -> 'ServerErrorPacket':
         return cls(error.status_code, str(error))
 

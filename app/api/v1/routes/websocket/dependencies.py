@@ -2,10 +2,10 @@ from typing import Callable, List
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
-from app.api.v1.exceptions.websocket.game_already_started import GameAlreadyStartedError
-from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
-from app.api.v1.exceptions.websocket.game_not_found import GameNotFoundError
-from app.api.v1.exceptions.websocket.game_not_started import GameNotStartedError
+from app.assets.exceptions.game_already_started import GameAlreadyStartedError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.exceptions.game_not_found import GameNotFoundError
+from app.assets.exceptions.game_not_started import GameNotStartedError
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_client import ClientPacket
 from app.assets.enums.action_type import ActionType
