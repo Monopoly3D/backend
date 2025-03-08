@@ -46,7 +46,7 @@ class WebSocketDependency:
                     action_list: List[ActionType] = [action]
                 else:
                     action_list = action
-                if game.action.action_type not in action_list:
+                if game.action.ACTION_TYPE not in action_list:
                     raise GameInvalidActionError("Game with provided UUID awaits different action")
 
             return game

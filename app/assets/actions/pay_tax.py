@@ -8,16 +8,13 @@ from app.assets.enums.action_type import ActionType
 
 @dataclass
 class PayTaxAction(Action):
-    action_type: ActionType = ActionType.PAY_TAX
+    ACTION_TYPE = ActionType.PAY_TAX
 
-    amount: int = 0
+    amount: int
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
         return cls(amount=data.get("amount"))
 
     def to_json(self) -> Dict[str, Any]:
-        return {
-            "action_type": self.action_type.value,
-            "amount": self.amount
-        }
+        return {"amount": self.amount}

@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
-from typing import Dict, Any
+from abc import ABC
+from typing import Dict, Any, ClassVar
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -9,16 +9,14 @@ from app.assets.enums.action_type import ActionType
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Action(ABC):
-    action_type: ActionType
+    ACTION_TYPE: ClassVar[ActionType]
 
     @classmethod
-    @abstractmethod
     def from_json(cls, data: Dict[str, Any]) -> 'Action':
-        pass
+        return cls()
 
-    @abstractmethod
     def to_json(self) -> Dict[str, Any]:
-        pass
+        return {}
 
     @classmethod
     def unpack(
@@ -28,4 +26,4 @@ class Action(ABC):
         return cls.from_json(data)
 
     def pack(self) -> Dict[str, Any]:
-        return {"action_type": self.action_type.value, **self.to_json()}
+        return {"action_type": self.ACTION_TYPE.value, **self.to_json()}
