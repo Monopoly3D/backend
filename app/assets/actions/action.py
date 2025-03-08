@@ -19,10 +19,7 @@ class Action(ABC):
         return {}
 
     @classmethod
-    def unpack(
-            cls,
-            data: Dict[str, Any]
-    ) -> 'Action':
+    def unpack(cls, data: Dict[str, Any]) -> 'Action':
         return cls.from_json(data)
 
     def pack(self) -> Dict[str, Any]:
