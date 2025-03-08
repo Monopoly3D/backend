@@ -10,7 +10,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Tax(Field):
-    field_type: FieldType = FieldType.TAX
+    FIELD_TYPE = FieldType.TAX
 
     tax_amount: int = 0
 
@@ -30,8 +30,6 @@ class Tax(Field):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "field_id": self.field_id,
-            "field_type": self.field_type.value,
             "tax": {
                 "tax_amount": self.tax_amount
             }

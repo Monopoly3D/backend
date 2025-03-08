@@ -9,7 +9,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Police(Field):
-    field_type: FieldType = FieldType.POLICE
+    FIELD_TYPE = FieldType.POLICE
 
     async def on_stand(
             self,

@@ -1,10 +1,8 @@
-from typing import Dict, List, Any, TypeVar, Set
+from typing import Dict, List, Any, Set
 
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
-
-T = TypeVar('T', bound=Field)
 
 
 class MonopoliesController:
@@ -14,7 +12,7 @@ class MonopoliesController:
 
     def setup(
             self,
-            fields: List[T],
+            fields: List[Field],
             *,
             game_instance: Any = None
     ) -> None:

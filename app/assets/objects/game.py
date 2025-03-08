@@ -3,7 +3,7 @@ import json
 import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
-from typing import Dict, Any, List, Tuple, ClassVar, Type, TypeVar
+from typing import Dict, Any, List, Tuple, ClassVar, Type
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -52,8 +52,6 @@ from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
 
-T = TypeVar('T', bound=Action)
-
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Game(RedisObject):
@@ -88,7 +86,7 @@ class Game(RedisObject):
     max_players: int = Parameters.MAX_PLAYERS
     start_delay: int = Parameters.START_DELAY
 
-    action: T | None = None
+    action: Action | None = None
     start_bonus: int = Parameters.START_BONUS
     start_reward: int = Parameters.START_REWARD
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT

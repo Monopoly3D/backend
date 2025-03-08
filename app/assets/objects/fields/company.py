@@ -18,7 +18,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Company(Field):
-    field_type: FieldType = FieldType.COMPANY
+    FIELD_TYPE = FieldType.COMPANY
 
     owner_id: UUID | None = None
     monopoly_type: MonopolyType = MonopolyType.BASE
@@ -49,8 +49,6 @@ class Company(Field):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "field_id": self.field_id,
-            "field_type": self.field_type.value,
             "company": {
                 "owner_id": str(self.owner_id) if self.owner_id else None,
                 "monopoly_type": self.monopoly_type.value,

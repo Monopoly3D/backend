@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, TypeVar
+from typing import Dict, List, Any
 
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
@@ -6,12 +6,10 @@ from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 
-T = TypeVar('T', bound=Field)
-
 
 class FieldsController:
     def __init__(self) -> None:
-        self.__fields: List[T] = []
+        self.__fields: List[Field] = []
         self.__game_instance: Any = None
 
     def setup(
@@ -70,7 +68,7 @@ class FieldsController:
             return
 
     @property
-    def list(self) -> List[T]:
+    def list(self) -> List[Field]:
         return self.__fields
 
     @property
@@ -83,7 +81,7 @@ class FieldsController:
 
     @property
     def prison(self) -> int:
-        return [field.field_type for field in self.__fields].index(FieldType.PRISON)
+        return [field.FIELD_TYPE for field in self.__fields].index(FieldType.PRISON)
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self.list]

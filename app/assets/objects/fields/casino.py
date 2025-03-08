@@ -10,7 +10,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Casino(Field):
-    field_type: FieldType = FieldType.CASINO
+    FIELD_TYPE = FieldType.CASINO
 
     async def on_stand(
             self,
