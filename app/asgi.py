@@ -80,7 +80,7 @@ async def on_game_error(websocket: WebSocket, exception: GameError) -> None:
         pass
 
 
-@app.exception_handler(GameError)
+@app.exception_handler(WebSocketError)
 async def on_websocket_error(websocket: WebSocket, exception: WebSocketError) -> None:
     try:
         await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
