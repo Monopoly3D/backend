@@ -13,9 +13,9 @@ from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
-from app.assets.exceptions.game_error import GameError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
+from app.assets.exceptions.game_error import GameError
 from app.dependencies import Dependency
 from config import Config
 

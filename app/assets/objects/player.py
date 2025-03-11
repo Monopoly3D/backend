@@ -160,7 +160,7 @@ class Player(GameObject):
         else:
             self.double_amount = 0
 
-        field: Field = self.game.fields.get(self.field)
+        field: Field = self.game.fields.list[self.field]
         await field.on_stand(self, amount)
 
     async def buy_field(
@@ -529,7 +529,7 @@ class Player(GameObject):
         if field.filiation >= Parameters.FILIATION_LIMIT:
             raise InvalidFiliationError("Unable to buy more filiations")
 
-        if self.game.monopolies.is_filiated(field.monopoly_type):
+        if self.game.fields.is_filiated(field.monopoly_type):
             raise FieldAlreadyFiliatedError("Monopoly is already filiated")
 
         if self.balance < field.filiation_cost:
@@ -538,7 +538,7 @@ class Player(GameObject):
         field.filiation += 1
         self.balance -= field.filiation_cost
 
-        self.game.monopolies.set_filiated(field.monopoly_type)
+        self.game.fields.set_filiated(field.monopoly_type)
 
         await self.game.send(
             ServerPlayerBuyFiliationPacket(

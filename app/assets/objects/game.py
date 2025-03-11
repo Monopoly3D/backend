@@ -11,10 +11,6 @@ from pydantic.dataclasses import dataclass
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
-from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
-from app.assets.exceptions.field_not_found import FieldNotFoundError
-from app.assets.exceptions.game_invalid_action import GameInvalidActionError
-from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
 from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket
@@ -36,10 +32,13 @@ from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.actions.prison import PrisonAction
 from app.assets.controllers.fields import FieldsController
-from app.assets.controllers.monopolies import MonopoliesController
 from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
+from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
+from app.assets.exceptions.field_not_found import FieldNotFoundError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company
@@ -94,7 +93,6 @@ class Game(RedisObject):
 
     players: PlayersController = dataclass_field(default_factory=PlayersController)
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
-    monopolies: MonopoliesController = dataclass_field(default_factory=MonopoliesController)
     map_path: str = Parameters.DEFAULT_MAP_PATH
 
     __controller_instance: RedisController | None = None
@@ -103,7 +101,6 @@ class Game(RedisObject):
     def __post_init__(self):
         self.players.setup(game_instance=self)
         self.fields.setup(game_instance=self)
-        self.monopolies.setup(self.fields.list, game_instance=self)
 
         self.__start_task_name = f"start:{self.game_id}"
 
@@ -127,7 +124,6 @@ class Game(RedisObject):
 
         game.players.setup(players, game_instance=game, connections=connections)
         game.fields.setup(fields, game_instance=game)
-        game.monopolies.setup(game.fields.list, game_instance=game)
 
         return game
 
@@ -171,7 +167,6 @@ class Game(RedisObject):
 
         #  self.players.shuffle()  TESTING
         self.fields = self.get_map(self.map_path)
-        self.monopolies.setup(self.fields.list, game_instance=self)
 
         await self.send(
             ServerGameStartPacket(
@@ -228,8 +223,9 @@ class Game(RedisObject):
             if self.move >= self.players.size:
                 self.move = 0
                 self.round += 1
-                await self.fields.decrease_mortgages()
-                self.monopolies.reset_filiated()
+
+                await self.fields.decrease_all_mortgages()
+                self.fields.reset_all_filiations()
 
         next_player: Player = self.players.current
 
@@ -324,20 +320,11 @@ class Game(RedisObject):
         with open(map_path, "r") as file:
             data: List[Dict[str, Any]] = json.load(file)
 
-        fields: FieldsController = FieldsController()
-
         for index, field in enumerate(data):
             field.update({"field_id": index})
 
-            new_field: Field | None = self.get_field(field)
-
-            if new_field is None:
-                continue
-
-            new_field.game = self
-            fields.add(new_field)
-
-        fields.setup(game_instance=self)
+        fields: FieldsController = FieldsController()
+        fields.setup(data, game_instance=self)
         return fields
 
     def get_start_task(self) -> Task | None:

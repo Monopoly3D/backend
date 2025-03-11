@@ -11,11 +11,11 @@ from app.api.v1.controllers.users import UsersController
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
-from app.assets.exceptions.game_error import GameError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
+from app.assets.exceptions.game_error import GameError
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config

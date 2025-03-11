@@ -3,8 +3,8 @@ from typing import Dict, Any
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
-from app.assets.exceptions.game_error import GameError
 from app.api.v1.packets.base_server import ServerPacket
+from app.assets.exceptions.game_error import GameError
 
 
 @dataclass

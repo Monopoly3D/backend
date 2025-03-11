@@ -72,42 +72,6 @@ class Company(Field):
     def dice_dependant(self) -> bool:
         return self.company_type == CompanyType.DICE_DEPENDANT
 
-    async def set_new_owner_id(
-            self,
-            new_owner_id: UUID | None = None
-    ) -> None:
-        previous_owner_id = self.owner_id
-
-        if previous_owner_id == new_owner_id:
-            return
-
-        fields: List[Company] = self.game.monopolies.get_fields(self.monopoly_type)
-
-        was_monopoly: bool = self.game.monopolies.is_monopoly(fields)
-        self.owner_id = new_owner_id
-        is_monopoly: bool = self.game.monopolies.is_monopoly(fields)
-
-        if not was_monopoly and is_monopoly:
-            self.game.monopolies.set_monopoly(fields, True)
-
-            await self.game.send(
-                ServerPlayerGainMonopolyPacket(
-                    self.game.game_id,
-                    new_owner_id,
-                    self.monopoly_type
-                )
-            )
-        elif was_monopoly and not is_monopoly:
-            self.game.monopolies.set_monopoly(fields, False)
-
-            await self.game.send(
-                ServerPlayerLoseMonopolyPacket(
-                    self.game.game_id,
-                    previous_owner_id,
-                    self.monopoly_type
-                )
-            )
-
     async def on_stand(
             self,
             player: Any,
@@ -165,3 +129,37 @@ class Company(Field):
                 return 0
 
         return self.rent[0]
+
+    async def set_new_owner_id(
+            self,
+            new_owner_id: UUID | None = None
+    ) -> None:
+        previous_owner_id = self.owner_id
+
+        if previous_owner_id == new_owner_id:
+            return
+
+        was_monopoly: bool = self.game.fields.is_monopoly(self.monopoly_type)
+        self.owner_id = new_owner_id
+        is_monopoly: bool = self.game.fields.is_monopoly(self.monopoly_type)
+
+        if not was_monopoly and is_monopoly:
+            self.game.fields.set_monopoly(self.monopoly_type, True)
+
+            await self.game.send(
+                ServerPlayerGainMonopolyPacket(
+                    self.game.game_id,
+                    new_owner_id,
+                    self.monopoly_type
+                )
+            )
+        elif was_monopoly and not is_monopoly:
+            self.game.fields.set_monopoly(self.monopoly_type, False)
+
+            await self.game.send(
+                ServerPlayerLoseMonopolyPacket(
+                    self.game.game_id,
+                    previous_owner_id,
+                    self.monopoly_type
+                )
+            )
