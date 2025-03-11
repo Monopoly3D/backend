@@ -360,9 +360,6 @@ class Game(RedisObject):
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        if amount == 2:  # TESTING
-            return 21, 9
-
         return tuple(random.randint(1, 6) for _ in range(amount))
 
     @staticmethod
