@@ -1,23 +1,11 @@
-from typing import Any, Dict, Tuple, List, Set
+from typing import Any, Dict, Tuple, List
 from uuid import UUID
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
-from app.api.v1.exceptions.websocket.field_already_mortgaged import FieldAlreadyMortgagedError
-from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
-from app.api.v1.exceptions.websocket.field_is_monopoly import FieldIsMonopolyError
-from app.api.v1.exceptions.websocket.field_is_not_monopoly import FieldIsNotMonopolyError
-from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
-from app.api.v1.exceptions.websocket.field_not_mortgaged import FieldNotMortgagedError
-from app.api.v1.exceptions.websocket.field_not_owned import FieldNotOwnedError
-from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
-from app.api.v1.exceptions.websocket.invalid_casino_dice_choice import InvalidCasinoDiceChoiceError
-from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
-from app.api.v1.exceptions.websocket.invalid_filiation_amount import InvalidFiliationAmountError
-from app.api.v1.exceptions.websocket.monopoly_already_filiated import MonopolyAlreadyFiliatedError
-from app.api.v1.exceptions.websocket.not_enough_balance import NotEnoughBalanceError
+from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.player_accept_auction import ServerPlayerAcceptAuctionPacket
@@ -44,6 +32,18 @@ from app.assets.actions.move import MoveAction
 from app.assets.actions.pay_prison import PayPrisonAction
 from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
+from app.assets.exceptions.field_already_filiated import FieldAlreadyFiliatedError
+from app.assets.exceptions.field_already_mortgaged import FieldAlreadyMortgagedError
+from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
+from app.assets.exceptions.field_is_monopoly import FieldIsMonopolyError
+from app.assets.exceptions.field_is_not_monopoly import FieldIsNotMonopolyError
+from app.assets.exceptions.field_not_found import FieldNotFoundError
+from app.assets.exceptions.field_not_mortgaged import FieldNotMortgagedError
+from app.assets.exceptions.field_not_owned import FieldNotOwnedError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
+from app.assets.exceptions.invalid_filiation import InvalidFiliationError
+from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsufficientBalanceError
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.tax import Tax
@@ -83,13 +83,6 @@ class Player(GameObject):
             "contract_amount": self.contract_amount
         }
 
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        if self.connection is not None:
-            await self.connection.send_text(packet.pack())
-
     @property
     def connection(self) -> WebSocket | None:
         return self.__connection_instance
@@ -105,6 +98,13 @@ class Player(GameObject):
     @game.setter
     def game(self, value: Any) -> None:
         self.__game_instance = value
+
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        if self.connection is not None:
+            await self.connection.send_text(packet.pack())
 
     async def set_ready(
             self,
@@ -160,7 +160,7 @@ class Player(GameObject):
         else:
             self.double_amount = 0
 
-        field: Field = self.game.fields.get(self.field)
+        field: Field = self.game.fields.list[self.field]
         await field.on_stand(self, amount)
 
     async def buy_field(
@@ -300,13 +300,13 @@ class Player(GameObject):
             dices: List[int]
     ) -> None:
         if self.balance < Parameters.DEFAULT_CASINO_BET:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         if not (1 <= len(dices) <= 3):
-            raise InvalidCasinoDiceChoiceError("Player must choose between 1 and 3 dices")
+            raise InvalidPacketDataError("Player must choose between 1 and 3 dices")
 
         if any(dice < 1 or dice > 6 for dice in dices):
-            raise InvalidCasinoDiceChoiceError("Player must choose dices between 1 and 6")
+            raise InvalidPacketDataError("Player must choose dices between 1 and 6")
 
         self.balance -= Parameters.DEFAULT_CASINO_BET
 
@@ -364,7 +364,7 @@ class Player(GameObject):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
 
         if action.amount > self.balance:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         owner: Player = self.game.players.get(field.owner_id)
 
@@ -402,7 +402,7 @@ class Player(GameObject):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
 
         if action.amount > self.balance:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         self.balance -= action.amount
 
@@ -418,7 +418,7 @@ class Player(GameObject):
 
     async def pay_prison(self) -> None:
         if self.balance < Parameters.DEFAULT_PRISON_ESCAPE_COST:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         self.balance -= Parameters.DEFAULT_PRISON_ESCAPE_COST
         self.prison = -1
@@ -494,7 +494,7 @@ class Player(GameObject):
             raise FieldIsMonopolyError("Field is a monopoly")
 
         if self.balance < field.buyout_cost:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         self.balance -= field.buyout_cost
         field.mortgage = -1
@@ -527,18 +527,18 @@ class Player(GameObject):
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
         if field.filiation >= Parameters.FILIATION_LIMIT:
-            raise InvalidFiliationAmountError("Unable to buy more filiations")
+            raise InvalidFiliationError("Unable to buy more filiations")
 
-        if self.game.monopolies.is_filiated(field.monopoly_type):
-            raise MonopolyAlreadyFiliatedError("Monopoly is already filiated")
+        if field.monopoly.is_filiated:
+            raise FieldAlreadyFiliatedError("Monopoly is already filiated")
 
         if self.balance < field.filiation_cost:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         field.filiation += 1
         self.balance -= field.filiation_cost
 
-        self.game.monopolies.set_filiated(field.monopoly_type)
+        field.monopoly.is_filiated = True
 
         await self.game.send(
             ServerPlayerBuyFiliationPacket(
@@ -569,7 +569,7 @@ class Player(GameObject):
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
         if field.filiation <= 0:
-            raise InvalidFiliationAmountError("Field has no filiations to sell")
+            raise InvalidFiliationError("Field has no filiations to sell")
 
         field.filiation -= 1
         self.balance += field.filiation_cost
@@ -602,7 +602,7 @@ class Player(GameObject):
             cost: int = field.cost
 
         if cost > self.balance:
-            raise NotEnoughBalanceError("Player has insufficient balance")
+            raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
-        await field.set_new_owner_id(self.player_id)
+        field.owner_id = self.player_id
         self.balance -= cost

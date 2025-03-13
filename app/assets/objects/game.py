@@ -3,7 +3,7 @@ import json
 import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
-from typing import Dict, Any, List, Tuple, ClassVar, Type, TypeVar
+from typing import Dict, Any, List, Tuple, ClassVar, Type
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -11,10 +11,6 @@ from pydantic.dataclasses import dataclass
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
-from app.api.v1.exceptions.websocket.field_already_owned import FieldAlreadyOwnedError
-from app.api.v1.exceptions.websocket.field_not_found import FieldNotFoundError
-from app.api.v1.exceptions.websocket.game_invalid_action import GameInvalidActionError
-from app.api.v1.exceptions.websocket.invalid_field_type import InvalidFieldTypeError
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
 from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket
@@ -40,6 +36,10 @@ from app.assets.controllers.monopolies import MonopoliesController
 from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
+from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
+from app.assets.exceptions.field_not_found import FieldNotFoundError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company
@@ -51,8 +51,6 @@ from app.assets.objects.fields.tax import Tax
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
-
-T = TypeVar('T', bound=Action)
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
@@ -88,7 +86,7 @@ class Game(RedisObject):
     max_players: int = Parameters.MAX_PLAYERS
     start_delay: int = Parameters.START_DELAY
 
-    action: T | None = None
+    action: Action | None = None
     start_bonus: int = Parameters.START_BONUS
     start_reward: int = Parameters.START_REWARD
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
@@ -97,15 +95,16 @@ class Game(RedisObject):
     players: PlayersController = dataclass_field(default_factory=PlayersController)
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
     monopolies: MonopoliesController = dataclass_field(default_factory=MonopoliesController)
-    map_path: str = Parameters.DEFAULT_MAP_PATH
 
-    __controller_instance: RedisController | None = None
-    __start_task_name: str | None = None
+    map_path: str = dataclass_field(default=Parameters.DEFAULT_MAP_PATH, repr=False)
+
+    __controller_instance: RedisController | None = dataclass_field(default=None, repr=False)
+    __start_task_name: str | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self):
-        self.players.setup(game_instance=self)
-        self.fields.setup(game_instance=self)
-        self.monopolies.setup(self.fields.list, game_instance=self)
+        self.players.game = self
+        self.fields.game = self
+        self.monopolies.game = self
 
         self.__start_task_name = f"start:{self.game_id}"
 
@@ -116,18 +115,18 @@ class Game(RedisObject):
             *,
             connections: ConnectionsController | None = None
     ) -> Any:
-        players: List[Dict[str, Any]] = data["players"]
-        fields: List[Dict[str, Any]] = data["fields"]
+        players: List[Dict[str, Any]] = data.pop("players")
+        fields: List[Dict[str, Any]] = data.pop("fields")
+        monopolies: Dict[str, Any] = data.pop("monopolies")
 
-        del data["players"]
-        del data["fields"]
-        data["action"] = cls.get_field(data)
+        if data.get("action") is not None:
+            data["action"] = cls.get_action(data["action"])
 
         game: Game = cls(**data)
 
-        game.players.setup(players, game_instance=game, connections=connections)
-        game.fields.setup(fields, game_instance=game)
-        game.monopolies.setup(game.fields.list, game_instance=game)
+        game.players.setup(players, connections=connections)
+        game.fields.setup(fields)
+        game.monopolies.setup(monopolies, game.fields.companies)
 
         return game
 
@@ -135,7 +134,7 @@ class Game(RedisObject):
         return {
             "game_id": str(self.game_id),
             "is_started": self.is_started,
-            "action": self.action.to_json() if self.action is not None else None,
+            "action": self.action.pack() if self.action is not None else None,
             "round": self.round,
             "move": self.move,
             "min_players": self.min_players,
@@ -146,15 +145,9 @@ class Game(RedisObject):
             "start_bonus_round_amount": self.start_bonus_round_amount,
             "auction_minimum_bet": self.auction_minimum_bet,
             "players": self.players.to_json(),
-            "fields": self.fields.to_json()
+            "fields": self.fields.to_json(),
+            "monopolies": self.monopolies.to_json()
         }
-
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        for player in self.players.list:
-            await player.send(packet)
 
     @property
     def controller(self) -> RedisController:
@@ -165,13 +158,20 @@ class Game(RedisObject):
         super().__init__(value.REDIS_KEY.format(game_id=self.game_id), value)
         self.__controller_instance = value
 
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        for player in self.players.list:
+            await player.send(packet)
+
     async def start(self) -> None:
         self.is_started = True
         self.action = MoveAction()
 
         #  self.players.shuffle()  TESTING
         self.fields = self.get_map(self.map_path)
-        self.monopolies.setup(self.fields.list, game_instance=self)
+        self.monopolies.setup(companies=self.fields.companies)
 
         await self.send(
             ServerGameStartPacket(
@@ -183,7 +183,7 @@ class Game(RedisObject):
         await self.send(
             ServerGameMovePacket(
                 self.game_id,
-                self.players.get_by_move().player_id,
+                self.players.current.player_id,
                 self.round,
                 self.move
             )
@@ -220,7 +220,7 @@ class Game(RedisObject):
             task.cancel()
 
     async def next(self) -> None:
-        player: Player = self.players.get_by_move()
+        player: Player = self.players.current
 
         if player.double_amount <= 0 or player.prison >= 0:
             self.move += 1
@@ -228,10 +228,11 @@ class Game(RedisObject):
             if self.move >= self.players.size:
                 self.move = 0
                 self.round += 1
-                await self.fields.decrease_mortgages()
-                self.monopolies.reset_filiated()
 
-        next_player: Player = self.players.get_by_move()
+                await self.fields.decrease_all_mortgages()
+                self.monopolies.reset_all_filiations()
+
+        next_player: Player = self.players.current
 
         await self.send(
             ServerGameMovePacket(
@@ -306,7 +307,7 @@ class Game(RedisObject):
         if self.action.player >= len(self.action.players):
             self.action.player = 0
 
-        player: Player = self.players.get_by_auction()
+        player: Player = self.players.current_on_auction
 
         await self.send(
             ServerGameAskPlayerOnAuctionPacket(
@@ -324,20 +325,13 @@ class Game(RedisObject):
         with open(map_path, "r") as file:
             data: List[Dict[str, Any]] = json.load(file)
 
-        fields: FieldsController = FieldsController()
-
         for index, field in enumerate(data):
             field.update({"field_id": index})
 
-            new_field: Field | None = self.get_field(field)
+        fields: FieldsController = FieldsController()
+        fields.game = self
+        fields.setup(data)
 
-            if new_field is None:
-                continue
-
-            new_field.game = self
-            fields.add(new_field)
-
-        fields.setup(game_instance=self)
         return fields
 
     def get_start_task(self) -> Task | None:
@@ -360,9 +354,6 @@ class Game(RedisObject):
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        if amount == 2:  # TESTING
-            return 21, 9
-
         return tuple(random.randint(1, 6) for _ in range(amount))
 
     @staticmethod
@@ -397,4 +388,4 @@ class Game(RedisObject):
         if "action_type" not in data:
             return
 
-        return cls.ACTIONS[ActionType(data.get("action_type"))].from_json(data)
+        return cls.ACTIONS[ActionType(data.get("action_type"))].unpack(data)

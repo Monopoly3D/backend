@@ -1,19 +1,17 @@
 from typing import Dict, Any
 from uuid import UUID
 
+from pydantic.dataclasses import dataclass
+
 from app.api.v1.packets.base_server import ServerPacket
 
 
+@dataclass
 class ServerPlayerLoseMortgagedFieldPacket(ServerPacket):
     PACKET_TAG = "player_lose_mortgaged_field"
 
-    def __init__(
-            self,
-            game_id: UUID,
-            field: int
-    ) -> None:
-        self.game_id = game_id
-        self.field = field
+    game_id: UUID
+    field: int
 
     def to_json(self) -> Dict[str, Any]:
         return {

@@ -9,7 +9,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Start(Field):
-    field_type: FieldType = FieldType.START
+    FIELD_TYPE = FieldType.START
 
     async def on_stand(
             self,

@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from pydantic.dataclasses import dataclass
 
-from app.api.v1.packets.server.player_got_tax import ServerPlayerGotTaxPacket
+from app.api.v1.packets.server.player_must_pay_tax import ServerPlayerMustPayTaxPacket
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
@@ -10,7 +10,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Tax(Field):
-    field_type: FieldType = FieldType.TAX
+    FIELD_TYPE = FieldType.TAX
 
     tax_amount: int = 0
 
@@ -30,8 +30,6 @@ class Tax(Field):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "field_id": self.field_id,
-            "field_type": self.field_type.value,
             "tax": {
                 "tax_amount": self.tax_amount
             }
@@ -45,5 +43,5 @@ class Tax(Field):
         self.game.action = PayTaxAction(amount=self.tax_amount)
 
         await self.game.send(
-            ServerPlayerGotTaxPacket(self.game.game_id, player.player_id, self.tax_amount)
+            ServerPlayerMustPayTaxPacket(self.game.game_id, player.player_id, self.tax_amount)
         )

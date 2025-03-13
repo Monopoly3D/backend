@@ -7,4 +7,4 @@ class InternalServerError(WebSocketError):
         super().__init__(detail)
         self.error = error
 
-    status_code = websocket_status.WS_4100_INTERNAL_ERROR
+    status_code = websocket_status.WS_4050_INTERNAL_ERROR

@@ -10,10 +10,10 @@ from app.assets.enums.action_type import ActionType
 
 @dataclass
 class BuyFieldOnAuctionAction(Action):
-    action_type: ActionType = ActionType.BUY_FIELD_ON_AUCTION
+    ACTION_TYPE = ActionType.BUY_FIELD_ON_AUCTION
 
-    field: int = 0
-    cost: int = 0
+    field: int
+    cost: int
     player: int = -1
     players: List[UUID] = dataclass_field(default_factory=list)
 
@@ -28,7 +28,6 @@ class BuyFieldOnAuctionAction(Action):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "action_type": self.action_type.value,
             "field": self.field,
             "cost": self.cost,
             "player": self.player,

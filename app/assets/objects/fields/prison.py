@@ -8,7 +8,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Prison(Field):
-    field_type: FieldType = FieldType.PRISON
+    FIELD_TYPE = FieldType.PRISON
 
     async def on_stand(
             self,

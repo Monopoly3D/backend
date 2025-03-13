@@ -1,109 +1,59 @@
-from typing import Dict, List, Any, TypeVar, Set, Tuple
+from collections import defaultdict
+from typing import Dict, Any, List
 
+from app.assets.controllers.context import ContextController
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
-
-T = TypeVar('T', bound=Field)
+from app.assets.objects.monopoly import Monopoly
 
 
-class MonopoliesController:
+class MonopoliesController(ContextController):
     def __init__(self) -> None:
-        self.__monopolies: Dict[MonopolyType, List[Set[int] | bool]] = {}
+        self.__monopolies: Dict[MonopolyType, Monopoly] = defaultdict(Monopoly)
         self.__game_instance: Any = None
+
+    def to_json(self) -> Dict[str, Any]:
+        return {monopoly_type: monopoly.to_json() for monopoly_type, monopoly in self.__monopolies.items()}
+
+    @property
+    def game(self) -> Any:
+        return self.__game_instance
+
+    @game.setter
+    def game(self, value: Any) -> None:
+        self.__game_instance = value
 
     def setup(
             self,
-            fields: List[T],
-            *,
-            game_instance: Any = None
+            monopolies: Dict[str, Any] | None = None,
+            companies: List[Company] | None = None
     ) -> None:
-        self.__game_instance = game_instance
+        self.__monopolies.clear()
 
-        if fields is None:
+        if monopolies:
+            for monopoly_type, monopoly in monopolies.items():
+                self.__monopolies[MonopolyType(monopoly_type)] = Monopoly.from_json(monopoly)
+
+        if companies is None:
             return
 
-        if self.__game_instance is not None:
-            for field in fields:
-                if not isinstance(field, Company):
-                    continue
-
-                self.add(field)
+        for company in companies:
+            self.add(company)
 
     def add(
             self,
-            field: Company
+            company: Company
     ) -> None:
-        if not self.exists(field.monopoly_type):
-            self.__monopolies[field.monopoly_type] = [set(), False]
-
-        self.__monopolies[field.monopoly_type][0].add(field.field_id)
+        company.monopoly = self.__monopolies[company.monopoly_type]
+        self.__monopolies[company.monopoly_type].companies.append(company)
 
     def get(
             self,
             monopoly_type: MonopolyType
-    ) -> List[Set[int] | bool] | None:
-        return self.__monopolies.get(monopoly_type)
+    ) -> Monopoly | None:
+        if monopoly_type in self.__monopolies:
+            return self.__monopolies[monopoly_type]
 
-    def get_fields(
-            self,
-            monopoly_type: MonopolyType
-    ) -> List[Company]:
-        fields: List[Set[int] | bool] | None = self.get(monopoly_type)
-
-        if fields is None:
-            return []
-
-        return [self.__game_instance.fields.get(field) for field in fields[0]]
-
-    def exists(
-            self,
-            monopoly_type: MonopolyType
-    ) -> bool:
-        return monopoly_type in self.__monopolies
-
-    def remove(
-            self,
-            monopoly_type: MonopolyType
-    ) -> None:
-        if self.exists(monopoly_type):
-            self.__monopolies.pop(monopoly_type)
-
-    def is_filiated(
-            self,
-            monopoly_type: MonopolyType
-    ) -> bool:
-        monopoly: List[Set[int] | bool] | None = self.get(monopoly_type)
-
-        if monopoly is None:
-            return True
-
-        return monopoly[1]
-
-    def set_filiated(
-            self,
-            monopoly_type: MonopolyType
-    ) -> None:
-        monopoly: List[Set[int] | bool] | None = self.get(monopoly_type)
-
-        if monopoly is not None:
-            monopoly[1] = True
-
-    def reset_filiated(self) -> None:
+    def reset_all_filiations(self) -> None:
         for monopoly in self.__monopolies.values():
-            monopoly[1] = False
-
-    @staticmethod
-    def is_monopoly(fields: List[Company]) -> bool:
-        if not len(fields):
-            return False
-
-        return len(set(field.owner_id for field in fields)) == 1 and fields[0].owner_id is not None
-
-    @staticmethod
-    def set_monopoly(
-            fields: List[Company],
-            is_monopoly: bool
-    ) -> None:
-        for field in fields:
-            field.is_monopoly = is_monopoly
+            monopoly.is_filiated = False

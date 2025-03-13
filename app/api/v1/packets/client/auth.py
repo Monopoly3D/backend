@@ -1,18 +1,15 @@
 from typing import Dict, Any
 
+from pydantic.dataclasses import dataclass
+
 from app.api.v1.packets.base_client import ClientPacket
 
 
+@dataclass
 class ClientAuthPacket(ClientPacket):
     PACKET_TAG = "auth"
 
-    PACKET_KEYS = ["ticket"]
-
-    def __init__(
-            self,
-            ticket: str
-    ) -> None:
-        self.ticket = ticket
+    ticket: str
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':

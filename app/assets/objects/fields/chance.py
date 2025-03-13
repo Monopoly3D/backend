@@ -8,7 +8,7 @@ from app.assets.objects.fields.field import Field
 
 @dataclass
 class Chance(Field):
-    field_type: FieldType = FieldType.CHANCE
+    FIELD_TYPE = FieldType.CHANCE
 
     async def on_stand(
             self,

@@ -3,14 +3,13 @@ from typing import Annotated, Tuple
 
 from starlette.websockets import WebSocket
 
-from app.api.v1.exceptions.websocket.game_not_awaiting_move import GameNotAwaitingMoveError
-from app.api.v1.exceptions.websocket.max_players import TooManyPlayersError
-from app.api.v1.exceptions.websocket.player_already_in_game import PlayerAlreadyInGameError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
 from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
 from app.api.v1.packets.client.player_accept_prison import ClientPlayerAcceptPrisonPacket
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
+from app.api.v1.packets.client.player_buy_filiation import ClientPlayerBuyFiliationPacket
+from app.api.v1.packets.client.player_buyout_field import ClientPlayerBuyoutFieldPacket
 from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
 from app.api.v1.packets.client.player_mortgage_field import ClientPlayerMortgageFieldPacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
@@ -21,10 +20,12 @@ from app.api.v1.packets.client.player_put_field_for_auction import ClientPlayerP
 from app.api.v1.packets.client.player_ready import ClientPlayerReadyPacket
 from app.api.v1.packets.client.player_refuse_auction import ClientPlayerRefuseAuctionPacket
 from app.api.v1.packets.client.player_refuse_casino import ClientPlayerRefuseCasinoPacket
+from app.api.v1.packets.client.player_sell_filiation import ClientPlayerSellFiliationPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.assets.enums.action_type import ActionType
+from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.assets.objects.user import User
@@ -47,10 +48,7 @@ async def on_player_join_game(
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=False)]
 ) -> None:
     if game.players.size >= game.max_players:
-        raise TooManyPlayersError("Game with provided UUID has too many players")
-
-    if game.players.exists(user.user_id):
-        raise PlayerAlreadyInGameError("You are already in game")
+        raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
 
     player = Player(user.user_id, username=user.username)
     player.connection = websocket
@@ -80,13 +78,9 @@ async def on_player_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_player_move(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to move")
+    player: Player = game.players.current
 
     dices: Tuple[int, ...] = game.roll_dices()
 
@@ -96,13 +90,9 @@ async def on_player_move(
 
 @games_packets_router.handle(ClientPlayerBuyFieldPacket)
 async def on_player_buy_field(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to buy field")
+    player: Player = game.players.current
 
     await player.buy_field()
     await game.save()
@@ -110,13 +100,9 @@ async def on_player_buy_field(
 
 @games_packets_router.handle(ClientPlayerPutFieldForAuctionPacket)
 async def on_player_put_field_for_auction(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to buy field")
+    player: Player = game.players.current
 
     await player.put_field_on_auction()
     await game.save()
@@ -124,13 +110,12 @@ async def on_player_put_field_for_auction(
 
 @games_packets_router.handle(ClientPlayerAcceptAuctionPacket)
 async def on_player_accept_auction(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD_ON_AUCTION)]
+        game: Annotated[Game, WebSocketDependency.get_game(
+            action=ActionType.BUY_FIELD_ON_AUCTION,
+            is_players_turn=True
+        )]
 ) -> None:
-    player: Player = game.players.get_by_auction()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to accept auction")
+    player: Player = game.players.current_on_auction
 
     await player.accept_auction()
     await game.save()
@@ -138,13 +123,12 @@ async def on_player_accept_auction(
 
 @games_packets_router.handle(ClientPlayerRefuseAuctionPacket)
 async def on_player_refuse_auction(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD_ON_AUCTION)]
+        game: Annotated[Game, WebSocketDependency.get_game(
+            action=ActionType.BUY_FIELD_ON_AUCTION,
+            is_players_turn=True
+        )]
 ) -> None:
-    player: Player = game.players.get_by_auction()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to accept auction")
+    player: Player = game.players.current_on_auction
 
     await player.refuse_auction()
     await game.save()
@@ -152,13 +136,9 @@ async def on_player_refuse_auction(
 
 @games_packets_router.handle(ClientPlayerPayRentPacket)
 async def on_player_pay_rent(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_RENT)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_RENT, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay rent")
+    player: Player = game.players.current
 
     await player.pay_rent()
     await game.save()
@@ -166,13 +146,9 @@ async def on_player_pay_rent(
 
 @games_packets_router.handle(ClientPlayerPayTaxPacket)
 async def on_player_pay_tax(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_TAX)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_TAX, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+    player: Player = game.players.current
 
     await player.pay_tax()
     await game.save()
@@ -180,13 +156,9 @@ async def on_player_pay_tax(
 
 @games_packets_router.handle(ClientPlayerAcceptPrisonPacket)
 async def on_player_accept_prison(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON])]
+        game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON], is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay to escape prison")
+    player: Player = game.players.current
 
     await player.accept_prison()
     await game.save()
@@ -194,13 +166,12 @@ async def on_player_accept_prison(
 
 @games_packets_router.handle(ClientPlayerPayPrisonPacket)
 async def on_player_pay_prison(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON, ActionType.PAY_PRISON])]
+        game: Annotated[Game, WebSocketDependency.get_game(
+            action=[ActionType.PRISON, ActionType.PAY_PRISON],
+            is_players_turn=True
+        )]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay to escape prison")
+    player: Player = game.players.current
 
     await player.pay_prison()
     await game.save()
@@ -209,13 +180,9 @@ async def on_player_pay_prison(
 @games_packets_router.handle(ClientPlayerAcceptCasinoPacket)
 async def on_player_accept_casino(
         packet: ClientPlayerAcceptCasinoPacket,
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+    player: Player = game.players.current
 
     await player.play_casino(packet.dices)
     await game.save()
@@ -223,13 +190,9 @@ async def on_player_accept_casino(
 
 @games_packets_router.handle(ClientPlayerRefuseCasinoPacket)
 async def on_player_refuse_casino(
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
-
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+    player: Player = game.players.current
 
     await player.refuse_casino()
     await game.save()
@@ -238,12 +201,42 @@ async def on_player_refuse_casino(
 @games_packets_router.handle(ClientPlayerMortgageFieldPacket)
 async def on_player_mortgage_field(
         packet: ClientPlayerMortgageFieldPacket,
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE)]
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
-    player: Player = game.players.get_by_move()
+    player: Player = game.players.current
 
-    if player.player_id != user.user_id:
-        raise GameNotAwaitingMoveError("Player is not awaited to pay tax")
+    await player.mortgage_field(packet.field)
+    await game.save()
 
+
+@games_packets_router.handle(ClientPlayerBuyoutFieldPacket)
+async def on_player_buyout_field(
+        packet: ClientPlayerBuyoutFieldPacket,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+) -> None:
+    player: Player = game.players.current
+
+    await player.buyout_field(packet.field)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerBuyFiliationPacket)
+async def on_player_buy_filiation(
+        packet: ClientPlayerBuyFiliationPacket,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+) -> None:
+    player: Player = game.players.current
+
+    await player.buy_filiation(packet.field)
+    await game.save()
+
+
+@games_packets_router.handle(ClientPlayerSellFiliationPacket)
+async def on_player_sell_filiation(
+        packet: ClientPlayerSellFiliationPacket,
+        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+) -> None:
+    player: Player = game.players.current
+
+    await player.sell_filiation(packet.field)
     await game.save()

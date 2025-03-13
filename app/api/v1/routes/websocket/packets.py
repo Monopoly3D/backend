@@ -14,8 +14,8 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
-from app.api.v1.routes.websocket.abstract_packets import AbstractPacketsRouter
 from app.api.v1.security.authenticator import Authenticator
+from app.assets.exceptions.game_error import GameError
 from app.assets.objects.user import User
 from app.dependencies import Dependency
 from config import Config
@@ -41,7 +41,7 @@ async def dependencies(
     }
 
 
-class PacketsRouter(APIRouter, AbstractPacketsRouter):
+class PacketsRouter(APIRouter):
     def __init__(
             self,
             *,
@@ -90,7 +90,7 @@ class PacketsRouter(APIRouter, AbstractPacketsRouter):
                 raise UnknownPacketError("Unknown packet")
 
             await self.__execute_handler(self.__handlers[type(packet)], packet, websocket, **kwargs)
-        except WebSocketError as e:
+        except GameError or WebSocketError as e:
             raise e
         except Exception as e:
             raise InternalServerError("Internal server error", e)

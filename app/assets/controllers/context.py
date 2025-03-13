@@ -2,9 +2,13 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class AbstractPacketsRouter(ABC):
+class ContextController(ABC):
     @abstractmethod
-    async def handle_packets(
+    def __init__(self) -> None:
+        pass
+
+    @abstractmethod
+    def setup(
             self,
             *args: Any,
             **kwargs: Any
@@ -12,9 +16,5 @@ class AbstractPacketsRouter(ABC):
         pass
 
     @abstractmethod
-    def handle(
-            self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+    def to_json(self) -> Any:
         pass

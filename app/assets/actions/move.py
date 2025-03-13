@@ -6,4 +6,4 @@ from app.assets.enums.action_type import ActionType
 
 @dataclass
 class MoveAction(Action):
-    action_type: ActionType = ActionType.MOVE
+    ACTION_TYPE = ActionType.MOVE

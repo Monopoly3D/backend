@@ -6,4 +6,4 @@ from app.assets.enums.action_type import ActionType
 
 @dataclass
 class CasinoAction(Action):
-    action_type: ActionType = ActionType.CASINO
+    ACTION_TYPE = ActionType.CASINO
