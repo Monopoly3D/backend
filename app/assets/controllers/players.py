@@ -7,13 +7,17 @@ from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.controllers.context import ContextController
 from app.assets.objects.player import Player
 
 
-class PlayersController:
+class PlayersController(ContextController):
     def __init__(self) -> None:
         self.__players: Dict[UUID, Player] = {}
         self.__game_instance: Any = None
+
+    def to_json(self) -> List[Dict[str, Any]]:
+        return [player.to_json() for player in self.list]
 
     @property
     def game(self) -> Any:
@@ -23,15 +27,50 @@ class PlayersController:
     def game(self, value: Any) -> None:
         self.__game_instance = value
 
+    @property
+    def ids(self) -> List[UUID]:
+        return list(self.__players.keys())
+
+    @property
+    def list(self) -> List[Player]:
+        return list(self.__players.values())
+
+    @property
+    def models_list(self) -> List[PlayerResponseModel]:
+        return [PlayerResponseModel.from_player(player) for player in self.list]
+
+    @property
+    def size(self) -> int:
+        return len(self.__players)
+
+    @property
+    def are_ready(self) -> bool:
+        return all(player.is_ready for player in self.list)
+
+    @property
+    def current(self) -> Player | None:
+        if self.game is not None:
+            try:
+                return self.list[self.game.move]
+            except IndexError:
+                return
+
+    @property
+    def current_on_auction(self) -> Player | None:
+        if self.game is not None:
+            action: Action | None = self.game.action
+
+            if not isinstance(action, BuyFieldOnAuctionAction):
+                return
+
+            return self.get(action.players[action.player])
+
     def setup(
             self,
             players: List[Dict[str, Any]] | None = None,
             *,
-            game_instance: Any = None,
             connections: ConnectionsController | None = None
     ) -> None:
-        self.game = game_instance
-
         if players is None:
             return
 
@@ -85,47 +124,6 @@ class PlayersController:
                 self.list
             )
         )
-
-    @property
-    def ids(self) -> List[UUID]:
-        return list(self.__players.keys())
-
-    @property
-    def list(self) -> List[Player]:
-        return list(self.__players.values())
-
-    @property
-    def models_list(self) -> List[PlayerResponseModel]:
-        return [PlayerResponseModel.from_player(player) for player in self.list]
-
-    @property
-    def size(self) -> int:
-        return len(self.__players)
-
-    @property
-    def are_ready(self) -> bool:
-        return all(player.is_ready for player in self.list)
-
-    @property
-    def current(self) -> Player | None:
-        if self.game is not None:
-            try:
-                return self.list[self.game.move]
-            except IndexError:
-                return
-
-    @property
-    def current_on_auction(self) -> Player | None:
-        if self.game is not None:
-            action: Action | None = self.game.action
-
-            if not isinstance(action, BuyFieldOnAuctionAction):
-                return
-
-            return self.get(action.players[action.player])
-
-    def to_json(self) -> List[Dict[str, Any]]:
-        return [player.to_json() for player in self.list]
 
     def shuffle(self) -> None:
         players_items: List[Tuple[UUID, Player]] = list(self.__players.items())

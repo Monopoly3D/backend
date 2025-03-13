@@ -30,13 +30,6 @@ class Monopoly(GameObject):
             "is_filiated": self.is_filiated
         }
 
-    def add(
-            self,
-            company: Company
-    ) -> None:
-        company.monopoly = self
-        self.companies.append(company)
-
     @property
     def is_monopoly(self) -> bool:
         if not len(self.companies) or self.companies[0].owner_id is None:

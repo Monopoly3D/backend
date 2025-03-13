@@ -78,6 +78,14 @@ class Company(Field):
 
         return self.monopoly.is_monopoly
 
+    @is_monopoly.setter
+    def is_monopoly(self, value: bool) -> None:
+        if self.monopoly is None:
+            return
+
+        for company in self.monopoly.companies:
+            company.is_monopoly = value
+
     @property
     def field_dependant(self) -> bool:
         return self.company_type == CompanyType.FIELD_DEPENDANT

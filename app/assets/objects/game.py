@@ -148,13 +148,6 @@ class Game(RedisObject):
             "monopolies": self.monopolies.to_json()
         }
 
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        for player in self.players.list:
-            await player.send(packet)
-
     @property
     def controller(self) -> RedisController:
         return self.__controller_instance
@@ -164,12 +157,20 @@ class Game(RedisObject):
         super().__init__(value.REDIS_KEY.format(game_id=self.game_id), value)
         self.__controller_instance = value
 
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        for player in self.players.list:
+            await player.send(packet)
+
     async def start(self) -> None:
         self.is_started = True
         self.action = MoveAction()
 
         #  self.players.shuffle()  TESTING
         self.fields = self.get_map(self.map_path)
+        self.monopolies.setup(self.fields.companies)
 
         await self.send(
             ServerGameStartPacket(
@@ -327,7 +328,9 @@ class Game(RedisObject):
             field.update({"field_id": index})
 
         fields: FieldsController = FieldsController()
-        fields.setup(data, game_instance=self)
+        fields.game = self
+        fields.setup(data)
+
         return fields
 
     def get_start_task(self) -> Task | None:

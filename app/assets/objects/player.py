@@ -83,13 +83,6 @@ class Player(GameObject):
             "contract_amount": self.contract_amount
         }
 
-    async def send(
-            self,
-            packet: ServerPacket
-    ) -> None:
-        if self.connection is not None:
-            await self.connection.send_text(packet.pack())
-
     @property
     def connection(self) -> WebSocket | None:
         return self.__connection_instance
@@ -105,6 +98,13 @@ class Player(GameObject):
     @game.setter
     def game(self, value: Any) -> None:
         self.__game_instance = value
+
+    async def send(
+            self,
+            packet: ServerPacket
+    ) -> None:
+        if self.connection is not None:
+            await self.connection.send_text(packet.pack())
 
     async def set_ready(
             self,

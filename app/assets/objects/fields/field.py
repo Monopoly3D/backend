@@ -15,6 +15,14 @@ class Field(GameObject, ABC):
 
     __game_instance: Any = None
 
+    @abstractmethod
+    async def on_stand(
+            self,
+            player: Any,
+            amount: int
+    ) -> None:
+        pass
+
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
         return cls(**data)
@@ -28,14 +36,6 @@ class Field(GameObject, ABC):
 
     def pack(self) -> Dict[str, Any]:
         return {"field_id": self.field_id, "field_type": self.FIELD_TYPE.value, **self.to_json()}
-
-    @abstractmethod
-    async def on_stand(
-            self,
-            player: Any,
-            amount: int
-    ) -> None:
-        pass
 
     @property
     def game(self) -> Any:

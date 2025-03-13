@@ -2,18 +2,19 @@ from typing import Dict, List, Any
 
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
+from app.assets.controllers.context import ContextController
 from app.assets.enums.field_type import FieldType
-from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
-from app.assets.objects.monopoly import Monopoly
 
 
-class FieldsController:
+class FieldsController(ContextController):
     def __init__(self) -> None:
         self.__fields: List[Field] = []
-        self.__monopolies: Dict[MonopolyType, Monopoly] = {}
         self.__game_instance: Any = None
+
+    def to_json(self) -> List[Dict[str, Any]]:
+        return [field.to_json() for field in self.list]
 
     @property
     def game(self) -> Any:
@@ -22,26 +23,6 @@ class FieldsController:
     @game.setter
     def game(self, value: Any) -> None:
         self.__game_instance = value
-
-    def setup(
-            self,
-            fields: List[Dict[str, Any]] | None = None,
-            *,
-            game_instance: Any = None
-    ) -> None:
-        self.game = game_instance
-
-        if fields is None or self.game is None:
-            return
-
-        for data_field in fields:
-            field: Field | None = self.game.get_field(data_field)
-
-            if field is None:
-                continue
-
-            field.game = game_instance
-            self.__fields.append(field)
 
     @property
     def list(self) -> List[Field]:
@@ -63,8 +44,29 @@ class FieldsController:
     def prison(self) -> int:
         return [field.FIELD_TYPE for field in self.__fields].index(FieldType.PRISON)
 
-    def to_json(self) -> List[Dict[str, Any]]:
-        return [field.to_json() for field in self.list]
+    def setup(
+            self,
+            fields: List[Dict[str, Any]] | None = None
+    ) -> None:
+        self.__fields.clear()
+
+        if fields is None or self.game is None:
+            return
+
+        for data_field in fields:
+            field: Field | None = self.game.get_field(data_field)
+
+            if field is None:
+                continue
+
+            self.add(field)
+
+    def add(
+            self,
+            field: Field
+    ) -> None:
+        field.game = self.game
+        self.__fields.append(field)
 
     async def decrease_all_mortgages(self) -> None:
         has_any_mortgaged_fields: bool = False

@@ -1,15 +1,19 @@
 from collections import defaultdict
 from typing import Dict, Any, List
 
+from app.assets.controllers.context import ContextController
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.monopoly import Monopoly
 
 
-class MonopoliesController:
+class MonopoliesController(ContextController):
     def __init__(self) -> None:
         self.__monopolies: Dict[MonopolyType, Monopoly] = defaultdict(Monopoly)
         self.__game_instance: Any = None
+
+    def to_json(self) -> Dict[str, Any]:
+        return {monopoly_type: monopoly.to_json() for monopoly_type, monopoly in self.__monopolies.items()}
 
     @property
     def game(self) -> Any:
@@ -21,20 +25,22 @@ class MonopoliesController:
 
     def setup(
             self,
-            companies: List[Company] | None = None,
-            *,
-            game_instance: Any = None
+            companies: List[Company] | None = None
     ) -> None:
-        self.game = game_instance
+        self.__monopolies.clear()
 
         if companies is None:
             return
 
         for company in companies:
-            self.__monopolies[company.monopoly_type].add(company)
+            self.add(company)
 
-    def to_json(self) -> Dict[str, Any]:
-        return {monopoly_type: monopoly.to_json() for monopoly_type, monopoly in self.__monopolies.items()}
+    def add(
+            self,
+            company: Company
+    ) -> None:
+        company.monopoly = self.__monopolies[company.monopoly_type]
+        self.__monopolies[company.monopoly_type].companies.append(company)
 
     def get(
             self,
