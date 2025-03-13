@@ -32,3 +32,11 @@ class Monopoly(GameObject):
     def is_monopoly(self, value: bool) -> None:
         for company in self.companies:
             company.is_monopoly = value
+
+    @property
+    def highest_filiation(self) -> int:
+        return max(company.filiation for company in self.companies)
+
+    @property
+    def lowest_filiation(self) -> int:
+        return min(company.filiation for company in self.companies)

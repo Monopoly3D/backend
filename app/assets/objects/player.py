@@ -439,6 +439,9 @@ class Player(GameObject):
         if company.mortgage >= 0:
             raise FieldAlreadyMortgagedError("Field is already mortgaged")
 
+        if company.is_monopoly:
+            raise FieldIsMonopolyError("Field is a monopoly")
+
         self.balance += company.mortgage_cost
         company.mortgage = Parameters.MORTGAGE_MOVE_LIMIT
 
@@ -493,11 +496,17 @@ class Player(GameObject):
         if not company.is_monopoly:
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
+        if company.mortgage >= 0:
+            raise FieldAlreadyMortgagedError("Field is mortgaged")
+
         if company.filiation >= Parameters.FILIATION_LIMIT:
             raise InvalidFiliationError("Unable to buy more filiations")
 
         if company.monopoly.is_filiated:
             raise FieldAlreadyFiliatedError("Monopoly is already filiated")
+
+        if company.monopoly.lowest_filiation < company.filiation:
+            raise InvalidFiliationError("Too unbalanced filiations")
 
         if self.balance < company.filiation_cost:
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
@@ -529,8 +538,14 @@ class Player(GameObject):
         if not company.is_monopoly:
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
+        if company.mortgage >= 0:
+            raise FieldAlreadyMortgagedError("Field is mortgaged")
+
         if company.filiation <= 0:
             raise InvalidFiliationError("Field has no filiations to sell")
+
+        if company.monopoly.highest_filiation > company.filiation:
+            raise InvalidFiliationError("Too unbalanced filiations")
 
         company.filiation -= 1
         self.balance += company.filiation_cost
