@@ -25,9 +25,14 @@ class MonopoliesController(ContextController):
 
     def setup(
             self,
+            monopolies: Dict[str, Any] | None = None,
             companies: List[Company] | None = None
     ) -> None:
         self.__monopolies.clear()
+
+        if monopolies:
+            for monopoly_type, monopoly in monopolies.items():
+                self.__monopolies[MonopolyType(monopoly_type)] = Monopoly.from_json(monopoly)
 
         if companies is None:
             return

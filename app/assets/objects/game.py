@@ -117,6 +117,7 @@ class Game(RedisObject):
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
+        monopolies: Dict[str, Any] = data.pop("monopolies")
 
         if data.get("action") is not None:
             data["action"] = cls.get_action(data["action"])
@@ -125,7 +126,7 @@ class Game(RedisObject):
 
         game.players.setup(players, connections=connections)
         game.fields.setup(fields)
-        game.monopolies.setup(game.fields.companies)
+        game.monopolies.setup(monopolies, game.fields.companies)
 
         return game
 
@@ -170,7 +171,7 @@ class Game(RedisObject):
 
         #  self.players.shuffle()  TESTING
         self.fields = self.get_map(self.map_path)
-        self.monopolies.setup(self.fields.companies)
+        self.monopolies.setup(companies=self.fields.companies)
 
         await self.send(
             ServerGameStartPacket(

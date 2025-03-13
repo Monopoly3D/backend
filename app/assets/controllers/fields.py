@@ -14,7 +14,7 @@ class FieldsController(ContextController):
         self.__game_instance: Any = None
 
     def to_json(self) -> List[Dict[str, Any]]:
-        return [field.to_json() for field in self.list]
+        return [field.pack() for field in self.list]
 
     @property
     def game(self) -> Any:

@@ -12,7 +12,6 @@ from app.assets.enums.company_type import CompanyType
 from app.assets.enums.field_type import FieldType
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.field import Field
-from app.assets.objects.monopoly import Monopoly
 
 
 @dataclass
@@ -31,7 +30,7 @@ class Company(Field):
     buyout_cost: int = 0
     filiation_cost: int = 0
 
-    __monopoly: Monopoly | None = dataclass_field(default=None, repr=False)
+    __monopoly: Any = dataclass_field(default=None, repr=False)
 
     @classmethod
     def from_json(
@@ -64,11 +63,11 @@ class Company(Field):
         }
 
     @property
-    def monopoly(self) -> Monopoly | None:
+    def monopoly(self) -> Any | None:
         return self.__monopoly
 
     @monopoly.setter
-    def monopoly(self, value: Monopoly):
+    def monopoly(self, value: Any):
         self.__monopoly = value
 
     @property

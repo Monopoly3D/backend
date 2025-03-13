@@ -9,24 +9,15 @@ from app.assets.objects.game_object import GameObject
 
 @dataclass
 class Monopoly(GameObject):
-    companies: List[Company] = dataclass_field(default_factory=set)
+    companies: List[Company] = dataclass_field(default_factory=list)
     is_filiated: bool = False
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> Any:
-        data_companies: List[Dict[str, Any]] = data.pop("fields")
-
-        companies: List[Company] = list()
-
-        if data_companies is not None:
-            for company in data_companies:
-                companies.append(Company.from_json(company))
-
-        return cls(companies=companies, **data)
+        return cls(**data)
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "companies": [company.to_json() for company in self.companies],
             "is_filiated": self.is_filiated
         }
 
