@@ -12,6 +12,7 @@ from app.assets.enums.company_type import CompanyType
 from app.assets.enums.field_type import FieldType
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.field import Field
+from app.assets.parameters import Parameters
 
 
 @dataclass
@@ -92,6 +93,17 @@ class Company(Field):
     @property
     def dice_dependant(self) -> bool:
         return self.company_type == CompanyType.DICE_DEPENDANT
+
+    @property
+    def is_mortgaged(self) -> bool:
+        return self.mortgage >= 0
+
+    @is_mortgaged.setter
+    def is_mortgaged(self, value: bool) -> None:
+        if value and not self.is_mortgaged:
+            self.mortgage = Parameters.MORTGAGE_MOVE_LIMIT
+        elif not value and self.is_mortgaged:
+            self.mortgage = -1
 
     async def on_stand(
             self,

@@ -16,7 +16,7 @@ class Police(Field):
             player: Any,
             amount: int
     ) -> None:
-        player.prison = 0
+        player.imprison()
         player.double_amount = 0
         player.field = self.game.fields.prison
 

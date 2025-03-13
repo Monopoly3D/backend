@@ -221,7 +221,7 @@ class Game(RedisObject):
     async def next(self) -> None:
         player: Player = self.players.current
 
-        if player.double_amount <= 0 or player.prison >= 0:
+        if not player.got_double or player.is_imprisoned:
             self.move += 1
 
             if self.move >= self.players.size:
@@ -242,10 +242,10 @@ class Game(RedisObject):
             )
         )
 
-        if next_player.prison < 0:
-            self.action = MoveAction()
-        else:
+        if next_player.is_imprisoned:
             self.action = PrisonAction()
+        else:
+            self.action = MoveAction()
 
             await self.send(
                 ServerGameAskPlayerOnPrisonPacket(
@@ -296,7 +296,8 @@ class Game(RedisObject):
             await self.next()
             return
 
-        self.action.player = self.action.player + 1
+        self.action.player += 1
+
         if self.action.player >= len(self.action.players):
             self.action.player = 0
 

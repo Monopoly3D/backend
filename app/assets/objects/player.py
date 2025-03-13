@@ -99,6 +99,18 @@ class Player(GameObject):
     def game(self, value: Any) -> None:
         self.__game_instance = value
 
+    @property
+    def is_imprisoned(self) -> bool:
+        return self.prison >= 0
+
+    @property
+    def has_to_redeem_from_prison(self) -> bool:
+        return self.prison >= 3
+
+    @property
+    def got_double(self) -> bool:
+        return self.double_amount > 0
+
     async def send(
             self,
             packet: ServerPacket
@@ -260,6 +272,13 @@ class Player(GameObject):
 
         await self.game.ask_next_player_on_auction()
 
+    def imprison(self) -> None:
+        if not self.is_imprisoned:
+            self.prison = 0
+
+    def rescue(self) -> None:
+        self.prison = -1
+
     async def accept_prison(self) -> None:
         dices: Tuple[int, ...] = self.game.roll_dices()
         got_double: bool = dices[0] == dices[1]
@@ -274,13 +293,13 @@ class Player(GameObject):
         )
 
         if got_double:
-            self.prison = -1
+            self.rescue()
             await self.move(dices, consider_double=False)
             return
 
         self.prison += 1
 
-        if self.prison >= 3:
+        if self.has_to_redeem_from_prison:
             self.game.action = PayPrisonAction()
 
             await self.game.send(
@@ -406,7 +425,7 @@ class Player(GameObject):
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         self.balance -= Parameters.DEFAULT_PRISON_ESCAPE_COST
-        self.prison = -1
+        self.rescue()
 
         await self.send(
             ServerPlayerPayPrisonPacket(
@@ -436,14 +455,14 @@ class Player(GameObject):
         if company.owner_id != self.player_id:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if company.mortgage >= 0:
+        if company.is_mortgaged:
             raise FieldAlreadyMortgagedError("Field is already mortgaged")
 
         if company.is_monopoly:
             raise FieldIsMonopolyError("Field is a monopoly")
 
         self.balance += company.mortgage_cost
-        company.mortgage = Parameters.MORTGAGE_MOVE_LIMIT
+        company.is_mortgaged = True
 
         await self.send(
             ServerPlayerMortgageFieldPacket(
@@ -463,7 +482,7 @@ class Player(GameObject):
         if company.owner_id != self.player_id:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if company.mortgage == -1:
+        if not company.is_mortgaged:
             raise FieldNotMortgagedError("Field is not mortgaged")
 
         if company.is_monopoly:
@@ -473,7 +492,7 @@ class Player(GameObject):
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
         self.balance -= company.buyout_cost
-        company.mortgage = -1
+        company.is_mortgaged = False
 
         await self.send(
             ServerPlayerBuyoutFieldPacket(
@@ -496,7 +515,7 @@ class Player(GameObject):
         if not company.is_monopoly:
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
-        if company.mortgage >= 0:
+        if company.is_mortgaged:
             raise FieldAlreadyMortgagedError("Field is mortgaged")
 
         if company.filiation >= Parameters.FILIATION_LIMIT:
@@ -538,7 +557,7 @@ class Player(GameObject):
         if not company.is_monopoly:
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
-        if company.mortgage >= 0:
+        if company.is_mortgaged:
             raise FieldAlreadyMortgagedError("Field is mortgaged")
 
         if company.filiation <= 0:
