@@ -37,9 +37,7 @@ from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
-from app.assets.exceptions.field_not_found import FieldNotFoundError
 from app.assets.exceptions.game_invalid_action import GameInvalidActionError
-from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company
@@ -198,6 +196,7 @@ class Game(RedisObject):
             task.cancel()
 
         task: Task = asyncio.create_task(self.__delayed_start(), name=self.__start_task_name)
+
         await self.send(
             ServerGameCountdownStartPacket(
                 self.game_id,
@@ -259,30 +258,24 @@ class Game(RedisObject):
     async def start_auction(
             self,
             player: Player,
-            field: Field
+            company: Company
     ) -> None:
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id is not None:
+        if company.owner_id is not None:
             raise FieldAlreadyOwnedError("Provided field is already owned")
 
-        cost: int = field.cost + self.auction_minimum_bet
+        cost: int = company.cost + self.auction_minimum_bet
         auction_players: List[UUID] = self.get_auction_players(
             self.players.get_players_with_sufficient_balance(cost),
             player.player_id
         )
 
-        self.action = BuyFieldOnAuctionAction(field=field.field_id, cost=cost, players=auction_players)
+        self.action = BuyFieldOnAuctionAction(field=company.field_id, cost=cost, players=auction_players)
 
         await self.send(
             ServerPlayerPutFieldForAuctionPacket(
                 self.game_id,
                 player.player_id,
-                field.field_id,
+                company.field_id,
                 cost
             )
         )

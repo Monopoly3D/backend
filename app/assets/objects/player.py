@@ -167,15 +167,15 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> None:
-        field: Field | None = self.game.fields.get(self.field if field is None else field)
+        company: Company = self.__get_company(field)
 
-        await self.__buy_field(field)
+        await self.__buy_field(company)
 
         await self.game.send(
             ServerPlayerBuyFieldPacket(
                 self.game.game_id,
                 self.player_id,
-                field.field_id,
+                company.field_id,
                 self.balance
             )
         )
@@ -187,15 +187,15 @@ class Player(GameObject):
             field: int,
             cost: int | None = None
     ) -> None:
-        field: Field | None = self.game.fields.get(field)
+        company: Company = self.__get_company(field)
 
-        await self.__buy_field(field, cost)
+        await self.__buy_field(company, cost)
 
         await self.game.send(
             ServerPlayerBuyFieldOnAuctionPacket(
                 self.game.game_id,
                 self.player_id,
-                field.field_id,
+                company.field_id,
                 self.balance
             )
         )
@@ -206,9 +206,9 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> None:
-        field: Field | None = self.game.fields.get(self.field if field is None else field)
+        company: Company = self.__get_company(field)
 
-        await self.game.start_auction(self, field)
+        await self.game.start_auction(self, company)
 
     async def accept_auction(
             self
@@ -344,18 +344,12 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> None:
-        field: Field | None = self.game.fields.get(self.field if field is None else field)
+        company: Company = self.__get_company(field)
 
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id is None:
+        if company.owner_id is None:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if field.owner_id == self.player_id:
+        if company.owner_id == self.player_id:
             raise FieldAlreadyOwnedError("Provided field is already owned")
 
         action: Action = self.game.action
@@ -366,7 +360,7 @@ class Player(GameObject):
         if action.amount > self.balance:
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
-        owner: Player = self.game.players.get(field.owner_id)
+        owner: Player = self.game.players.get(company.owner_id)
 
         self.balance -= action.amount
         owner.balance += action.amount
@@ -376,7 +370,7 @@ class Player(GameObject):
                 self.game.game_id,
                 self.player_id,
                 owner.player_id,
-                field.field_id,
+                company.field_id,
                 self.balance,
                 owner.balance
             )
@@ -384,17 +378,8 @@ class Player(GameObject):
 
         await self.game.next()
 
-    async def pay_tax(
-            self,
-            field: int | None = None
-    ) -> None:
-        field: Field | None = self.game.fields.get(self.field if field is None else field)
-
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Tax):
-            raise InvalidFieldTypeError("Provided field is not a tax field")
+    async def pay_tax(self) -> None:
+        self.__get_tax(self.field)
 
         action: Action = self.game.action
 
@@ -446,28 +431,22 @@ class Player(GameObject):
             self,
             field: int
     ) -> None:
-        field: Field | None = self.game.fields.get(field)
+        company: Company = self.__get_company(field)
 
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id != self.player_id:
+        if company.owner_id != self.player_id:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if field.mortgage >= 0:
+        if company.mortgage >= 0:
             raise FieldAlreadyMortgagedError("Field is already mortgaged")
 
-        self.balance += field.mortgage_cost
-        field.mortgage = Parameters.MORTGAGE_MOVE_LIMIT
+        self.balance += company.mortgage_cost
+        company.mortgage = Parameters.MORTGAGE_MOVE_LIMIT
 
         await self.send(
             ServerPlayerMortgageFieldPacket(
                 self.game.game_id,
                 self.player_id,
-                field.field_id,
+                company.field_id,
                 self.balance
             )
         )
@@ -476,34 +455,28 @@ class Player(GameObject):
             self,
             field: int
     ) -> None:
-        field: Field | None = self.game.fields.get(field)
+        company: Company = self.__get_company(field)
 
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id != self.player_id:
+        if company.owner_id != self.player_id:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if field.mortgage == -1:
+        if company.mortgage == -1:
             raise FieldNotMortgagedError("Field is not mortgaged")
 
-        if field.is_monopoly:
+        if company.is_monopoly:
             raise FieldIsMonopolyError("Field is a monopoly")
 
-        if self.balance < field.buyout_cost:
+        if self.balance < company.buyout_cost:
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
-        self.balance -= field.buyout_cost
-        field.mortgage = -1
+        self.balance -= company.buyout_cost
+        company.mortgage = -1
 
         await self.send(
             ServerPlayerBuyoutFieldPacket(
                 self.game.game_id,
                 self.player_id,
-                field.field_id,
+                company.field_id,
                 self.balance
             )
         )
@@ -512,40 +485,34 @@ class Player(GameObject):
             self,
             field: int
     ) -> None:
-        field: Field | None = self.game.fields.get(field)
+        company: Company = self.__get_company(field)
 
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id != self.player_id:
+        if company.owner_id != self.player_id:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if not field.is_monopoly:
+        if not company.is_monopoly:
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
-        if field.filiation >= Parameters.FILIATION_LIMIT:
+        if company.filiation >= Parameters.FILIATION_LIMIT:
             raise InvalidFiliationError("Unable to buy more filiations")
 
-        if field.monopoly.is_filiated:
+        if company.monopoly.is_filiated:
             raise FieldAlreadyFiliatedError("Monopoly is already filiated")
 
-        if self.balance < field.filiation_cost:
+        if self.balance < company.filiation_cost:
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
-        field.filiation += 1
-        self.balance -= field.filiation_cost
+        company.filiation += 1
+        self.balance -= company.filiation_cost
 
-        field.monopoly.is_filiated = True
+        company.monopoly.is_filiated = True
 
         await self.game.send(
             ServerPlayerBuyFiliationPacket(
                 self.game.game_id,
                 self.player_id,
-                field.field_id,
-                field.filiation,
+                company.field_id,
+                company.filiation,
                 self.balance
             )
         )
@@ -554,55 +521,76 @@ class Player(GameObject):
             self,
             field: int
     ) -> None:
-        field: Field | None = self.game.fields.get(field)
+        company: Company = self.__get_company(field)
 
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id != self.player_id:
+        if company.owner_id != self.player_id:
             raise FieldNotOwnedError("Provided field is not owned")
 
-        if not field.is_monopoly:
+        if not company.is_monopoly:
             raise FieldIsNotMonopolyError("Field is not a monopoly")
 
-        if field.filiation <= 0:
+        if company.filiation <= 0:
             raise InvalidFiliationError("Field has no filiations to sell")
 
-        field.filiation -= 1
-        self.balance += field.filiation_cost
+        company.filiation -= 1
+        self.balance += company.filiation_cost
 
         await self.game.send(
             ServerPlayerSellFiliationPacket(
                 self.game.game_id,
                 self.player_id,
-                field.field_id,
-                field.filiation,
+                company.field_id,
+                company.filiation,
                 self.balance
             )
         )
 
     async def __buy_field(
             self,
-            field: Field,
+            company: Company,
             cost: int | None = None
     ) -> None:
-        if field is None:
-            raise FieldNotFoundError("Field with provided index was not found")
-
-        if not isinstance(field, Company):
-            raise InvalidFieldTypeError("Provided field is not a company")
-
-        if field.owner_id is not None:
+        if company.owner_id is not None:
             raise FieldAlreadyOwnedError("Provided field is already owned")
 
         if cost is None:
-            cost: int = field.cost
+            cost: int = company.cost
 
         if cost > self.balance:
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
-        field.owner_id = self.player_id
+        company.owner_id = self.player_id
         self.balance -= cost
+
+    def __get_field(
+            self,
+            field: int | None = None
+    ) -> Field:
+        field: Field | None = self.game.fields.get(field if field is not None else self.field)
+
+        if field is None:
+            raise FieldNotFoundError("Field with provided index was not found")
+
+        return field
+
+    def __get_company(
+            self,
+            field: int | None = None
+    ) -> Company:
+        field: Field = self.__get_field(field)
+
+        if not isinstance(field, Company):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        return field
+
+    def __get_tax(
+            self,
+            field: int | None = None
+    ) -> Tax:
+        field: Field = self.__get_field(field)
+
+        if not isinstance(field, Tax):
+            raise InvalidFieldTypeError("Provided field is not a company")
+
+        return field
