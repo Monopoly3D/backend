@@ -32,6 +32,7 @@ from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.actions.prison import PrisonAction
 from app.assets.controllers.fields import FieldsController
+from app.assets.controllers.monopolies import MonopoliesController
 from app.assets.controllers.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
@@ -93,14 +94,17 @@ class Game(RedisObject):
 
     players: PlayersController = dataclass_field(default_factory=PlayersController)
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
-    map_path: str = Parameters.DEFAULT_MAP_PATH
+    monopolies: MonopoliesController = dataclass_field(default_factory=MonopoliesController)
 
-    __controller_instance: RedisController | None = None
-    __start_task_name: str | None = None
+    map_path: str = dataclass_field(default=Parameters.DEFAULT_MAP_PATH, repr=False)
+
+    __controller_instance: RedisController | None = dataclass_field(default=None, repr=False)
+    __start_task_name: str | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self):
-        self.players.setup(game_instance=self)
-        self.fields.setup(game_instance=self)
+        self.players.game = self
+        self.fields.game = self
+        self.monopolies.game = self
 
         self.__start_task_name = f"start:{self.game_id}"
 
@@ -111,19 +115,17 @@ class Game(RedisObject):
             *,
             connections: ConnectionsController | None = None
     ) -> Any:
-        players: List[Dict[str, Any]] = data.get("players")
-        fields: List[Dict[str, Any]] = data.get("fields")
-
-        data.pop("players")
-        data.pop("fields")
+        players: List[Dict[str, Any]] = data.pop("players")
+        fields: List[Dict[str, Any]] = data.pop("fields")
 
         if data.get("action") is not None:
             data["action"] = cls.get_action(data["action"])
 
         game: Game = cls(**data)
 
-        game.players.setup(players, game_instance=game, connections=connections)
-        game.fields.setup(fields, game_instance=game)
+        game.players.setup(players, connections=connections)
+        game.fields.setup(fields)
+        game.monopolies.setup(game.fields.companies)
 
         return game
 
@@ -142,7 +144,8 @@ class Game(RedisObject):
             "start_bonus_round_amount": self.start_bonus_round_amount,
             "auction_minimum_bet": self.auction_minimum_bet,
             "players": self.players.to_json(),
-            "fields": self.fields.to_json()
+            "fields": self.fields.to_json(),
+            "monopolies": self.monopolies.to_json()
         }
 
     async def send(
@@ -225,7 +228,7 @@ class Game(RedisObject):
                 self.round += 1
 
                 await self.fields.decrease_all_mortgages()
-                self.fields.reset_all_filiations()
+                self.monopolies.reset_all_filiations()
 
         next_player: Player = self.players.current
 

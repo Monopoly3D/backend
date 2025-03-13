@@ -529,7 +529,7 @@ class Player(GameObject):
         if field.filiation >= Parameters.FILIATION_LIMIT:
             raise InvalidFiliationError("Unable to buy more filiations")
 
-        if self.game.fields.is_filiated(field.monopoly_type):
+        if field.monopoly.is_filiated:
             raise FieldAlreadyFiliatedError("Monopoly is already filiated")
 
         if self.balance < field.filiation_cost:
@@ -538,7 +538,7 @@ class Player(GameObject):
         field.filiation += 1
         self.balance -= field.filiation_cost
 
-        self.game.fields.set_filiated(field.monopoly_type)
+        field.monopoly.is_filiated = True
 
         await self.game.send(
             ServerPlayerBuyFiliationPacket(
@@ -604,5 +604,5 @@ class Player(GameObject):
         if cost > self.balance:
             raise PlayerHasInsufficientBalanceError("Player has insufficient balance")
 
-        await field.set_new_owner_id(self.player_id)
+        field.owner_id = self.player_id
         self.balance -= cost

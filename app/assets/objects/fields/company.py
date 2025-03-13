@@ -5,8 +5,6 @@ from uuid import UUID
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_can_buy_field import ServerPlayerCanBuyFieldPacket
-from app.api.v1.packets.server.player_gain_monopoly import ServerPlayerGainMonopolyPacket
-from app.api.v1.packets.server.player_lose_monopoly import ServerPlayerLoseMonopolyPacket
 from app.api.v1.packets.server.player_must_pay_rent import ServerPlayerMustPayRentPacket
 from app.assets.actions.buy_field import BuyFieldAction
 from app.assets.actions.pay_rent import PayRentAction
@@ -14,6 +12,7 @@ from app.assets.enums.company_type import CompanyType
 from app.assets.enums.field_type import FieldType
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.field import Field
+from app.assets.objects.monopoly import Monopoly
 
 
 @dataclass
@@ -24,7 +23,6 @@ class Company(Field):
     monopoly_type: MonopolyType = MonopolyType.BASE
     company_type: CompanyType = CompanyType.BASE
 
-    is_monopoly: bool = False
     rent: List[int] = dataclass_field(default_factory=list)
     mortgage: int = -1
     filiation: int = 0
@@ -32,6 +30,8 @@ class Company(Field):
     mortgage_cost: int = 0
     buyout_cost: int = 0
     filiation_cost: int = 0
+
+    __monopoly: Monopoly | None = dataclass_field(default=None, repr=False)
 
     @classmethod
     def from_json(
@@ -53,7 +53,6 @@ class Company(Field):
                 "owner_id": str(self.owner_id) if self.owner_id else None,
                 "monopoly_type": self.monopoly_type.value,
                 "company_type": self.company_type.value,
-                "is_monopoly": self.is_monopoly,
                 "rent": self.rent,
                 "mortgage": self.mortgage,
                 "filiation": self.filiation,
@@ -63,6 +62,21 @@ class Company(Field):
                 "filiation_cost": self.filiation_cost
             }
         }
+
+    @property
+    def monopoly(self) -> Monopoly | None:
+        return self.__monopoly
+
+    @monopoly.setter
+    def monopoly(self, value: Monopoly):
+        self.__monopoly = value
+
+    @property
+    def is_monopoly(self) -> bool:
+        if self.monopoly is None:
+            return False
+
+        return self.monopoly.is_monopoly
 
     @property
     def field_dependant(self) -> bool:
@@ -119,7 +133,7 @@ class Company(Field):
             except IndexError:
                 return 0
 
-        if self.is_monopoly:
+        if self.monopoly is not None and self.monopoly.is_monopoly:
             if self.filiation == 0:
                 return self.rent[0] * 2
 
@@ -129,37 +143,3 @@ class Company(Field):
                 return 0
 
         return self.rent[0]
-
-    async def set_new_owner_id(
-            self,
-            new_owner_id: UUID | None = None
-    ) -> None:
-        previous_owner_id = self.owner_id
-
-        if previous_owner_id == new_owner_id:
-            return
-
-        was_monopoly: bool = self.game.fields.is_monopoly(self.monopoly_type)
-        self.owner_id = new_owner_id
-        is_monopoly: bool = self.game.fields.is_monopoly(self.monopoly_type)
-
-        if not was_monopoly and is_monopoly:
-            self.game.fields.set_monopoly(self.monopoly_type, True)
-
-            await self.game.send(
-                ServerPlayerGainMonopolyPacket(
-                    self.game.game_id,
-                    new_owner_id,
-                    self.monopoly_type
-                )
-            )
-        elif was_monopoly and not is_monopoly:
-            self.game.fields.set_monopoly(self.monopoly_type, False)
-
-            await self.game.send(
-                ServerPlayerLoseMonopolyPacket(
-                    self.game.game_id,
-                    previous_owner_id,
-                    self.monopoly_type
-                )
-            )
