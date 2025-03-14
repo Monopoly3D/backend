@@ -22,7 +22,7 @@ from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthent
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth import ServerAuthPacket
 from app.database.models import User, Role
-from app.dependencies import config_websocket, config_dependency, database_session
+from app.dependencies import config_websocket, config_dependency, database_session, database_websocket_session
 from config import Config
 
 
@@ -227,7 +227,7 @@ class Authenticator:
     def authenticate_websocket() -> Depends:
         async def __authenticate_websocket(
                 websocket: WebSocket,
-                session: Annotated[AsyncSession, Depends(database_session)],
+                session: Annotated[AsyncSession, Depends(database_websocket_session)],
                 authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
         ) -> None:
@@ -260,12 +260,12 @@ class Authenticator:
     def get_websocket_user() -> Depends:
         async def __get_websocket_user(
                 websocket: WebSocket,
-                session: Annotated[AsyncSession, Depends(database_session)],
+                session: Annotated[AsyncSession, Depends(database_websocket_session)],
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
         ) -> User:
             user: User | None = await session.scalar(
                 select(User)
-                .filter_by(id=connections.get_user_id(websocket))
+                .filter_by(id=await connections.get_user_id(websocket))
                 .options(joinedload(User.roles))
             )
 

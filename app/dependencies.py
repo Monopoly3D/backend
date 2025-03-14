@@ -8,7 +8,6 @@ from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
-from app.api.v1.controllers.users import UsersController
 from app.database.database import Database
 from config import Config
 
@@ -25,12 +24,9 @@ async def inject(
     fastapi_app.state.redis = redis
     fastapi_app.state.connections = connections
 
-    users_controller = UsersController(redis)
     games_controller = GamesController(redis)
-    await users_controller.retrieve_users()
     await games_controller.retrieve_games(connections)
 
-    fastapi_app.state.users_controller = users_controller
     fastapi_app.state.games_controller = games_controller
 
 
@@ -53,10 +49,6 @@ async def redis_dependency(request: Request) -> Redis:
     return request.app.state.redis
 
 
-async def users_controller_dependency(request: Request) -> 'UsersController':
-    return request.app.state.users_controller
-
-
 async def games_controller_dependency(request: Request) -> 'GamesController':
     return request.app.state.games_controller
 
@@ -69,12 +61,15 @@ async def database_websocket(websocket: WebSocket) -> None:
     return websocket.app.state.database
 
 
+async def database_websocket_session(
+        database: Annotated[Database, Depends(database_websocket)]
+) -> None:
+    async with database.session_maker() as session:
+        yield session
+
+
 async def redis_websocket(websocket: WebSocket) -> Redis:
     return websocket.app.state.redis
-
-
-async def users_controller_websocket(websocket: WebSocket) -> 'UsersController':
-    return websocket.app.state.users_controller
 
 
 async def games_controller_websocket(websocket: WebSocket) -> 'GamesController':

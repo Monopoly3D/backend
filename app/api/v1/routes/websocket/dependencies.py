@@ -13,7 +13,7 @@ from app.assets.exceptions.game_not_started import GameNotStartedError
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
-from app.assets.objects.user import User
+from app.database.models import User
 
 
 class WebSocketDependency:
@@ -36,10 +36,10 @@ class WebSocketDependency:
 
             game: Game | None = await games_controller.get_game(getattr(packet, "game_id"), connections)
 
-            if game is None or (user.user_id not in game.players.ids and has_player):
+            if game is None or (user.id not in game.players.ids and has_player):
                 raise GameNotFoundError("Game with provided UUID was not found")
 
-            if game.players.exists(user.user_id) and not has_player:
+            if game.players.exists(user.id) and not has_player:
                 raise PlayerAlreadyInGameError("You are already in game")
 
             if is_started is not None:
@@ -59,7 +59,7 @@ class WebSocketDependency:
             if is_players_turn:
                 player: Player | None = game.players.current
 
-                if player is None or player.player_id != user.user_id:
+                if player is None or player.player_id != user.id:
                     raise GameNotAwaitingMoveError("Player is not awaited to move")
 
             return game

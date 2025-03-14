@@ -28,7 +28,7 @@ from app.assets.enums.action_type import ActionType
 from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
-from app.assets.objects.user import User
+from app.database.models import User
 from config import Config
 
 config: Config = Config(_env_file=".env")
@@ -50,7 +50,7 @@ async def on_player_join_game(
     if game.players.size >= game.max_players:
         raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
 
-    player = Player(user.user_id, username=user.username)
+    player = Player(user.id, username=user.username)
     player.connection = websocket
 
     await game.players.join(player)
@@ -63,7 +63,7 @@ async def on_player_ready(
         user: User,
         game: Annotated[Game, WebSocketDependency.get_game(is_started=False)]
 ) -> None:
-    player: Player = game.players.get(user.user_id)
+    player: Player = game.players.get(user.id)
 
     await player.set_ready(packet.is_ready)
     await game.save()
