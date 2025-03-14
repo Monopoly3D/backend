@@ -355,6 +355,24 @@ class Game(RedisObject):
         return random.randint(1, 6)
 
     @staticmethod
+    def roll_test_dices():  # TESTING
+        yield 4, 5
+        yield 6, 5
+
+        yield 0, 0
+        yield 0, 0
+        yield 0, 0
+        yield 0, 0
+        yield 0, 0
+        yield 0, 0
+        yield 0, 0
+
+    @staticmethod
+    def roll_test_dice():  # TESTING
+        yield 1
+        yield 5
+
+    @staticmethod
     def get_auction_players(
             players: List[Player],
             player_id: UUID | None = None

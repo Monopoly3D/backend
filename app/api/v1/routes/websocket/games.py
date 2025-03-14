@@ -82,7 +82,7 @@ async def on_player_move(
 ) -> None:
     player: Player = game.players.current
 
-    dices: Tuple[int, ...] = game.roll_dices()
+    dices: Tuple[int, ...] = next(game.roll_test_dices())
 
     await player.move(dices)
     await game.save()
