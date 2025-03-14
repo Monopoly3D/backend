@@ -27,7 +27,7 @@ config: Config = Config(_env_file=".env")
 async def lifespan(fastapi_app: FastAPI):
     database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
-    connections: ConnectionsController = ConnectionsController(redis)
+    connections: ConnectionsController = ConnectionsController()
 
     await inject(
         fastapi_app,
@@ -37,11 +37,8 @@ async def lifespan(fastapi_app: FastAPI):
         connections
     )
 
-    await connections.prepare()
-
     yield
 
-    await connections.prepare()
     await redis.aclose()
 
 
