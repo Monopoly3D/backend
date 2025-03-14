@@ -3,25 +3,28 @@ services:
     container_name: monopoly_postgres
     image: postgres:latest
     restart: on-failure
+    env_file: ".postgres.env"
     ports:
       - "5432:5432"
     volumes:
-      - "postgres-data:/var/lib/postgresql/data:rw"
+      - "postgres-data:/data"
 
   redis:
     container_name: monopoly_redis
     image: redis:latest
     restart: on-failure
+    command: "redis-server /redis.conf"
     ports:
       - "6379:6379"
     volumes:
       - "redis-data:/data"
+      - "/redis.conf:/redis.conf"
 
   server:
     container_name: monopoly_server
     build: .
     restart: on-failure
-    command: uvicorn --host 0.0.0.0 --port 8000 --loop asyncio --log-config app/api/v1/logging.json app.asgi:app
+    command: bash -c "poetry run alembic upgrade head && poetry run uvicorn --host 0.0.0.0 --port 8000 --loop asyncio --log-config app/api/v1/logging.json app.asgi:app"
     env_file: ".env"
     ports:
       - "8000:8000"
