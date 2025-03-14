@@ -6,9 +6,10 @@ from starlette import status
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
+from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.response.game import GameResponseModel
-from app.api.v1.security.authenticator import Authenticator
+from app.api.v1.security.authorizer import Authorizer
 from app.assets.objects.game import Game
 from app.dependencies import games_controller_dependency
 
@@ -19,7 +20,7 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
     "/",
     status_code=status.HTTP_201_CREATED,
     response_model=GameResponseModel,
-    dependencies=[Authenticator.get_user()]
+    dependencies=[Authorizer.has_permission(Permission.CREATE_GAMES)]
 )
 async def create_game(
         games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
@@ -32,7 +33,7 @@ async def create_game(
     "/{game_id}",
     status_code=status.HTTP_200_OK,
     response_model=GameResponseModel,
-    dependencies=[Authenticator.get_user()]
+    dependencies=[Authorizer.has_permission(Permission.VIEW_OWN_USER)]
 )
 async def get_game(
         game_id: UUID,
@@ -50,7 +51,7 @@ async def get_game(
 @games_router.delete(
     "/{game_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Authenticator.get_user()]
+    dependencies=[Authorizer.has_permission(Permission.REMOVE_OWN_GAMES)]
 )
 async def remove_game(
         game_id: UUID,

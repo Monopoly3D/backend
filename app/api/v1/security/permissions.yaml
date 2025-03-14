@@ -1,0 +1,9 @@
+admin: []
+
+user:
+  - view_own_user
+
+  - create_games
+  - join_games
+  - leave_games
+  - remove_own_games

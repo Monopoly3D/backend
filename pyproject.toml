@@ -23,6 +23,7 @@ pyjwt = "^2.10.1"
 pytz = "^2025.1"
 argon2-cffi = "^23.1.0"
 python-multipart = "^0.0.20"
+pyyaml = "^6.0.2"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, Annotated
+from typing import Dict, Annotated, List
 from uuid import UUID
 
 from argon2 import PasswordHasher
@@ -11,6 +11,7 @@ from jwt import encode, decode, InvalidTokenError
 from pytz import utc
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 from starlette.websockets import WebSocket
 
 from app.api.v1.controllers.connections import ConnectionsController
@@ -20,7 +21,7 @@ from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth import ServerAuthPacket
-from app.database.models import User
+from app.database.models import User, Role
 from app.dependencies import config_websocket, config_dependency, database_session
 from config import Config
 
@@ -182,6 +183,7 @@ class Authenticator:
         user: User | None = await session.scalar(
             select(User)
             .filter_by(id=user_id)
+            .options(joinedload(User.roles))
         )
 
         if user is None:
@@ -213,6 +215,13 @@ class Authenticator:
             return await authenticator.verify_access_token(access_token, session)
 
         return Depends(__get_user)
+
+    @classmethod
+    def get_roles(cls) -> Depends:
+        async def __get_roles(user: Annotated[User, cls.get_user()]) -> List[Role]:
+            return [Role(role.role) for role in user.roles]
+
+        return Depends(__get_roles)
 
     @staticmethod
     def authenticate_websocket() -> Depends:
@@ -257,6 +266,7 @@ class Authenticator:
             user: User | None = await session.scalar(
                 select(User)
                 .filter_by(id=connections.get_user_id(websocket))
+                .options(joinedload(User.roles))
             )
 
             if user is None:

@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.not_found import NotFoundError
@@ -14,7 +15,8 @@ from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
-from app.database.models import User
+from app.api.v1.security.authorizer import Authorizer
+from app.database.models import User, UserRole, Role
 from app.dependencies import database_session
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
@@ -23,7 +25,8 @@ auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 @auth_router.get(
     "",
     response_model=UserResponseModel,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
+    dependencies=[Authorizer.has_permission(Permission.VIEW_OWN_USER)]
 )
 async def my_user(
         user: Annotated[User, Authenticator.get_user()]
@@ -89,6 +92,13 @@ async def register(
     )
     session.add(user)
     await session.commit()
+
+    session.add(
+        UserRole(
+            user_id=user.id,
+            role=Role.USER
+        )
+    )
 
     access_token: str = await authenticator.create_access_token(user.id)
     refresh_token: str = await authenticator.create_refresh_token(user.id)
