@@ -25,7 +25,8 @@ argon2-cffi = "^23.1.0"
 python-multipart = "^0.0.20"
 pyyaml = "^6.0.2"
 pytest = "^8.3.5"
-httpx = "^0.28.1"
+pytest-asyncio = "^0.25.3"
+aiohttp = "^3.11.13"
 
 [build-system]
 requires = ["poetry-core"]

@@ -36,7 +36,7 @@ async def my_user(
 
 @auth_router.post(
     "",
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     response_model=AuthenticationModel
 )
 async def login(
