@@ -54,7 +54,7 @@ class PacketsRouter(APIRouter):
         self.add_api_websocket_route(
             "/",
             self.handle_packets,
-            dependencies=[Authenticator.authenticate_websocket_dependency()]
+            dependencies=[Authenticator.authenticate_websocket()]
         )
 
     def handle(

@@ -19,7 +19,7 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
     "/",
     status_code=status.HTTP_201_CREATED,
     response_model=GameResponseModel,
-    dependencies=[Authenticator.verify_access_token_dependency()]
+    dependencies=[Authenticator.get_user()]
 )
 async def create_game(
         games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
@@ -32,7 +32,7 @@ async def create_game(
     "/{game_id}",
     status_code=status.HTTP_200_OK,
     response_model=GameResponseModel,
-    dependencies=[Authenticator.verify_access_token_dependency()]
+    dependencies=[Authenticator.get_user()]
 )
 async def get_game(
         game_id: UUID,
@@ -50,7 +50,7 @@ async def get_game(
 @games_router.delete(
     "/{game_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Authenticator.verify_access_token_dependency()]
+    dependencies=[Authenticator.get_user()]
 )
 async def remove_game(
         game_id: UUID,

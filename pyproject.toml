@@ -21,6 +21,8 @@ websockets = "^14.2"
 arq = "^0.26.3"
 pyjwt = "^2.10.1"
 pytz = "^2025.1"
+argon2-cffi = "^23.1.0"
+python-multipart = "^0.0.20"
 
 [build-system]
 requires = ["poetry-core"]
