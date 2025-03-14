@@ -244,8 +244,6 @@ class Game(RedisObject):
 
         if next_player.is_imprisoned:
             self.action = PrisonAction()
-        else:
-            self.action = MoveAction()
 
             await self.send(
                 ServerGameAskPlayerOnPrisonPacket(
@@ -254,6 +252,8 @@ class Game(RedisObject):
                     Parameters.DEFAULT_PRISON_ESCAPE_COST
                 )
             )
+        else:
+            self.action = MoveAction()
 
     async def start_auction(
             self,

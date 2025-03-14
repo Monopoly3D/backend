@@ -6,11 +6,12 @@ from starlette import status
 
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
+from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.response.game import GameResponseModel
-from app.api.v1.security.authenticator import Authenticator
+from app.api.v1.security.authorizer import Authorizer
 from app.assets.objects.game import Game
-from app.dependencies import Dependency
+from app.dependencies import games_controller_dependency
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
 
@@ -19,10 +20,10 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
     "/",
     status_code=status.HTTP_201_CREATED,
     response_model=GameResponseModel,
-    dependencies=[Authenticator.verify_access_token_dependency()]
+    dependencies=[Authorizer.has_permission(Permission.CREATE_GAMES)]
 )
 async def create_game(
-        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
 ) -> GameResponseModel:
     game: Game = await games_controller.create_game()
     return GameResponseModel.from_game(game)
@@ -32,12 +33,12 @@ async def create_game(
     "/{game_id}",
     status_code=status.HTTP_200_OK,
     response_model=GameResponseModel,
-    dependencies=[Authenticator.verify_access_token_dependency()]
+    dependencies=[Authorizer.has_permission(Permission.VIEW_OWN_USER)]
 )
 async def get_game(
         game_id: UUID,
         connections: Annotated[ConnectionsController, Depends(ConnectionsController.dependency)],
-        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
 ) -> GameResponseModel:
     game: Game | None = await games_controller.get_game(game_id, connections)
 
@@ -50,11 +51,11 @@ async def get_game(
 @games_router.delete(
     "/{game_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Authenticator.verify_access_token_dependency()]
+    dependencies=[Authorizer.has_permission(Permission.REMOVE_OWN_GAMES)]
 )
 async def remove_game(
         game_id: UUID,
-        games_controller: Annotated[GamesController, Depends(Dependency.games_controller)]
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
 ) -> None:
     if not await games_controller.exists_game(game_id):
         raise NotFoundError("Game with provided UUID was not found")

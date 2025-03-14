@@ -1,4 +1,5 @@
-.env
+*.env
+*.conf
 .venv
 .idea
 

@@ -16,7 +16,8 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.assets.exceptions.game_error import GameError
-from app.dependencies import Dependency
+from app.database.database import Database
+from app.dependencies import inject
 from config import Config
 
 config: Config = Config(_env_file=".env")
@@ -24,11 +25,11 @@ config: Config = Config(_env_file=".env")
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    database = None
+    database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
-    connections: ConnectionsController = ConnectionsController(redis)
+    connections: ConnectionsController = ConnectionsController()
 
-    await Dependency.inject(
+    await inject(
         fastapi_app,
         config,
         database,
@@ -36,11 +37,8 @@ async def lifespan(fastapi_app: FastAPI):
         connections
     )
 
-    await connections.prepare()
-
     yield
 
-    await connections.prepare()
     await redis.aclose()
 
 
