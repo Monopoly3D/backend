@@ -17,7 +17,7 @@ from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthent
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth import ServerAuthPacket
 from app.assets.objects.user import User
-from app.dependencies import Dependency
+from app.dependencies import users_controller_websocket, config_websocket, users_controller_dependency
 from config import Config
 
 
@@ -132,7 +132,7 @@ class Authenticator:
         )
 
     @staticmethod
-    def websocket_dependency(config: Annotated[Config, Depends(Dependency.config_websocket)]) -> 'Authenticator':
+    def websocket_dependency(config: Annotated[Config, Depends(config_websocket)]) -> 'Authenticator':
         return Authenticator(
             jwt_key=config.jwt_key.get_secret_value(),
             jwt_algorithm=config.jwt_algorithm
@@ -143,7 +143,7 @@ class Authenticator:
         async def __verify_access_token(
                 access_token: Annotated[str, Header()],
                 authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
-                users_controller: Annotated[UsersController, Depends(Dependency.users_controller)],
+                users_controller: Annotated[UsersController, Depends(users_controller_dependency)],
         ) -> None:
             await authenticator.verify_access_token(access_token, users_controller=users_controller)
 
@@ -154,7 +154,7 @@ class Authenticator:
         async def __get_user(
                 access_token: Annotated[str, Header()],
                 authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
-                users_controller: Annotated[UsersController, Depends(Dependency.users_controller)],
+                users_controller: Annotated[UsersController, Depends(users_controller_dependency)],
         ) -> User:
             return await authenticator.verify_access_token(access_token, users_controller=users_controller)
 
@@ -166,7 +166,7 @@ class Authenticator:
                 websocket: WebSocket,
                 authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-                users_controller: Annotated[UsersController, Depends(Dependency.users_controller_websocket)]
+                users_controller: Annotated[UsersController, Depends(users_controller_websocket)]
         ) -> None:
             await websocket.accept()
 
@@ -213,7 +213,7 @@ class Authenticator:
         async def __get_websocket_user(
                 websocket: WebSocket,
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-                users_controller: Annotated[UsersController, Depends(Dependency.users_controller_websocket)]
+                users_controller: Annotated[UsersController, Depends(users_controller_websocket)]
         ) -> User:
             user: User | None = await users_controller.get_user(await connections.get_user_id(websocket))
 
@@ -229,7 +229,7 @@ class Authenticator:
         async def __get_websocket_user(
                 websocket: WebSocket,
                 connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-                users_controller: Annotated[UsersController, Depends(Dependency.users_controller_websocket)]
+                users_controller: Annotated[UsersController, Depends(users_controller_websocket)]
         ) -> User:
             user: User | None = await users_controller.get_user(await connections.get_user_id(websocket))
 

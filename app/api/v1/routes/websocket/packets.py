@@ -17,17 +17,18 @@ from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.exceptions.game_error import GameError
 from app.assets.objects.user import User
-from app.dependencies import Dependency
+from app.dependencies import games_controller_websocket, users_controller_websocket, config_websocket, \
+    redis_websocket
 from config import Config
 
 
 async def dependencies(
-        config: Annotated[Config, Depends(Dependency.config_websocket)],
-        redis: Annotated[Redis, Depends(Dependency.redis_websocket)],
+        config: Annotated[Config, Depends(config_websocket)],
+        redis: Annotated[Redis, Depends(redis_websocket)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
-        users_controller: Annotated[UsersController, Depends(Dependency.users_controller_websocket)],
-        games_controller: Annotated[GamesController, Depends(Dependency.games_controller_websocket)],
+        users_controller: Annotated[UsersController, Depends(users_controller_websocket)],
+        games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
         user: Annotated[User, Authenticator.get_websocket_user()]
 ) -> Dict[str, Any]:
     return {
