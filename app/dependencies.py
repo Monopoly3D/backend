@@ -1,33 +1,14 @@
 from typing import Annotated, AsyncGenerator
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.games import GamesController
 from app.database.database import Database
 from config import Config
-
-
-async def inject(
-        fastapi_app: FastAPI,
-        config: Config,
-        database: Database,
-        redis: Redis,
-        connections: ConnectionsController
-) -> None:
-    fastapi_app.state.config = config
-    fastapi_app.state.database = database
-    fastapi_app.state.redis = redis
-    fastapi_app.state.connections = connections
-
-    games_controller = GamesController(redis)
-    await games_controller.retrieve_games(connections)
-
-    fastapi_app.state.games_controller = games_controller
 
 
 async def config_dependency(request: Request) -> Config:

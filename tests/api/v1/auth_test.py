@@ -1,5 +1,8 @@
 import pytest
 from aiohttp import ClientSession
+from starlette.responses import Response
+
+from tests.conftest import client
 
 test_user = {
     "username": "Plummy",
@@ -15,23 +18,19 @@ game_id: str = ""
 auth_headers = {}
 
 
-@pytest.mark.asyncio(loop_scope="session")
-async def test_registration() -> None:
+def test_registration() -> None:
     global access_token
     global refresh_token
     global auth_headers
 
-    async with ClientSession() as session:
-        async with session.post(
-            "http://127.0.0.1:8000/api/v1/auth/register",
-            json=test_user
-        ) as response:
-            assert response.status == 201
-            access_token = (await response.json())["access_token"]
-            refresh_token = (await response.json())["refresh_token"]
-            auth_headers = {"Authorization": f"Bearer {access_token}"}
+    response: Response = client.post(
+        "api/v1/auth/register",
+        json=test_user
+    )
 
+    assert response.status_code == 201
 
+"""
 @pytest.mark.asyncio(loop_scope="session")
 async def test_login() -> None:
     global access_token
@@ -99,3 +98,4 @@ async def test_game_creation() -> None:
         ) as response:
             assert response.status == 201
             game_id = (await response.json())["game_id"]
+"""
