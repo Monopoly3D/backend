@@ -78,6 +78,7 @@ class Game(RedisObject):
 
     game_id: UUID
     is_started: bool = False
+    seed: int = 1
     round: int = 0
     move: int = 0
     min_players: int = Parameters.MIN_PLAYERS
@@ -98,6 +99,7 @@ class Game(RedisObject):
 
     __controller_instance: RedisController | None = dataclass_field(default=None, repr=False)
     __start_task_name: str | None = dataclass_field(default=None, repr=False)
+    __random: random.Random | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self):
         self.players.game = self
@@ -105,6 +107,7 @@ class Game(RedisObject):
         self.monopolies.game = self
 
         self.__start_task_name = f"start:{self.game_id}"
+        self.__random = random.Random(self.seed)
 
     @classmethod
     def from_json(
@@ -135,6 +138,7 @@ class Game(RedisObject):
             "action": self.action.pack() if self.action is not None else None,
             "round": self.round,
             "move": self.move,
+            "seed": self.seed,
             "min_players": self.min_players,
             "max_players": self.max_players,
             "start_delay": self.start_delay,
@@ -343,34 +347,15 @@ class Game(RedisObject):
         except CancelledError:
             pass
 
-    @staticmethod
-    def roll_dices(
+    def roll_dice(
+            self,
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        return tuple(random.randint(1, 6) for _ in range(amount))
+        return tuple(self.__random.randint(1, 6) for _ in range(amount))
 
-    @staticmethod
-    def roll_dice() -> int:
-        return random.randint(1, 6)
-
-    @staticmethod
-    def roll_test_dices():  # TESTING
-        yield 4, 5
-        yield 6, 5
-
-        yield 0, 0
-        yield 0, 0
-        yield 0, 0
-        yield 0, 0
-        yield 0, 0
-        yield 0, 0
-        yield 0, 0
-
-    @staticmethod
-    def roll_test_dice():  # TESTING
-        yield 1
-        yield 5
+    def roll_die(self) -> int:
+        return self.__random.randint(1, 6)
 
     @staticmethod
     def get_auction_players(

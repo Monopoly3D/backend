@@ -1,6 +1,5 @@
 import asyncio
 import sys
-from asyncio import AbstractEventLoop
 from typing import AsyncGenerator
 
 import pytest
@@ -50,6 +49,7 @@ async def async_teardown():
     async with test_database.engine.connect() as db:
         await db.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
         await db.commit()
+    await app.state.redis.flushdb()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -60,13 +60,16 @@ def prepare():
 
 
 @pytest.fixture(scope="session")
-async def loop() -> AsyncGenerator[AbstractEventLoop, None]:
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+async def loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
     yield loop
     loop.close()
 
 
 @pytest.fixture(scope="session")
 async def ac() -> AsyncGenerator[TestClient, None]:
-    async with TestClient(app=app, base_url="http://127.0.0.1:8000") as ac:
+    async with TestClient(app=app) as ac:
         yield ac

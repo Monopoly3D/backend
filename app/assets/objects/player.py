@@ -280,7 +280,7 @@ class Player(GameObject):
         self.prison = -1
 
     async def accept_prison(self) -> None:
-        dices: Tuple[int, ...] = next(self.game.roll_test_dices())
+        dices: Tuple[int, ...] = self.game.roll_dice()
         got_double: bool = dices[0] == dices[1]
 
         await self.game.send(
@@ -329,7 +329,7 @@ class Player(GameObject):
 
         self.balance -= Parameters.DEFAULT_CASINO_BET
 
-        roll: int = next(self.game.roll_test_dice())
+        roll: int = self.game.roll_die()
         won: bool = roll in dices
         prize: int = Parameters.DEFAULT_CASINO_BET * 6 // len(dices) if won else 0
 
