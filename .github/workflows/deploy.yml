@@ -2,8 +2,8 @@ name: Build and Deploy Monopoly3D Backend Server
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'dev*'
 
 jobs:
   build:
