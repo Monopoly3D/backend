@@ -22,7 +22,7 @@ services:
 
   server:
     container_name: monopoly_server
-    build: .
+    image: ghcr.io/monopoly3d/backend:latest
     restart: on-failure
     command: bash -c "poetry run alembic upgrade head && poetry run uvicorn --host 0.0.0.0 --port 8000 --loop asyncio --log-config app/api/v1/logging.json app.asgi:app"
     env_file: ".server.env"
