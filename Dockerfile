@@ -2,6 +2,6 @@ ARG PYTHON_VERSION=3.13
 
 FROM python:${PYTHON_VERSION}-slim
 WORKDIR /opt/app
-RUN apt-get update && apt-get install gcc g++ curl build-essential postgresql-server-dev-all -y
-COPY . .
+COPY pyproject.toml poetry.lock ./
 RUN pip install poetry && poetry install
+COPY . .
