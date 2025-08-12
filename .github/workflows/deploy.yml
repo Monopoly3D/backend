@@ -38,6 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Setup SSH
         run: |
