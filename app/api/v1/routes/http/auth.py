@@ -1,16 +1,18 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+from starlette.requests import Request
+from starlette.responses import Response
 
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.not_found import NotFoundError
-from app.api.v1.models.create.credentials import CredentialsModel
+from app.api.v1.models.post.credentials import CredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.models.response.user import UserResponseModel
@@ -40,6 +42,7 @@ async def my_user(
     response_model=AuthenticationModel
 )
 async def login(
+        response: Response,
         credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
@@ -64,8 +67,9 @@ async def login(
         .values(refresh_token=refresh_token)
     )
     await session.commit()
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
 
-    return AuthenticationModel(access_token=access_token, refresh_token=refresh_token)
+    return AuthenticationModel(access_token=access_token)
 
 
 @auth_router.post(
@@ -74,6 +78,7 @@ async def login(
     response_model=AuthenticationModel
 )
 async def register(
+        response: Response,
         credentials: CredentialsModel,
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
@@ -109,8 +114,9 @@ async def register(
         .values(refresh_token=refresh_token)
     )
     await session.commit()
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
 
-    return AuthenticationModel(access_token=access_token, refresh_token=refresh_token)
+    return AuthenticationModel(access_token=access_token)
 
 
 @auth_router.post(
@@ -119,10 +125,11 @@ async def register(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def refresh(
-        refresh_token: Annotated[str, Header()],
+        request: Request,
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
+    refresh_token: str = request.cookies.get("refresh_token")
     user: User = await authenticator.verify_refresh_token(refresh_token, session)
 
     if user.refresh_token != refresh_token:
@@ -138,10 +145,7 @@ async def refresh(
     )
     await session.commit()
 
-    return AuthenticationModel(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    return AuthenticationModel(access_token=access_token)
 
 
 @auth_router.post(
