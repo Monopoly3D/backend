@@ -17,5 +17,12 @@ class ServerPlayerJoinGamePacket(ServerPacket):
     def to_json(self) -> Dict[str, Any]:
         return {
             "game_id": str(self.game_id),
-            "players": [player.to_json() for player in self.players]
+            "players": [
+                {
+                    "player_id": str(player.player_id),
+                    "username": player.username,
+                    "is_ready": player.is_ready
+                }
+                for player in self.players
+            ]
         }

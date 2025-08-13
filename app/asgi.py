@@ -10,6 +10,7 @@ from starlette.websockets import WebSocket
 
 from app.api.router import api_router
 from app.api.v1.controllers.connections import ConnectionsController
+from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
@@ -17,32 +18,29 @@ from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
-from app.dependencies import inject
 from config import Config
 
 config: Config = Config(_env_file=".env")
+database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
+redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
+connections: ConnectionsController = ConnectionsController()
 
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
-    redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
-    connections: ConnectionsController = ConnectionsController()
-
-    await inject(
-        fastapi_app,
-        config,
-        database,
-        redis,
-        connections
-    )
-
+    await fastapi_app.state.games_controller.retrieve_games(connections)
     yield
-
     await redis.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.state.config = config
+app.state.database = database
+app.state.redis = redis
+app.state.connections = connections
+app.state.games_controller = GamesController(redis)
+
 app.include_router(api_router)
 
 
