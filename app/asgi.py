@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from pydantic import ValidationError
 from redis.asyncio import Redis
 from starlette import status
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
@@ -40,6 +41,14 @@ app.state.database = database
 app.state.redis = redis
 app.state.connections = connections
 app.state.games_controller = GamesController(redis)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 app.include_router(api_router)
 
