@@ -2,15 +2,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_mail import FastMail, MessageSchema, MessageType
-from pydantic import EmailStr
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.api.v1.assets.email_creator import EmailCreator
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
@@ -22,7 +19,7 @@ from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
 from app.database.models import User, UserRole, Role
-from app.dependencies import database_session, no_reply_email_dependency
+from app.dependencies import database_session
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 
@@ -85,18 +82,7 @@ async def register(
         credentials: CredentialsModel,
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
-        email: Annotated[FastMail, Depends(no_reply_email_dependency)],
 ) -> AuthenticationModel:
-    await email.send_message(
-        EmailCreator.create_verification_message(
-            "plummybeatsoff@gmail.com",
-            subject="Verify your Monopoly3D account",
-            verification_url="https://www.youtube.com/"
-        )
-    )
-
-    return
-
     user: User | None = await session.scalar(
         select(User)
         .filter_by(username=credentials.username)

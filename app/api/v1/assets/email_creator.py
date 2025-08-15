@@ -22,11 +22,10 @@ class EmailCreator:
     @staticmethod
     def create_verification_message(
             *recipients: EmailStr | str,
-            subject: str,
             verification_url: str
     ) -> MessageSchema:
         return _create_message(
             *recipients,
-            subject=subject,
+            subject="Verify your Monopoly3D account",
             content=_verification_email_template.format(verification_url=verification_url)
         )
