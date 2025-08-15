@@ -126,6 +126,7 @@ async def register(
 )
 async def refresh(
         request: Request,
+        response: Response,
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
@@ -144,6 +145,7 @@ async def refresh(
         .values(refresh_token=refresh_token)
     )
     await session.commit()
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
 
     return AuthenticationModel(access_token=access_token)
 
