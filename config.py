@@ -9,4 +9,10 @@ class Config(BaseSettings):
     test_database_dsn: SecretStr | None = None
     redis_dsn: SecretStr
 
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+
+    no_reply_email_sender: SecretStr | None = None
+    no_reply_email_password: SecretStr | None = None
+
     jwt_algorithm: str = "HS256"

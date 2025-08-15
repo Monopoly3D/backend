@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi_mail import ConnectionConfig
 from pydantic import ValidationError
 from redis.asyncio import Redis
 from starlette import status
@@ -41,6 +42,18 @@ app.state.database = database
 app.state.redis = redis
 app.state.connections = connections
 app.state.games_controller = GamesController(redis)
+
+app.state.no_reply_email_config = ConnectionConfig(
+    MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
+    MAIL_PASSWORD=config.no_reply_email_password,
+    MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
+    MAIL_SERVER=config.smtp_host,
+    MAIL_PORT=config.smtp_port,
+    MAIL_SSL_TLS=True,
+    MAIL_STARTTLS=False,
+    USE_CREDENTIALS=True,
+    VALIDATE_CERTS=True
+)
 
 app.add_middleware(
     CORSMiddleware,

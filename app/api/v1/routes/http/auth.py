@@ -2,6 +2,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_mail import FastMail, MessageSchema, MessageType
+from pydantic import EmailStr
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -19,7 +21,7 @@ from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
 from app.database.models import User, UserRole, Role
-from app.dependencies import database_session
+from app.dependencies import database_session, no_reply_email_dependency
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 
@@ -81,8 +83,20 @@ async def register(
         response: Response,
         credentials: CredentialsModel,
         session: Annotated[AsyncSession, Depends(database_session)],
-        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
+        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
+        email: Annotated[FastMail, Depends(no_reply_email_dependency)],
 ) -> AuthenticationModel:
+    await email.send_message(
+        MessageSchema(
+            subject="Monopoly3D",
+            recipients=["plummybeatsoff@gmail.com"],
+            body="<p>Test email!</p>",
+            subtype=MessageType.html
+        )
+    )
+
+    return
+
     user: User | None = await session.scalar(
         select(User)
         .filter_by(username=credentials.username)
