@@ -10,6 +10,7 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.api.v1.assets.email_creator import EmailCreator
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
@@ -87,11 +88,10 @@ async def register(
         email: Annotated[FastMail, Depends(no_reply_email_dependency)],
 ) -> AuthenticationModel:
     await email.send_message(
-        MessageSchema(
-            subject="Monopoly3D",
-            recipients=["plummybeatsoff@gmail.com"],
-            body="<p>Test email!</p>",
-            subtype=MessageType.html
+        EmailCreator.create_verification_message(
+            "plummybeatsoff@gmail.com",
+            subject="Verify your Monopoly3D account",
+            verification_url="https://www.youtube.com/"
         )
     )
 
