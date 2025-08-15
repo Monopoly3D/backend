@@ -1,0 +1,2 @@
+class EmailCreator:
+    pass
