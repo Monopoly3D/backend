@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Form
 from fastapi_mail import FastMail
 from sqlalchemy import select, update, or_
 from sqlalchemy.exc import IntegrityError
@@ -48,25 +48,26 @@ async def my_user(
 )
 async def login(
         response: Response,
-        credentials: LoginCredentialsModel,
+        username: Annotated[str, Form()],
+        password: Annotated[str, Form()],
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
     user: User | None = await session.scalar(
         select(User)
-        .filter_by(username=credentials.username)
+        .filter_by(username=username)
     )
 
     if user is None:
         user: User | None = await session.scalar(
             select(User)
-            .filter_by(email=credentials.username)
+            .filter_by(email=username)
         )
 
     if user is None:
         raise NotFoundError("User with provided credentials was not found")
 
-    if not await authenticator.verify_password(credentials.password, user.password_hash):
+    if not await authenticator.verify_password(password, user.password_hash):
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)
@@ -95,7 +96,7 @@ async def register(
         email: Annotated[FastMail, Depends(no_reply_email_dependency)],
         background_tasks: BackgroundTasks
 ) -> None:
-    user: User | None = await session.scalar(
+    is_user_exist = await session.scalar(
         select(User)
         .filter(
             or_(
@@ -103,9 +104,11 @@ async def register(
                 User.email == credentials.email,
             )
         )
+        .exists()
+        .select()
     )
 
-    if user is not None:
+    if is_user_exist:
         raise AlreadyExistsError("User with provided credentials already exists")
 
     register_token: str = await authenticator.create_register_token(

@@ -5,5 +5,4 @@ from pydantic import BaseModel
 
 
 class LoginCredentialsModel(BaseModel):
-    username: Annotated[str, Form()]
-    password: Annotated[str, Form()]
+    pass
