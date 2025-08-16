@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi_mail import FastMail
 from sqlalchemy import select, update, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.requests import Request
@@ -12,6 +13,7 @@ from app.api.v1.assets.email_creator import EmailCreator
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
+from app.api.v1.exceptions.http.invalid_register_token import InvalidRegisterTokenError
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.post.login_credentials import LoginCredentialsModel
 from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
@@ -56,7 +58,13 @@ async def login(
     )
 
     if user is None:
-        raise NotFoundError("User with provided username was not found")
+        user: User | None = await session.scalar(
+            select(User)
+            .filter_by(email=credentials.username)
+        )
+
+    if user is None:
+        raise NotFoundError("User with provided credentials was not found")
 
     if not await authenticator.verify_password(credentials.password, user.password_hash):
         raise InvalidCredentialsError("Provided credentials are invalid")
@@ -97,14 +105,14 @@ async def register(
         )
     )
 
+    if user is not None:
+        raise AlreadyExistsError("User with provided credentials already exists")
+
     register_token: str = await authenticator.create_register_token(
         credentials.username,
         credentials.email,
         await authenticator.hash_password(credentials.password)
     )
-
-    if user is not None:
-        raise AlreadyExistsError("User with provided username already exists")
 
     background_tasks.add_task(
         email.send_message,
@@ -131,7 +139,10 @@ async def verify(
 ) -> AuthenticationModel:
     session.add(user)
 
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        raise InvalidRegisterTokenError("Provided register token has already been used")
 
     session.add(
         UserRole(
