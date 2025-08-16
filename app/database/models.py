@@ -17,6 +17,7 @@ class User(Base):
 
     id = Column(UUID(True), primary_key=True, server_default=func.gen_random_uuid())
     username = Column(String(), unique=True, nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(), nullable=False)
     refresh_token = Column(String(), nullable=True, default=None)
     created_at = Column(DateTime(), default=datetime.now, nullable=False)

@@ -1,6 +1,7 @@
 from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
+from fastapi_mail import FastMail
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
@@ -32,6 +33,10 @@ async def redis_dependency(request: Request) -> Redis:
 
 async def games_controller_dependency(request: Request) -> 'GamesController':
     return request.app.state.games_controller
+
+
+async def no_reply_email_dependency(request: Request) -> 'FastMail':
+    return FastMail(request.app.state.no_reply_email_config)
 
 
 async def config_websocket(websocket: WebSocket) -> Config:
