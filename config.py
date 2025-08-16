@@ -14,5 +14,6 @@ class Config(BaseSettings):
 
     no_reply_email_sender: SecretStr | None = None
     no_reply_email_password: SecretStr | None = None
+    verification_url: str | None = None
 
     jwt_algorithm: str = "HS256"

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserResponseModel(BaseModel):
@@ -8,3 +8,4 @@ class UserResponseModel(BaseModel):
 
     id: UUID
     username: str
+    email: EmailStr

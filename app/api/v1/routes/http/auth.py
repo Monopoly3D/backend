@@ -1,25 +1,28 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select, update
+from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi_mail import FastMail
+from sqlalchemy import select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.api.v1.assets.email_creator import EmailCreator
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.not_found import NotFoundError
-from app.api.v1.models.post.credentials import CredentialsModel
+from app.api.v1.models.post.login_credentials import LoginCredentialsModel
+from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
 from app.database.models import User, UserRole, Role
-from app.dependencies import database_session
+from app.dependencies import database_session, no_reply_email_dependency, config_dependency
+from config import Config
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
 
@@ -43,7 +46,7 @@ async def my_user(
 )
 async def login(
         response: Response,
-        credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
+        credentials: LoginCredentialsModel,
         session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
@@ -74,28 +77,60 @@ async def login(
 
 @auth_router.post(
     "/register",
-    status_code=status.HTTP_201_CREATED,
-    response_model=AuthenticationModel
+    status_code=status.HTTP_202_ACCEPTED
 )
 async def register(
-        response: Response,
-        credentials: CredentialsModel,
+        credentials: RegisterCredentialsModel,
         session: Annotated[AsyncSession, Depends(database_session)],
+        config: Annotated[Config, Depends(config_dependency)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
-) -> AuthenticationModel:
+        email: Annotated[FastMail, Depends(no_reply_email_dependency)],
+        background_tasks: BackgroundTasks
+) -> None:
     user: User | None = await session.scalar(
         select(User)
-        .filter_by(username=credentials.username)
+        .filter(
+            or_(
+                User.username == credentials.username,
+                User.email == credentials.email,
+            )
+        )
+    )
+
+    register_token: str = await authenticator.create_register_token(
+        credentials.username,
+        credentials.email,
+        await authenticator.hash_password(credentials.password)
     )
 
     if user is not None:
         raise AlreadyExistsError("User with provided username already exists")
 
-    user: User = User(
-        username=credentials.username,
-        password_hash=await authenticator.hash_password(credentials.password)
+    background_tasks.add_task(
+        email.send_message,
+        EmailCreator.create_verification_message(
+            credentials.email,
+            verification_url=config.verification_url.format(register_token=register_token),
+        ),
+        template_name=None,
+        html_template=None,
+        plain_template=None
     )
+
+
+@auth_router.post(
+    "/verify",
+    response_model=AuthenticationModel,
+    status_code=status.HTTP_202_ACCEPTED
+)
+async def verify(
+        response: Response,
+        user: Annotated[User, Authenticator.get_register_user()],
+        session: Annotated[AsyncSession, Depends(database_session)],
+        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
+) -> AuthenticationModel:
     session.add(user)
+
     await session.commit()
 
     session.add(
@@ -122,7 +157,7 @@ async def register(
 @auth_router.post(
     "/refresh",
     response_model=AuthenticationModel,
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_202_ACCEPTED
 )
 async def refresh(
         request: Request,

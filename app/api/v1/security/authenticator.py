@@ -1,11 +1,11 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, Annotated, List
+from typing import Dict, Annotated, List, Any
 from uuid import UUID
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from fastapi import Depends
+from fastapi import Depends, Form
 from fastapi.security import OAuth2PasswordBearer
 from jwt import encode, decode, InvalidTokenError
 from pytz import utc
@@ -29,6 +29,7 @@ from config import Config
 class Authenticator:
     ACCESS_TOKEN_EXPIRE = timedelta(weeks=100)
     REFRESH_TOKEN_EXPIRE = timedelta(weeks=100)
+    REGISTER_TOKEN_EXPIRE = timedelta(weeks=100)
     TICKET_EXPIRE = timedelta(weeks=100)
 
     OAUTH_SCHEME: OAuth2PasswordBearer = OAuth2PasswordBearer("/api/v1/auth/")
@@ -90,6 +91,25 @@ class Authenticator:
             self.__jwt_algorithm
         )
 
+    async def create_register_token(
+            self,
+            username: str,
+            email: str,
+            password_hash: str
+    ) -> str:
+        return await asyncio.to_thread(
+            encode,
+            {
+                "username": username,
+                "email": email,
+                "password_hash": password_hash,
+                "exp": datetime.now(utc) + self.REFRESH_TOKEN_EXPIRE,
+                "mode": "register"
+            },
+            self.__jwt_key,
+            self.__jwt_algorithm
+        )
+
     async def create_ticket(
             self,
             user_id: UUID
@@ -116,6 +136,12 @@ class Authenticator:
             refresh_token: str
     ) -> Dict[str, str]:
         return await self.__decode_token(refresh_token, "refresh")
+
+    async def decode_register_token(
+            self,
+            register_token: str
+    ) -> Dict[str, Any]:
+        return await self.__decode_token(register_token, "register")
 
     async def decode_ticket(
             self,
@@ -159,7 +185,7 @@ class Authenticator:
         except InvalidTokenError:
             raise InvalidAccessTokenError("Provided token is invalid or expired")
 
-        if "id" not in token or "mode" not in token:
+        if "mode" not in token:
             raise InvalidAccessTokenError("Provided token is invalid")
 
         if token.get("mode") != mode:
@@ -204,6 +230,22 @@ class Authenticator:
             jwt_key=config.jwt_key.get_secret_value(),
             jwt_algorithm=config.jwt_algorithm
         )
+
+    @classmethod
+    def get_register_user(cls) -> Depends:
+        async def __get_register_user(
+                register_token: Annotated[str, Form()],
+                authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
+        ) -> User:
+            credentials: Dict[str, str] = await authenticator.decode_register_token(register_token)
+
+            return User(
+                username=credentials.get("username"),
+                email=credentials.get("email"),
+                password_hash=credentials.get("password_hash")
+            )
+
+        return Depends(__get_register_user)
 
     @classmethod
     def get_user(cls) -> Depends:
