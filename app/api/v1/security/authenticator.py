@@ -50,13 +50,13 @@ class Authenticator:
     ) -> str:
         return await asyncio.to_thread(self.__ph.hash, string)
 
-    async def verify_password(
+    async def verify(
             self,
-            password: str,
-            password_hash: str
+            string: str,
+            string_hash: str
     ) -> bool:
         try:
-            await asyncio.to_thread(self.__ph.verify, password_hash, password)
+            await asyncio.to_thread(self.__ph.verify, string_hash, string)
             return True
         except VerifyMismatchError:
             return False
@@ -90,6 +90,35 @@ class Authenticator:
             self.__jwt_key,
             self.__jwt_algorithm
         )
+
+    async def create_new_refresh_token(
+            self,
+            user_id: UUID,
+            session: AsyncSession
+    ) -> str:
+        refresh_token: str = await self.create_refresh_token(user_id)
+        hashed_refresh_token: str = await self.hash(refresh_token)
+
+        user_refresh_token: UserRefreshToken | None = await session.scalar(
+            select(UserRefreshToken)
+            .filter_by(user_id=user_id)
+        )
+
+        if user_refresh_token is None:
+            session.add(
+                UserRefreshToken(
+                    user_id=user_id,
+                    refresh_token=hashed_refresh_token
+                )
+            )
+        else:
+            await session.execute(
+                update(UserRefreshToken)
+                .filter_by(user_id=user_id)
+                .values(refresh_token=hashed_refresh_token)
+            )
+
+        return refresh_token
 
     async def create_register_token(
             self,
@@ -235,34 +264,6 @@ class Authenticator:
             raise InvalidCredentialsError("Provided credentials are invalid")
 
         return user
-
-    async def get_new_refresh_token(
-            self,
-            user_id: UUID,
-            session: AsyncSession
-    ) -> str:
-        refresh_token: str = await self.create_refresh_token(user_id)
-
-        user_refresh_token: UserRefreshToken | None = await session.scalar(
-            select(UserRefreshToken)
-            .filter_by(user_id=user_id)
-        )
-
-        if user_refresh_token is None:
-            session.add(
-                UserRefreshToken(
-                    user_id=user_id,
-                    refresh_token=await self.hash(refresh_token)
-                )
-            )
-        else:
-            await session.execute(
-                update(UserRefreshToken)
-                .filter_by(user_id=user_id)
-                .values(refresh_token=await self.hash(refresh_token))
-            )
-
-        return refresh_token
 
     @staticmethod
     def dependency(config: Annotated[Config, Depends(config_dependency)]) -> 'Authenticator':

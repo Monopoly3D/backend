@@ -66,11 +66,11 @@ async def login(
     if user is None:
         raise NotFoundError("User with provided credentials was not found")
 
-    if not await authenticator.verify_password(password, user.password_hash):
+    if not await authenticator.verify(password, user.password_hash):
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)
-    refresh_token: str = await authenticator.get_new_refresh_token(user.id, session)
+    refresh_token: str = await authenticator.create_new_refresh_token(user.id, session)
 
     await session.commit()
     response.set_cookie("refresh_token", refresh_token, httponly=True)
@@ -149,7 +149,7 @@ async def verify(
     )
 
     access_token: str = await authenticator.create_access_token(user.id)
-    refresh_token: str = await authenticator.get_new_refresh_token(user.id, session)
+    refresh_token: str = await authenticator.create_new_refresh_token(user.id, session)
 
     await session.commit()
     response.set_cookie("refresh_token", refresh_token, httponly=True)
@@ -171,11 +171,11 @@ async def refresh(
     refresh_token: str = request.cookies.get("refresh_token")
     user: User = await authenticator.verify_refresh_token(refresh_token, session)
 
-    if user.refresh_token.refresh_token != await authenticator.hash(refresh_token):
+    if not authenticator.verify(refresh_token, user.refresh_token.refresh_token):
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)
-    refresh_token: str = await authenticator.get_new_refresh_token(user.id, session)
+    refresh_token: str = await authenticator.create_new_refresh_token(user.id, session)
 
     await session.commit()
     response.set_cookie("refresh_token", refresh_token, httponly=True)
