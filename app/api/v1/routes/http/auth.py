@@ -108,7 +108,7 @@ async def register(
     register_token: str = await authenticator.create_register_token(
         credentials.username,
         credentials.email,
-        await authenticator.hash_password(credentials.password)
+        await authenticator.hash(credentials.password)
     )
 
     background_tasks.add_task(
@@ -171,7 +171,7 @@ async def refresh(
     refresh_token: str = request.cookies.get("refresh_token")
     user: User = await authenticator.verify_refresh_token(refresh_token, session)
 
-    if user.refresh_token != refresh_token:
+    if user.refresh_token.refresh_token != await authenticator.hash(refresh_token):
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)

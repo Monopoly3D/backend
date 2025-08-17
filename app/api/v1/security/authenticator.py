@@ -44,11 +44,11 @@ class Authenticator:
         self.__jwt_algorithm = jwt_algorithm
         self.__ph = PasswordHasher()
 
-    async def hash_password(
+    async def hash(
             self,
-            password: str
+            string: str
     ) -> str:
-        return await asyncio.to_thread(self.__ph.hash, password)
+        return await asyncio.to_thread(self.__ph.hash, string)
 
     async def verify_password(
             self,
@@ -252,14 +252,14 @@ class Authenticator:
             session.add(
                 UserRefreshToken(
                     user_id=user_id,
-                    refresh_token=refresh_token
+                    refresh_token=await self.hash(refresh_token)
                 )
             )
         else:
             await session.execute(
                 update(UserRefreshToken)
                 .filter_by(user_id=user_id)
-                .values(refresh_token=refresh_token)
+                .values(refresh_token=await self.hash(refresh_token))
             )
 
         return refresh_token
