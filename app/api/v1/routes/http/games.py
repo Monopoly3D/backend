@@ -33,7 +33,7 @@ async def create_game(
     "/{game_id}",
     status_code=status.HTTP_200_OK,
     response_model=GameResponseModel,
-    dependencies=[Authorizer.has_permission(Permission.VIEW_OWN_USER)]
+    dependencies=[Authorizer.has_permission(Permission.VIEW_GAMES)]
 )
 async def get_game(
         game_id: UUID,
@@ -51,7 +51,7 @@ async def get_game(
 @games_router.delete(
     "/{game_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Authorizer.has_permission(Permission.REMOVE_OWN_GAMES)]
+    dependencies=[Authorizer.has_permission(Permission.REMOVE_GAMES)]
 )
 async def remove_game(
         game_id: UUID,

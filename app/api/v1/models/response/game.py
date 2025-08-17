@@ -10,6 +10,7 @@ from app.assets.objects.game import Game
 
 class GameResponseModel(BaseModel):
     game_id: UUID
+    code: str
     is_started: bool
     round: int
     move: int
@@ -31,6 +32,7 @@ class GameResponseModel(BaseModel):
     ) -> 'GameResponseModel':
         return cls(
             game_id=game.game_id,
+            code=game.code,
             is_started=game.is_started,
             round=game.round,
             move=game.move,

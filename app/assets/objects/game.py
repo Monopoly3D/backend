@@ -85,8 +85,8 @@ class Game(RedisObject):
     controller: 'GamesController'
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
-    is_started: bool = False
     code: GameCode = dataclass_field(default_factory=GameCode.random)
+    is_started: bool = False
     seed: int = 1
     round: int = 0
     move: int = 0
