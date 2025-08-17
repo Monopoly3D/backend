@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from app.api.v1.controllers.games import GamesController
+from app.assets.controllers.games import GamesController
 from app.database.database import Database
 from config import Config
 

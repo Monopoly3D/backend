@@ -1,11 +1,11 @@
 import asyncio
 from typing import Dict, Any, Tuple
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from redis import Redis
 
 from app.api.v1.controllers.connections import ConnectionsController
-from app.api.v1.controllers.redis import RedisController
+from app.assets.controllers.redis import RedisController
 from app.assets.objects.game import Game
 
 

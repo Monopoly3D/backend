@@ -10,7 +10,7 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.controllers.connections import ConnectionsController
-from app.api.v1.controllers.redis import RedisController
+from app.assets.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
 from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket
@@ -54,6 +54,8 @@ from app.assets.parameters import Parameters
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Game(RedisObject):
+    __CODE_REGENERATION_LIMIT: ClassVar[int] = 10
+
     __FIELDS: ClassVar[Dict[FieldType, Type[Field]]] = {
         FieldType.COMPANY: Company,
         FieldType.START: Start,
@@ -77,7 +79,7 @@ class Game(RedisObject):
         ActionType.CONTRACT: ContractAction
     }
 
-    controller: RedisController
+    controller: 'RedisController'
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     is_started: bool = False
@@ -104,6 +106,9 @@ class Game(RedisObject):
     _random: random.Random | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self):
+        for _ in range(self.__CODE_REGENERATION_LIMIT):
+            pass
+
         self.players.game = self
         self.fields.game = self
         self.monopolies.game = self

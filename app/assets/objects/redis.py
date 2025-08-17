@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any
 
-from app.api.v1.controllers.redis import RedisController
 from app.assets.objects.game_object import GameObject
 
 

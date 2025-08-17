@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.api.v1.controllers.connections import ConnectionsController
-from app.api.v1.controllers.games import GamesController
+from app.assets.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
