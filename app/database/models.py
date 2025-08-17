@@ -22,6 +22,7 @@ class User(Base):
     created_at = Column(DateTime(), default=datetime.now, nullable=False)
     updated_at = Column(DateTime(), nullable=True, onupdate=datetime.now)
 
+    refresh_token = relationship("UserRefreshToken", back_populates="users", uselist=False)
     roles = relationship("UserRole", back_populates="user")
 
 
@@ -32,6 +33,8 @@ class UserRefreshToken(Base):
     refresh_token = Column(String(), nullable=False)
     created_at = Column(DateTime(), default=datetime.now, nullable=False)
     updated_at = Column(DateTime(), nullable=True, onupdate=datetime.now)
+
+    user = relationship("User", back_populates="refresh_token")
 
 
 class UserRole(Base):

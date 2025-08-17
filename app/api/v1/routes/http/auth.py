@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Form
 from fastapi_mail import FastMail
-from sqlalchemy import select, update, or_
+from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -70,13 +70,8 @@ async def login(
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)
-    refresh_token: str = await authenticator.create_refresh_token(user.id)
+    refresh_token: str = await authenticator.get_new_refresh_token(user.id, session)
 
-    await session.execute(
-        update(User)
-        .filter_by(id=user.id)
-        .values(refresh_token=refresh_token)
-    )
     await session.commit()
     response.set_cookie("refresh_token", refresh_token, httponly=True)
 
@@ -154,13 +149,8 @@ async def verify(
     )
 
     access_token: str = await authenticator.create_access_token(user.id)
-    refresh_token: str = await authenticator.create_refresh_token(user.id)
+    refresh_token: str = await authenticator.get_new_refresh_token(user.id, session)
 
-    await session.execute(
-        update(User)
-        .filter_by(id=user.id)
-        .values(refresh_token=refresh_token)
-    )
     await session.commit()
     response.set_cookie("refresh_token", refresh_token, httponly=True)
 
@@ -185,13 +175,8 @@ async def refresh(
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)
-    refresh_token: str = await authenticator.create_refresh_token(user.id)
+    refresh_token: str = await authenticator.get_new_refresh_token(user.id, session)
 
-    await session.execute(
-        update(User)
-        .filter_by(id=user.id)
-        .values(refresh_token=refresh_token)
-    )
     await session.commit()
     response.set_cookie("refresh_token", refresh_token, httponly=True)
 

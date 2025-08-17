@@ -9,7 +9,7 @@ from fastapi import Depends, Form
 from fastapi.security import OAuth2PasswordBearer
 from jwt import encode, decode, InvalidTokenError
 from pytz import utc
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette.websockets import WebSocket
@@ -21,7 +21,7 @@ from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
 from app.api.v1.packets.client.auth import ClientAuthPacket
 from app.api.v1.packets.server.auth import ServerAuthPacket
-from app.database.models import User, Role
+from app.database.models import User, Role, UserRefreshToken
 from app.dependencies import config_websocket, config_dependency, database_session, database_websocket_session
 from config import Config
 
@@ -161,7 +161,26 @@ class Authenticator:
             refresh_token: str,
             session: AsyncSession
     ) -> User:
-        return await self.__verify_token(refresh_token, "refresh", session)
+        data: Dict[str, str] = await self.__decode_token(refresh_token, "refresh")
+
+        try:
+            user_id: UUID = UUID(data["id"])
+        except ValueError:
+            raise InvalidCredentialsError("Provided credentials are invalid")
+
+        user: User | None = await session.scalar(
+            select(User)
+            .filter_by(id=user_id)
+            .options(
+                joinedload(User.roles),
+                joinedload(User.refresh_token)
+            )
+        )
+
+        if user is None:
+            raise InvalidCredentialsError("Provided credentials are invalid")
+
+        return user
 
     async def verify_ticket(
             self,
@@ -216,6 +235,34 @@ class Authenticator:
             raise InvalidCredentialsError("Provided credentials are invalid")
 
         return user
+
+    async def get_new_refresh_token(
+            self,
+            user_id: UUID,
+            session: AsyncSession
+    ) -> str:
+        refresh_token: str = await self.create_refresh_token(user_id)
+
+        user_refresh_token: UserRefreshToken | None = await session.scalar(
+            select(UserRefreshToken)
+            .filter_by(user_id=user_id)
+        )
+
+        if user_refresh_token is None:
+            session.add(
+                UserRefreshToken(
+                    user_id=user_id,
+                    refresh_token=refresh_token
+                )
+            )
+        else:
+            await session.execute(
+                update(UserRefreshToken)
+                .filter_by(user_id=user_id)
+                .values(refresh_token=refresh_token)
+            )
+
+        return refresh_token
 
     @staticmethod
     def dependency(config: Annotated[Config, Depends(config_dependency)]) -> 'Authenticator':
