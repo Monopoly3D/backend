@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from starlette import status
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.games import GamesController
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.not_found import NotFoundError

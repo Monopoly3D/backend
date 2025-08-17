@@ -2,7 +2,7 @@ from random import shuffle
 from typing import Dict, List, Any, Tuple
 from uuid import UUID
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.assets.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.actions.action import Action

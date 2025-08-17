@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket

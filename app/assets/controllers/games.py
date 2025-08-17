@@ -4,7 +4,7 @@ from uuid import UUID
 
 from redis import Redis
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis import RedisController
 from app.assets.objects.game import Game
 

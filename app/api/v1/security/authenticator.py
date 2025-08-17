@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette.websockets import WebSocket
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.assets.controllers.connections import ConnectionsController
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError

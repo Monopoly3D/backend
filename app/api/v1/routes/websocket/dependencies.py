@@ -1,6 +1,6 @@
 from typing import Callable, List
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_client import ClientPacket
