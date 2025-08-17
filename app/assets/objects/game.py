@@ -153,13 +153,16 @@ class Game(RedisObject):
             "monopolies": self.monopolies.to_json()
         }
 
+    async def save(self) -> None:
+        await self.controller.set(self._redis_key, self.to_json())
+
     @property
     def controller(self) -> RedisController:
         return self.__controller_instance
 
     @controller.setter
     def controller(self, value: RedisController) -> None:
-        super().__init__(value.REDIS_KEY.format(game_id=self.game_id), value)
+        super().__init__(value.redis_key().format(game_id=self.game_id), value)
         self.__controller_instance = value
 
     async def send(

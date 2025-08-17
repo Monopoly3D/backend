@@ -7,7 +7,6 @@ from redis import Redis
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.assets.objects.game import Game
-from app.assets.objects.game_code import GameCode
 
 
 class GamesController(RedisController):
@@ -17,9 +16,6 @@ class GamesController(RedisController):
     ) -> None:
         super().__init__(redis)
 
-        self._games: Dict[UUID, Game] = {}
-        self._codes: Dict[GameCode, UUID] = {}
-
     def redis_key(self) -> str:
         return "games:{game_id}"
 
@@ -27,7 +23,6 @@ class GamesController(RedisController):
         game = Game(uuid4())
         game.controller = self
 
-        self._games[game.game_id] = game
         await game.save()
 
         return game
@@ -37,15 +32,14 @@ class GamesController(RedisController):
             game_id: UUID,
             connections: ConnectionsController
     ) -> Game | None:
-        game: Game | None = self._games.get(game_id)
+        game_json: Dict[str, Any] | None = await self.get(self.redis_key().format(game_id=game_id))
 
-        if game is None:
-            game: Dict[str, Any] | None = await self.get(self.redis_key().format(game_id=game_id))
-            if game is None:
-                return
-            game: Game = Game.from_json(game, connections=connections)
+        if game_json is None:
+            return
 
+        game: Game = Game.from_json(game_json, connections=connections)
         game.controller = self
+
         return game
 
     async def get_games(
@@ -64,17 +58,10 @@ class GamesController(RedisController):
             self,
             game_id: UUID
     ) -> bool:
-        return self._games.get(game_id) or await self.exists(self.redis_key().format(game_id=game_id))
+        return await self.exists(self.redis_key().format(game_id=game_id))
 
     async def remove_game(
             self,
             game_id: UUID
     ) -> None:
-        self._games.pop(game_id, None)
         await self.remove(self.redis_key().format(game_id=game_id))
-
-    async def retrieve_games(
-            self,
-            connections: ConnectionsController
-    ) -> None:
-        self._games.update({game.game_id: game for game in await self.get_games(connections)})

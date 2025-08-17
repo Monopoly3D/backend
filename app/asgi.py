@@ -22,47 +22,46 @@ from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from config import Config
 
-config: Config = Config(_env_file=".env")
-database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
-redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
-connections: ConnectionsController = ConnectionsController()
-
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    await fastapi_app.state.games_controller.retrieve_games(connections)
+    config: Config = Config(_env_file=".env")
+    database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
+    redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
+    connections: ConnectionsController = ConnectionsController()
+
+    fastapi_app.state.config = config
+    fastapi_app.state.database = database
+    fastapi_app.state.redis = redis
+    fastapi_app.state.connections = connections
+    fastapi_app.state.games_controller = GamesController(redis)
+
+    fastapi_app.state.no_reply_email_config = ConnectionConfig(
+        MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
+        MAIL_PASSWORD=config.no_reply_email_password,
+        MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
+        MAIL_SERVER=config.smtp_host,
+        MAIL_PORT=config.smtp_port,
+        MAIL_SSL_TLS=True,
+        MAIL_STARTTLS=False,
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True
+    )
+
+    fastapi_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"]
+    )
+
     yield
+
     await redis.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
-
-app.state.config = config
-app.state.database = database
-app.state.redis = redis
-app.state.connections = connections
-app.state.games_controller = GamesController(redis)
-
-app.state.no_reply_email_config = ConnectionConfig(
-    MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
-    MAIL_PASSWORD=config.no_reply_email_password,
-    MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
-    MAIL_SERVER=config.smtp_host,
-    MAIL_PORT=config.smtp_port,
-    MAIL_SSL_TLS=True,
-    MAIL_STARTTLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
-
 app.include_router(api_router)
 
 
