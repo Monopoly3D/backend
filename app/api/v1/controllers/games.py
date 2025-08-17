@@ -7,6 +7,7 @@ from redis import Redis
 from app.api.v1.controllers.connections import ConnectionsController
 from app.api.v1.controllers.redis import RedisController
 from app.assets.objects.game import Game
+from app.assets.objects.game_code import GameCode
 
 
 class GamesController(RedisController):
@@ -17,13 +18,15 @@ class GamesController(RedisController):
             redis: Redis
     ) -> None:
         super().__init__(redis)
-        self.games: Dict[UUID, Game] = {}
+
+        self._games: Dict[UUID, Game] = {}
+        self._codes: Dict[GameCode, UUID] = {}
 
     async def create_game(self) -> Game:
         game = Game(uuid4())
         game.controller = self
 
-        self.games[game.game_id] = game
+        self._games[game.game_id] = game
         await game.save()
 
         return game
@@ -33,7 +36,7 @@ class GamesController(RedisController):
             game_id: UUID,
             connections: ConnectionsController
     ) -> Game | None:
-        game: Game | None = self.games.get(game_id)
+        game: Game | None = self._games.get(game_id)
 
         if game is None:
             game: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(game_id=game_id))
@@ -60,17 +63,17 @@ class GamesController(RedisController):
             self,
             game_id: UUID
     ) -> bool:
-        return self.games.get(game_id) or await self.exists(self.REDIS_KEY.format(game_id=game_id))
+        return self._games.get(game_id) or await self.exists(self.REDIS_KEY.format(game_id=game_id))
 
     async def remove_game(
             self,
             game_id: UUID
     ) -> None:
-        self.games.pop(game_id, None)
+        self._games.pop(game_id, None)
         await self.remove(self.REDIS_KEY.format(game_id=game_id))
 
     async def retrieve_games(
             self,
             connections: ConnectionsController
     ) -> None:
-        self.games.update({game.game_id: game for game in await self.get_games(connections)})
+        self._games.update({game.game_id: game for game in await self.get_games(connections)})
