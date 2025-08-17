@@ -2,7 +2,8 @@ from random import shuffle
 from typing import Dict, List, Any, Tuple
 from uuid import UUID
 
-from app.api.v1.controllers.connections import ConnectionsController
+from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
+from app.assets.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.actions.action import Action
@@ -117,6 +118,15 @@ class PlayersController(ContextController):
             player: Player
     ) -> None:
         self.add(player)
+
+        await player.send(
+            ServerPlayerEnterGamePacket(
+                self.game.game_id,
+                self.game.code,
+                self.game.min_players,
+                self.game.max_players
+            )
+        )
 
         await self.game.send(
             ServerPlayerJoinGamePacket(

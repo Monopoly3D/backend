@@ -1,8 +1,14 @@
 from asyncio import Task
-from typing import Annotated, Tuple
+from typing import Annotated, Tuple, Dict
+from uuid import UUID
 
+from fastapi import Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket
 
+from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
+from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
 from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
@@ -24,16 +30,77 @@ from app.api.v1.packets.client.player_sell_filiation import ClientPlayerSellFili
 from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
+from app.api.v1.security.authenticator import Authenticator
+from app.assets.controllers.connections import ConnectionsController
+from app.assets.controllers.games import GamesController
 from app.assets.enums.action_type import ActionType
+from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
+from app.assets.exceptions.game_not_found import GameNotFoundError
+from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.database.models import User
-from config import Config
-
-config: Config = Config(_env_file=".env")
+from app.dependencies import database_websocket_session, games_controller_websocket
 
 games_packets_router = PacketsRouter(prefix="/games")
+
+
+@games_packets_router.authenticate()
+async def authenticate(
+        websocket: WebSocket,
+        session: Annotated[AsyncSession, Depends(database_websocket_session)],
+        authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
+        games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
+        connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
+) -> None:
+    await websocket.accept()
+
+    try:
+        join_packet: ClientPlayerJoinGamePacket = ClientPlayerJoinGamePacket.unpack(await websocket.receive_text())
+    except InvalidPacketError:
+        await websocket.close(3000, "Provided packet data is invalid")
+        return
+
+    try:
+        ticket: Dict[str, str] = await authenticator.decode_game_ticket(join_packet.ticket)
+    except InvalidAccessTokenError:
+        await websocket.close(3000, "Provided ticket is invalid")
+        return
+
+    try:
+        user_id: UUID = UUID(ticket["id"])
+        game_id: UUID = UUID(ticket["game_id"])
+    except ValueError | KeyError:
+        await websocket.close(3000, "Provided ticket is invalid")
+        return
+
+    user: User = await session.scalar(
+        select(User)
+        .filter_by(id=user_id)
+    )
+    if user is None:
+        await websocket.close(3000, "Provided ticket is invalid")
+        return
+
+    await connections.add_connection(websocket, user_id)
+
+    game: Game = await games_controller.get_game(game_id, connections)
+
+    if game is None:
+        raise GameNotFoundError("Game with provided UUID was not found")
+    if game.players.exists(user.id):
+        raise PlayerAlreadyInGameError("You are already in game")
+    if game.is_started:
+        raise GameAlreadyStartedError("Game with provided UUID has already started")
+    if game.players.size >= game.max_players:
+        raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
+
+    player = Player(user.id, username=user.username)
+    player.connection = websocket
+
+    await game.players.join(player)
+    await game.save()
 
 
 @games_packets_router.handle(ClientPingPacket)

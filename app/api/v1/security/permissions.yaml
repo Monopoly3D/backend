@@ -1,4 +1,6 @@
-admin: []
+admin:
+  - view_games
+  - remove_games
 
 user:
   - view_own_user

@@ -5,7 +5,7 @@ from typing import Any, Dict
 class GameObject(ABC):
     @classmethod
     @abstractmethod
-    def from_json(cls, data: Dict[str, Any]) -> Any:
+    def from_json(cls, *args, **kwargs) -> Any:
         pass
 
     @abstractmethod

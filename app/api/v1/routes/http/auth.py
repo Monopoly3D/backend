@@ -17,7 +17,6 @@ from app.api.v1.exceptions.http.invalid_register_token import InvalidRegisterTok
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
-from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
@@ -181,17 +180,3 @@ async def refresh(
     response.set_cookie("refresh_token", refresh_token, httponly=True)
 
     return AuthenticationModel(access_token=access_token)
-
-
-@auth_router.post(
-    "/ticket",
-    status_code=status.HTTP_201_CREATED,
-    response_model=TicketModel
-)
-async def get_websocket_ticket(
-        user: Annotated[User, Authenticator.get_user()],
-        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
-) -> TicketModel:
-    ticket: str = await authenticator.create_ticket(user.id)
-
-    return TicketModel(ticket=ticket)

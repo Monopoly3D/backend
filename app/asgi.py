@@ -11,8 +11,9 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from app.api.router import api_router
-from app.api.v1.controllers.connections import ConnectionsController
-from app.api.v1.controllers.games import GamesController
+from app.assets.controllers.codes import CodesController
+from app.assets.controllers.connections import ConnectionsController
+from app.assets.controllers.games import GamesController
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
@@ -22,38 +23,38 @@ from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from config import Config
 
-config: Config = Config(_env_file=".env")
-database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
-redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
-connections: ConnectionsController = ConnectionsController()
-
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    await fastapi_app.state.games_controller.retrieve_games(connections)
+    config: Config = Config(_env_file=".env")
+
+    database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
+    redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
+
+    fastapi_app.state.config = config
+    fastapi_app.state.database = database
+    fastapi_app.state.redis = redis
+    fastapi_app.state.connections = ConnectionsController()
+    fastapi_app.state.games_controller = GamesController(redis, CodesController(redis))
+
+    fastapi_app.state.no_reply_email_config = ConnectionConfig(
+        MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
+        MAIL_PASSWORD=config.no_reply_email_password,
+        MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
+        MAIL_SERVER=config.smtp_host,
+        MAIL_PORT=config.smtp_port,
+        MAIL_SSL_TLS=True,
+        MAIL_STARTTLS=False,
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True
+    )
+
     yield
+
     await redis.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
-
-app.state.config = config
-app.state.database = database
-app.state.redis = redis
-app.state.connections = connections
-app.state.games_controller = GamesController(redis)
-
-app.state.no_reply_email_config = ConnectionConfig(
-    MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
-    MAIL_PASSWORD=config.no_reply_email_password,
-    MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
-    MAIL_SERVER=config.smtp_host,
-    MAIL_PORT=config.smtp_port,
-    MAIL_SSL_TLS=True,
-    MAIL_STARTTLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,17 +1,19 @@
 import json
+from abc import ABC, abstractmethod
 from typing import Any, Tuple, List
 
 from redis.asyncio import Redis
 
 
-class RedisController:
-    REDIS_KEY: str
-
+class RedisController(ABC):
     def __init__(
             self,
             redis: Redis
     ) -> None:
         self._redis: Redis = redis
+
+    @abstractmethod
+    def key(self, *args, **kwargs) -> str: pass
 
     async def set(
             self,

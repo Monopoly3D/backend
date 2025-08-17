@@ -2,11 +2,10 @@ from inspect import getfullargspec
 from typing import Dict, Any, Callable, Type, Annotated, Tuple
 
 from fastapi import APIRouter, Depends
+from fastapi.routing import APIWebSocketRoute
 from redis.asyncio import Redis
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from app.api.v1.controllers.connections import ConnectionsController
-from app.api.v1.controllers.games import GamesController
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.unknown_packet import UnknownPacketError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
@@ -14,6 +13,8 @@ from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
+from app.assets.controllers.connections import ConnectionsController
+from app.assets.controllers.games import GamesController
 from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from app.database.models import User
@@ -22,7 +23,7 @@ from app.dependencies import games_controller_websocket, config_websocket, \
 from config import Config
 
 
-async def dependencies(
+async def _dependencies(
         config: Annotated[Config, Depends(config_websocket)],
         database: Annotated[Database, Depends(database_websocket)],
         redis: Annotated[Redis, Depends(redis_websocket)],
@@ -43,18 +44,20 @@ async def dependencies(
 
 
 class PacketsRouter(APIRouter):
+    _NAME = "packet_handler"
+
     def __init__(
             self,
             *,
             prefix: str
     ) -> None:
         super().__init__(prefix=prefix)
-        self.__handlers: Dict[Type[ClientPacket], Callable] = {}
+        self._handlers: Dict[Type[ClientPacket], Callable] = {}
 
         self.add_api_websocket_route(
             "",
-            self.handle_packets,
-            dependencies=[Authenticator.authenticate_websocket()]
+            self._handle_packets,
+            self._NAME
         )
 
     def handle(
@@ -62,23 +65,47 @@ class PacketsRouter(APIRouter):
             packet: Type[ClientPacket]
     ) -> Callable:
         def decorator(func: Callable) -> None:
-            self.__handlers.update({packet: func})
+            self._handlers.update({packet: func})
 
         return decorator
 
-    async def handle_packets(
+    def authenticate(self) -> Callable:
+        def decorator(func: Callable) -> None:
+            route_index: int | None = None
+
+            for index, route in enumerate(self.routes):
+                if not isinstance(route, APIWebSocketRoute):
+                    continue
+
+                if route.name == self._NAME:
+                    route_index = index
+                    break
+
+            if route_index is not None:
+                self.routes.pop(route_index)
+
+            self.add_api_websocket_route(
+                "",
+                self._handle_packets,
+                self._NAME,
+                dependencies=[Depends(func)]
+            )
+
+        return decorator
+
+    async def _handle_packets(
             self,
             websocket: WebSocket,
-            dp: Annotated[Dict[str, Any], Depends(dependencies)]
+            dp: Annotated[Dict[str, Any], Depends(_dependencies)]
     ) -> None:
         try:
             while True:
                 packet: str = await websocket.receive_text()
-                await self.__handle_packet(packet, websocket, **dp)  # At some point it must create asyncio tasks
+                await self._handle_packet(packet, websocket, **dp)  # At some point it must create asyncio tasks
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
-    async def __handle_packet(
+    async def _handle_packet(
             self,
             packet: str,
             websocket: WebSocket,
@@ -87,30 +114,30 @@ class PacketsRouter(APIRouter):
         try:
             packet: ClientPacket = ClientPacket.withdraw_packet(packet)
 
-            if type(packet) not in self.__handlers:
+            if type(packet) not in self._handlers:
                 raise UnknownPacketError("Unknown packet")
 
-            await self.__execute_handler(self.__handlers[type(packet)], packet, websocket, **kwargs)
+            await self._execute_handler(self._handlers[type(packet)], packet, websocket, **kwargs)
         except GameError or WebSocketError as e:
             raise e
         except Exception as e:
             raise InternalServerError("Internal server error", e)
 
-    async def __execute_handler(
+    async def _execute_handler(
             self,
             handler: Any,
             packet: ClientPacket,
             websocket: WebSocket,
             **kwargs: Any
     ) -> None:
-        handler_dependencies: Dict[str, Any] = await self.__inject_dependencies(
+        handler_dependencies: Dict[str, Any] = await self._inject_dependencies(
             handler,
             packet=packet,
             websocket=websocket,
             **kwargs
         )
 
-        prepared_args: Dict[str, Any] = self.__prepare_args(
+        prepared_args: Dict[str, Any] = self._prepare_args(
             handler,
             packet=packet,
             websocket=websocket,
@@ -124,7 +151,7 @@ class PacketsRouter(APIRouter):
         if response_packet is not None:
             await websocket.send_text(response_packet.pack())
 
-    async def __inject_dependencies(
+    async def _inject_dependencies(
             self,
             handler: Callable,
             **kwargs: Any
@@ -140,12 +167,12 @@ class PacketsRouter(APIRouter):
 
             func: Callable = annotation.__metadata__[0]
 
-            func_dependencies: Dict[str, Any] = await self.__inject_dependencies(
+            func_dependencies: Dict[str, Any] = await self._inject_dependencies(
                 func,
                 **kwargs
             )
 
-            prepared_args: Dict[str, Any] = self.__prepare_args(
+            prepared_args: Dict[str, Any] = self._prepare_args(
                 func,
                 **func_dependencies,
                 **kwargs
@@ -156,7 +183,7 @@ class PacketsRouter(APIRouter):
         return handler_dependencies
 
     @staticmethod
-    def __prepare_args(
+    def _prepare_args(
             func: Callable,
             **kwargs: Any
     ) -> Dict[str, Any]:
