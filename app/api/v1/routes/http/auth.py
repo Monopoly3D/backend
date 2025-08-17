@@ -15,7 +15,6 @@ from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.invalid_register_token import InvalidRegisterTokenError
 from app.api.v1.exceptions.http.not_found import NotFoundError
-from app.api.v1.models.post.login_credentials import LoginCredentialsModel
 from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.models.response.ticket import TicketModel
