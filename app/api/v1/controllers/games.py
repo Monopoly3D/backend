@@ -11,8 +11,6 @@ from app.assets.objects.game_code import GameCode
 
 
 class GamesController(RedisController):
-    REDIS_KEY = "games:{game_id}"
-
     def __init__(
             self,
             redis: Redis
@@ -21,6 +19,9 @@ class GamesController(RedisController):
 
         self._games: Dict[UUID, Game] = {}
         self._codes: Dict[GameCode, UUID] = {}
+
+    def redis_key(self) -> str:
+        return "games:{game_id}"
 
     async def create_game(self) -> Game:
         game = Game(uuid4())
@@ -39,7 +40,7 @@ class GamesController(RedisController):
         game: Game | None = self._games.get(game_id)
 
         if game is None:
-            game: Dict[str, Any] | None = await self.get(self.REDIS_KEY.format(game_id=game_id))
+            game: Dict[str, Any] | None = await self.get(self.redis_key().format(game_id=game_id))
             if game is None:
                 return
             game: Game = Game.from_json(game, connections=connections)
@@ -63,14 +64,14 @@ class GamesController(RedisController):
             self,
             game_id: UUID
     ) -> bool:
-        return self._games.get(game_id) or await self.exists(self.REDIS_KEY.format(game_id=game_id))
+        return self._games.get(game_id) or await self.exists(self.redis_key().format(game_id=game_id))
 
     async def remove_game(
             self,
             game_id: UUID
     ) -> None:
         self._games.pop(game_id, None)
-        await self.remove(self.REDIS_KEY.format(game_id=game_id))
+        await self.remove(self.redis_key().format(game_id=game_id))
 
     async def retrieve_games(
             self,
