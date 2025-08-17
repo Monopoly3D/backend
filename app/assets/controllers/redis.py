@@ -13,7 +13,7 @@ class RedisController(ABC):
         self._redis: Redis = redis
 
     @abstractmethod
-    def redis_key(self) -> str: pass
+    def key(self, *args, **kwargs) -> str: pass
 
     async def set(
             self,

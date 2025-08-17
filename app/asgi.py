@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from app.api.router import api_router
+from app.assets.controllers.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.games import GamesController
 from app.api.v1.exceptions.http.http_error import HTTPError
@@ -26,15 +27,15 @@ from config import Config
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
     config: Config = Config(_env_file=".env")
+
     database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
     redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
-    connections: ConnectionsController = ConnectionsController()
 
     fastapi_app.state.config = config
     fastapi_app.state.database = database
     fastapi_app.state.redis = redis
-    fastapi_app.state.connections = connections
-    fastapi_app.state.games_controller = GamesController(redis)
+    fastapi_app.state.connections = ConnectionsController()
+    fastapi_app.state.games_controller = GamesController(redis, CodesController(redis))
 
     fastapi_app.state.no_reply_email_config = ConnectionConfig(
         MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),

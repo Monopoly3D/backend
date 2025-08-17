@@ -1,9 +1,9 @@
-import asyncio
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 from uuid import UUID
 
 from redis import Redis
 
+from app.assets.controllers.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis import RedisController
 from app.assets.objects.game import Game
@@ -12,16 +12,20 @@ from app.assets.objects.game import Game
 class GamesController(RedisController):
     def __init__(
             self,
-            redis: Redis
+            redis: Redis,
+            codes_controller: CodesController
     ) -> None:
         super().__init__(redis)
+        self._codes_controller = codes_controller
 
-    def redis_key(self) -> str:
-        return "games:{game_id}"
+    def key(self, game_id: UUID) -> str:
+        return f"games:{game_id}"
 
     async def create_game(self) -> Game:
         game = Game(self)
+
         await game.save()
+        await self._codes_controller.save_code(game.code, game.game_id)
 
         return game
 
@@ -30,33 +34,56 @@ class GamesController(RedisController):
             game_id: UUID,
             connections: ConnectionsController
     ) -> Game | None:
-        game_json: Dict[str, Any] | None = await self.get(self.redis_key().format(game_id=game_id))
+        game_json: Dict[str, Any] | None = await self.get(self.key(game_id))
 
         if game_json is None:
             return
 
         return Game.from_json(game_json, self, connections)
 
-    async def get_games(
+    async def get_game_code(
             self,
+            game_id: UUID
+    ) -> str | None:
+        game_json: Dict[str, Any] | None = await self.get(self.key(game_id))
+
+        if game_json is None:
+            return
+
+        return game_json.get("code")
+
+    async def get_game_by_code(
+            self,
+            code: str,
             connections: ConnectionsController
-    ) -> Tuple[Game]:
-        game_uuids: Tuple[str, ...] = await self.get_keys(pattern="games")
+    ) -> Game | None:
+        game_id: str = await self._codes_controller.get_game_id(code)
 
-        games: Tuple[Any] = await asyncio.gather(
-            *[self.get_game(UUID(game.split(":")[-1]), connections) for game in game_uuids]
-        )
+        if game_id is None:
+            return
 
-        return tuple(filter(lambda game: isinstance(game, Game), games))
+        try:
+            game_id: UUID = UUID(game_id)
+        except ValueError:
+            return
+
+        return await self.get_game(game_id, connections)
 
     async def exists_game(
             self,
             game_id: UUID
     ) -> bool:
-        return await self.exists(self.redis_key().format(game_id=game_id))
+        return await self.exists(self.key(game_id))
+
+    async def exists_game_code(
+            self,
+            code: str,
+    ) -> bool:
+        return await self._codes_controller.exists_code(code)
 
     async def remove_game(
             self,
             game_id: UUID
     ) -> None:
-        await self.remove(self.redis_key().format(game_id=game_id))
+        await self._codes_controller.remove_code(await self.get_game_code(game_id))
+        await self.remove(self.key(game_id))

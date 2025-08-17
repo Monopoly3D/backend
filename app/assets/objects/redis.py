@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
 
 from app.assets.objects.game_object import GameObject
 
@@ -9,8 +8,3 @@ from app.assets.objects.game_object import GameObject
 class RedisObject(GameObject, ABC):
     @abstractmethod
     async def save(self) -> None: pass
-
-    @classmethod
-    @abstractmethod
-    def from_json(cls, *args, **kwargs) -> Any:
-        pass

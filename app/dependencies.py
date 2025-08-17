@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
+from app.assets.controllers.codes import CodesController
 from app.assets.controllers.games import GamesController
 from app.database.database import Database
 from config import Config
@@ -16,7 +17,7 @@ async def config_dependency(request: Request) -> Config:
     return request.app.state.config
 
 
-async def database_dependency(request: Request) -> None:
+async def database_dependency(request: Request) -> Database:
     return request.app.state.database
 
 
@@ -31,11 +32,11 @@ async def redis_dependency(request: Request) -> Redis:
     return request.app.state.redis
 
 
-async def games_controller_dependency(request: Request) -> 'GamesController':
+async def games_controller_dependency(request: Request) -> GamesController:
     return request.app.state.games_controller
 
 
-async def no_reply_email_dependency(request: Request) -> 'FastMail':
+async def no_reply_email_dependency(request: Request) -> FastMail:
     return FastMail(request.app.state.no_reply_email_config)
 
 
@@ -43,7 +44,7 @@ async def config_websocket(websocket: WebSocket) -> Config:
     return websocket.app.state.config
 
 
-async def database_websocket(websocket: WebSocket) -> None:
+async def database_websocket(websocket: WebSocket) -> Database:
     return websocket.app.state.database
 
 

@@ -3,14 +3,12 @@ import json
 import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
-from typing import Dict, Any, List, Tuple, ClassVar, Type
+from typing import Dict, Any, List, Tuple, ClassVar, Type, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis import RedisController
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.packets.server.game_ask_player_on_auction import ServerGameAskPlayerOnAuctionPacket
 from app.api.v1.packets.server.game_ask_player_on_prison import ServerGameAskPlayerOnPrisonPacket
@@ -31,9 +29,11 @@ from app.assets.actions.pay_prison import PayPrisonAction
 from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.actions.prison import PrisonAction
+from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.fields import FieldsController
 from app.assets.controllers.monopolies import MonopoliesController
 from app.assets.controllers.players import PlayersController
+from app.assets.controllers.redis import RedisController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -50,6 +50,9 @@ from app.assets.objects.game_code import GameCode
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
+
+if TYPE_CHECKING:
+    from app.assets.controllers.games import GamesController
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
@@ -79,7 +82,7 @@ class Game(RedisObject):
         ActionType.CONTRACT: ContractAction
     }
 
-    controller: 'RedisController'
+    controller: 'GamesController'
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     is_started: bool = False
@@ -159,7 +162,7 @@ class Game(RedisObject):
         }
 
     async def save(self) -> None:
-        await self.controller.set(self.controller.redis_key().format(game_id=self.game_id), self.to_json())
+        await self.controller.set(self.controller.key(self.game_id), self.to_json())
 
     async def send(
             self,
