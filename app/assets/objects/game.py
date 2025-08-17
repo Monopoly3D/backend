@@ -4,7 +4,7 @@ import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
 from typing import Dict, Any, List, Tuple, ClassVar, Type
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -54,7 +54,7 @@ from app.assets.parameters import Parameters
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Game(RedisObject):
-    FIELDS: ClassVar[Dict[FieldType, Type[Field]]] = {
+    __FIELDS: ClassVar[Dict[FieldType, Type[Field]]] = {
         FieldType.COMPANY: Company,
         FieldType.START: Start,
         FieldType.CHANCE: Chance,
@@ -64,7 +64,7 @@ class Game(RedisObject):
         FieldType.CASINO: Casino
     }
 
-    ACTIONS: ClassVar[Dict[ActionType, Type[Action]]] = {
+    __ACTIONS: ClassVar[Dict[ActionType, Type[Action]]] = {
         ActionType.MOVE: MoveAction,
         ActionType.BUY_FIELD: BuyFieldAction,
         ActionType.BUY_FIELD_ON_AUCTION: BuyFieldOnAuctionAction,
@@ -77,7 +77,9 @@ class Game(RedisObject):
         ActionType.CONTRACT: ContractAction
     }
 
-    game_id: UUID
+    controller: RedisController
+
+    game_id: UUID = dataclass_field(default_factory=uuid4)
     is_started: bool = False
     code: GameCode = dataclass_field(default_factory=GameCode.random)
     seed: int = 1
@@ -97,26 +99,24 @@ class Game(RedisObject):
     fields: FieldsController = dataclass_field(default_factory=FieldsController)
     monopolies: MonopoliesController = dataclass_field(default_factory=MonopoliesController)
 
-    map_path: str = dataclass_field(default=Parameters.DEFAULT_MAP_PATH, repr=False)
-
-    __controller_instance: RedisController | None = dataclass_field(default=None, repr=False)
-    __start_task_name: str | None = dataclass_field(default=None, repr=False)
-    __random: random.Random | None = dataclass_field(default=None, repr=False)
+    _map_path: str = dataclass_field(default=Parameters.DEFAULT_MAP_PATH, repr=False)
+    _start_task: str | None = dataclass_field(default=None, repr=False)
+    _random: random.Random | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self):
         self.players.game = self
         self.fields.game = self
         self.monopolies.game = self
 
-        self.__start_task_name = f"start:{self.game_id}"
-        self.__random = random.Random(self.seed)
+        self._start_task = f"start:{self.game_id}"
+        self._random = random.Random(self.seed)
 
     @classmethod
     def from_json(
             cls,
             data: Dict[str, Any],
-            *,
-            connections: ConnectionsController | None = None
+            controller: RedisController,
+            connections: ConnectionsController
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
@@ -154,16 +154,7 @@ class Game(RedisObject):
         }
 
     async def save(self) -> None:
-        await self.controller.set(self._redis_key, self.to_json())
-
-    @property
-    def controller(self) -> RedisController:
-        return self.__controller_instance
-
-    @controller.setter
-    def controller(self, value: RedisController) -> None:
-        super().__init__(value.redis_key().format(game_id=self.game_id), value)
-        self.__controller_instance = value
+        await self.controller.set(self.controller.redis_key().format(game_id=self.game_id), self.to_json())
 
     async def send(
             self,
@@ -177,7 +168,7 @@ class Game(RedisObject):
         self.action = MoveAction()
 
         #  self.players.shuffle()  TESTING
-        self.fields = self.get_map(self.map_path)
+        self.fields = self.get_map(self._map_path)
         self.monopolies.setup(companies=self.fields.companies)
 
         await self.send(
@@ -204,7 +195,7 @@ class Game(RedisObject):
         if task is not None:
             task.cancel()
 
-        task: Task = asyncio.create_task(self.__delayed_start(), name=self.__start_task_name)
+        task: Task = asyncio.create_task(self.__delayed_start(), name=self._start_task)
 
         await self.send(
             ServerGameCountdownStartPacket(
@@ -338,7 +329,7 @@ class Game(RedisObject):
         return fields
 
     def get_start_task(self) -> Task | None:
-        tasks: List[Task] = [task for task in asyncio.all_tasks() if task.get_name() == self.__start_task_name]
+        tasks: List[Task] = [task for task in asyncio.all_tasks() if task.get_name() == self._start_task]
 
         if not tasks:
             return
@@ -357,10 +348,10 @@ class Game(RedisObject):
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        return tuple(self.__random.randint(1, 6) for _ in range(amount))
+        return tuple(self._random.randint(1, 6) for _ in range(amount))
 
     def roll_die(self) -> int:
-        return self.__random.randint(1, 6)
+        return self._random.randint(1, 6)
 
     @staticmethod
     def get_auction_players(
@@ -380,7 +371,7 @@ class Game(RedisObject):
         if "field_type" not in data:
             return
 
-        return cls.FIELDS[FieldType(data.get("field_type"))].from_json(data)
+        return cls.__FIELDS[FieldType(data.get("field_type"))].from_json(data)
 
     @classmethod
     def get_action(
@@ -390,4 +381,4 @@ class Game(RedisObject):
         if "action_type" not in data:
             return
 
-        return cls.ACTIONS[ActionType(data.get("action_type"))].unpack(data)
+        return cls.__ACTIONS[ActionType(data.get("action_type"))].unpack(data)

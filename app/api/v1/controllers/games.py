@@ -20,9 +20,7 @@ class GamesController(RedisController):
         return "games:{game_id}"
 
     async def create_game(self) -> Game:
-        game = Game(uuid4())
-        game.controller = self
-
+        game = Game(self)
         await game.save()
 
         return game
@@ -37,10 +35,7 @@ class GamesController(RedisController):
         if game_json is None:
             return
 
-        game: Game = Game.from_json(game_json, connections=connections)
-        game.controller = self
-
-        return game
+        return Game.from_json(game_json, self, connections)
 
     async def get_games(
             self,
