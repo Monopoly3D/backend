@@ -33,7 +33,6 @@ from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.fields import FieldsController
 from app.assets.controllers.monopolies import MonopoliesController
 from app.assets.controllers.players import PlayersController
-from app.assets.controllers.redis import RedisController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -82,7 +81,7 @@ class Game(RedisObject):
         ActionType.CONTRACT: ContractAction
     }
 
-    controller: 'GamesController'
+    controller: Any
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     code: GameCode = dataclass_field(default_factory=GameCode.random)
@@ -123,17 +122,19 @@ class Game(RedisObject):
     def from_json(
             cls,
             data: Dict[str, Any],
-            controller: RedisController,
+            controller: 'GamesController',
             connections: ConnectionsController
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
         monopolies: Dict[str, Any] = data.pop("monopolies")
 
+        if data.get("code") is not None:
+            data["code"] = GameCode(data["code"])
         if data.get("action") is not None:
             data["action"] = cls.get_action(data["action"])
 
-        game: Game = cls(**data)
+        game: Game = cls(controller=controller, **data)
 
         game.players.setup(players, connections=connections)
         game.fields.setup(fields)
@@ -144,6 +145,7 @@ class Game(RedisObject):
     def to_json(self) -> Dict[str, Any]:
         return {
             "game_id": str(self.game_id),
+            "code": self.code,
             "is_started": self.is_started,
             "action": self.action.pack() if self.action is not None else None,
             "round": self.round,

@@ -59,5 +59,5 @@ async def redis_websocket(websocket: WebSocket) -> Redis:
     return websocket.app.state.redis
 
 
-async def games_controller_websocket(websocket: WebSocket) -> 'GamesController':
+async def games_controller_websocket(websocket: WebSocket) -> GamesController:
     return websocket.app.state.games_controller

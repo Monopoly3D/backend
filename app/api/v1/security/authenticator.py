@@ -14,13 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette.websockets import WebSocket
 
-from app.assets.controllers.connections import ConnectionsController
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
-from app.api.v1.packets.client.auth import ClientAuthPacket
-from app.api.v1.packets.server.auth import ServerAuthPacket
+from app.assets.controllers.connections import ConnectionsController
 from app.database.models import User, Role, UserRefreshToken
 from app.dependencies import config_websocket, config_dependency, database_session, database_websocket_session
 from config import Config
@@ -139,16 +136,18 @@ class Authenticator:
             self.__jwt_algorithm
         )
 
-    async def create_ticket(
+    async def create_game_ticket(
             self,
+            game_id: UUID,
             user_id: UUID
     ) -> str:
         return await asyncio.to_thread(
             encode,
             {
                 "id": str(user_id),
+                "game_id": str(game_id),
                 "exp": datetime.now(utc) + self.TICKET_EXPIRE,
-                "mode": "ticket"
+                "mode": "game_ticket"
             },
             self.__jwt_key,
             self.__jwt_algorithm
@@ -172,11 +171,11 @@ class Authenticator:
     ) -> Dict[str, Any]:
         return await self.__decode_token(register_token, "register")
 
-    async def decode_ticket(
+    async def decode_game_ticket(
             self,
             ticket: str
     ) -> Dict[str, str]:
-        return await self.__decode_token(ticket, "ticket")
+        return await self.__decode_token(ticket, "game_ticket")
 
     async def verify_access_token(
             self,
@@ -210,13 +209,6 @@ class Authenticator:
             raise InvalidCredentialsError("Provided credentials are invalid")
 
         return user
-
-    async def verify_ticket(
-            self,
-            ticket: str,
-            session: AsyncSession
-    ) -> User:
-        return await self.__verify_token(ticket, "ticket", session)
 
     async def __decode_token(
             self,
@@ -312,39 +304,6 @@ class Authenticator:
             return [Role(role.role) for role in user.roles]
 
         return Depends(__get_roles)
-
-    @staticmethod
-    def authenticate_websocket() -> Depends:
-        async def __authenticate_websocket(
-                websocket: WebSocket,
-                session: Annotated[AsyncSession, Depends(database_websocket_session)],
-                authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
-                connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
-        ) -> None:
-            await websocket.accept()
-
-            try:
-                auth_packet: ClientAuthPacket = ClientAuthPacket.unpack(await websocket.receive_text())
-            except InvalidPacketError:
-                await websocket.close(3000, "Provided authorization packet data is invalid")
-                return
-
-            try:
-                user: User = await authenticator.verify_ticket(auth_packet.ticket, session)
-            except InvalidCredentialsError:
-                await websocket.close(3000, "Provided authorization ticket is invalid")
-                return
-
-            await connections.add_connection(websocket, user.id)
-
-            auth_response_packet: ServerAuthPacket = ServerAuthPacket(
-                user.id,
-                user.username
-            )
-
-            await websocket.send_text(auth_response_packet.pack())
-
-        return Depends(__authenticate_websocket)
 
     @staticmethod
     def get_websocket_user() -> Depends:

@@ -22,7 +22,7 @@ class GamesController(RedisController):
         return f"games:{game_id}"
 
     async def create_game(self) -> Game:
-        game = Game(self)
+        game = Game(controller=self)
 
         await game.save()
         await self._codes_controller.save_code(game.code, game.game_id)

@@ -1,16 +1,20 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from starlette import status
 
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.games import GamesController
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.response.game import GameResponseModel
+from app.api.v1.models.response.game_ticket import GameTicketResponseModel
+from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
+from app.assets.controllers.connections import ConnectionsController
+from app.assets.controllers.games import GamesController
 from app.assets.objects.game import Game
+from app.assets.objects.game_code import GameCode
+from app.database.models import User
 from app.dependencies import games_controller_dependency
 
 games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
@@ -29,6 +33,28 @@ async def create_game(
     return GameResponseModel.from_game(game)
 
 
+@games_router.post(
+    "/join",
+    status_code=status.HTTP_200_OK,
+    response_model=GameTicketResponseModel,
+    dependencies=[Authorizer.has_permission(Permission.JOIN_GAMES)]
+)
+async def join_game(
+        code: Annotated[str, Query(min_length=6, max_length=6)],
+        user: Annotated[User, Authenticator.get_user()],
+        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)],
+        connections: Annotated[ConnectionsController, Depends(ConnectionsController.dependency)]
+) -> GameTicketResponseModel:
+    game: Game | None = await games_controller.get_game_by_code(code, connections)
+
+    if game is None:
+        raise NotFoundError("Game with provided code was not found")
+
+    game_ticket: str = await authenticator.create_game_ticket(game.game_id, user.id)
+    return GameTicketResponseModel(ticket=game_ticket)
+
+
 @games_router.get(
     "/{game_id}",
     status_code=status.HTTP_200_OK,
@@ -37,8 +63,8 @@ async def create_game(
 )
 async def get_game(
         game_id: UUID,
-        connections: Annotated[ConnectionsController, Depends(ConnectionsController.dependency)],
-        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)],
+        connections: Annotated[ConnectionsController, Depends(ConnectionsController.dependency)]
 ) -> GameResponseModel:
     game: Game | None = await games_controller.get_game(game_id, connections)
 

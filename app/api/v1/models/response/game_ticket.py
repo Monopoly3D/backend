@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class TicketModel(BaseModel):
+class GameTicketResponseModel(BaseModel):
     ticket: str

@@ -48,6 +48,7 @@ class GameResponseModel(BaseModel):
     def serialize_model(self) -> Dict[str, Any]:
         model: Dict[str, Any] = {
             "game_id": self.game_id,
+            "code": self.code,
             "is_started": self.is_started,
             "round": self.round,
             "move": self.move,

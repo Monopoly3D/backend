@@ -17,7 +17,6 @@ from app.api.v1.exceptions.http.invalid_register_token import InvalidRegisterTok
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
-from app.api.v1.models.response.ticket import TicketModel
 from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
