@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.websockets import WebSocket
 
 from app.assets.controllers.redis.games import GamesController
+from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
 from app.database.database import Database
 from config import Config
 
@@ -35,6 +36,10 @@ async def games_controller_dependency(request: Request) -> GamesController:
     return request.app.state.games_controller
 
 
+async def profile_pictures_controller_dependency(request: Request) -> ProfilePicturesController:
+    return request.app.state.profile_pictures_controller
+
+
 async def no_reply_email_dependency(request: Request) -> FastMail:
     return FastMail(request.app.state.no_reply_email_config)
 
@@ -60,3 +65,7 @@ async def redis_websocket(websocket: WebSocket) -> Redis:
 
 async def games_controller_websocket(websocket: WebSocket) -> GamesController:
     return websocket.app.state.games_controller
+
+
+async def profile_pictures_controller_websocket(websocket: WebSocket) -> ProfilePicturesController:
+    return websocket.app.state.profile_pictures_controller
