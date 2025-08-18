@@ -11,14 +11,16 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from app.api.router import api_router
-from app.assets.controllers.redis.codes import CodesController
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
+from app.assets.controllers.base_s3 import S3
+from app.assets.controllers.connections import ConnectionsController
+from app.assets.controllers.redis.codes import CodesController
+from app.assets.controllers.redis.games import GamesController
+from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
 from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from config import Config
@@ -26,16 +28,27 @@ from config import Config
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    config: Config = Config(_env_file=".env")
+    config = Config(_env_file=".env")
 
-    database: Database = Database.from_dsn(config.database_dsn.get_secret_value())
-    redis: Redis = Redis.from_url(config.redis_dsn.get_secret_value())
+    database = Database.from_dsn(
+        config.database_dsn.get_secret_value()
+    )
+    redis = Redis.from_url(
+        config.redis_dsn.get_secret_value()
+    )
+    s3 = S3(
+        config.s3_dsn.get_secret_value(),
+        config.s3_region,
+        config.s3_username.get_secret_value(),
+        config.s3_password.get_secret_value()
+    )
 
     fastapi_app.state.config = config
     fastapi_app.state.database = database
     fastapi_app.state.redis = redis
     fastapi_app.state.connections = ConnectionsController()
     fastapi_app.state.games_controller = GamesController(redis, CodesController(redis))
+    fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3)
 
     fastapi_app.state.no_reply_email_config = ConnectionConfig(
         MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),

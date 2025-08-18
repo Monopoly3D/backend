@@ -8,6 +8,11 @@ class Config(BaseSettings):
     database_dsn: SecretStr
     test_database_dsn: SecretStr | None = None
     redis_dsn: SecretStr
+    s3_dsn: SecretStr
+
+    s3_region: str = "eu-central-1"
+    s3_username: SecretStr
+    s3_password: SecretStr
 
     smtp_host: str | None = None
     smtp_port: int | None = None
