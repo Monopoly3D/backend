@@ -20,6 +20,18 @@ services:
       - "redis-data:/data"
       - "/redis.conf:/redis.conf"
 
+  minio:
+    container_name: monopoly_minio
+    image: minio/minio:latest
+    restart: on-failure
+    command: server /data --console-address ":9001"
+    env_file: ".minio.env"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - "minio-data:/data"
+
   server:
     container_name: monopoly_server
     image: "${SERVER_IMAGE}"
@@ -35,3 +47,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  minio-data:
