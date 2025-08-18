@@ -127,8 +127,8 @@ class Authenticator:
             "refresh_token",
             refresh_token,
             httponly=True,
-            secure=True,
-            samesite="none"
+            secure=False,
+            samesite="lax"
         )
 
     async def create_register_token(
