@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Dict, Any, List
 
-from app.assets.controllers.context import ContextController
+from app.assets.controllers.base_context import ContextController
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.monopoly import Monopoly
