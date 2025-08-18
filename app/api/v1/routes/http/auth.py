@@ -155,7 +155,7 @@ async def refresh(
     refresh_token: str = request.cookies.get("refresh_token")
     user: User = await authenticator.verify_refresh_token(refresh_token, session)
 
-    if not authenticator.verify(refresh_token, user.refresh_token.refresh_token):
+    if not await authenticator.verify(refresh_token, user.refresh_token.refresh_token):
         raise InvalidCredentialsError("Provided credentials are invalid")
 
     access_token: str = await authenticator.create_access_token(user.id)
