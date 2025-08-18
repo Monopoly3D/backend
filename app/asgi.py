@@ -11,9 +11,9 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from app.api.router import api_router
-from app.assets.controllers.codes import CodesController
+from app.assets.controllers.redis.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.games import GamesController
+from app.assets.controllers.redis.games import GamesController
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError

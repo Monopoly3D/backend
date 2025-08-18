@@ -11,9 +11,8 @@ from app.api.v1.models.response.game_ticket import GameTicketResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.games import GamesController
+from app.assets.controllers.redis.games import GamesController
 from app.assets.objects.game import Game
-from app.assets.objects.game_code import GameCode
 from app.database.models import User
 from app.dependencies import games_controller_dependency
 

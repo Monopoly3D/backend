@@ -3,7 +3,7 @@ from uuid import UUID
 
 from redis import Redis
 
-from app.assets.controllers.codes import CodesController
+from app.assets.controllers.redis.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis import RedisController
 from app.assets.objects.game import Game

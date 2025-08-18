@@ -30,9 +30,9 @@ from app.assets.actions.pay_rent import PayRentAction
 from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.actions.prison import PrisonAction
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.fields import FieldsController
-from app.assets.controllers.monopolies import MonopoliesController
-from app.assets.controllers.players import PlayersController
+from app.assets.controllers.context.fields import FieldsController
+from app.assets.controllers.context.monopolies import MonopoliesController
+from app.assets.controllers.context.players import PlayersController
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -51,7 +51,7 @@ from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
 
 if TYPE_CHECKING:
-    from app.assets.controllers.games import GamesController
+    from app.assets.controllers.redis.games import GamesController
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
