@@ -10,33 +10,18 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.api.v1.assets.email_creator import EmailCreator
-from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.invalid_register_token import InvalidRegisterTokenError
 from app.api.v1.exceptions.http.not_found import NotFoundError
 from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
-from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
-from app.api.v1.security.authorizer import Authorizer
 from app.database.models import User, UserRole, Role
 from app.dependencies import database_session, no_reply_email_dependency, config_dependency
 from config import Config
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
-
-
-@auth_router.get(
-    "",
-    response_model=UserResponseModel,
-    status_code=status.HTTP_200_OK,
-    dependencies=[Authorizer.has_permission(Permission.VIEW_OWN_USER)]
-)
-async def my_user(
-        user: Annotated[User, Authenticator.get_user()]
-) -> User:
-    return user
 
 
 @auth_router.post(

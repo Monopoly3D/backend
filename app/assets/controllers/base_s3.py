@@ -28,6 +28,8 @@ class S3Controller:
             name: str,
             content: bytes
     ) -> None:
+        await self._create_bucket_if_not_exists()
+
         async with self._get_client() as client:
             await client.put_object(Bucket=self.bucket(), Key=name, Body=content)
 
@@ -37,11 +39,29 @@ class S3Controller:
     ) -> bytes | None:
         async with self._get_client() as client:
             try:
-                result: bytes = await client.get_object(Bucket=self.bucket(), Key=name)
+                result: dict = await client.get_object(Bucket=self.bucket(), Key=name)
             except ClientError:
                 return
 
-        return result
+        return await result.get("Body").read()
+
+    async def url(
+            self,
+            name: str,
+            *,
+            expire: int = 60
+    ) -> str | None:
+        async with self._get_client() as client:
+            try:
+                url: str = await client.generate_presigned_url(
+                    "get_object",
+                    Params={'Bucket': self.bucket(), "Key": name},
+                    ExpiresIn=expire
+                )
+            except ClientError:
+                return
+
+        return url
 
     async def delete(
             self,
@@ -49,6 +69,13 @@ class S3Controller:
     ) -> None:
         async with self._get_client() as client:
             await client.delete_object(Bucket=self.bucket(), Key=name)
+
+    async def _create_bucket_if_not_exists(self) -> None:
+        async with self._get_client() as client:
+            try:
+                await client.head_bucket(Bucket=self.bucket())
+            except ClientError:
+                await client.create_bucket(Bucket=self.bucket())
 
     @asynccontextmanager
     async def _get_client(self) -> AsyncGenerator[AioBaseClient, None]:

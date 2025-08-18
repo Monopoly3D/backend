@@ -5,7 +5,7 @@ from redis import Redis
 
 from app.assets.controllers.redis.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis import RedisController
+from app.assets.controllers.base_redis import RedisController
 from app.assets.objects.game import Game
 
 

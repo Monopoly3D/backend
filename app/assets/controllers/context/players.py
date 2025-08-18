@@ -8,7 +8,7 @@ from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.controllers.context import ContextController
+from app.assets.controllers.base_context import ContextController
 from app.assets.objects.player import Player
 
 
