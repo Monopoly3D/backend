@@ -57,7 +57,7 @@ async def login(
     refresh_token: str = await authenticator.create_new_refresh_token(user.id, session)
 
     await session.commit()
-    response.set_cookie("refresh_token", refresh_token, httponly=False)
+    authenticator.set_refresh_token_cookie(response, refresh_token)
 
     return AuthenticationModel(access_token=access_token)
 
@@ -136,7 +136,7 @@ async def verify(
     refresh_token: str = await authenticator.create_new_refresh_token(user.id, session)
 
     await session.commit()
-    response.set_cookie("refresh_token", refresh_token, httponly=True)
+    authenticator.set_refresh_token_cookie(response, refresh_token)
 
     return AuthenticationModel(access_token=access_token)
 
@@ -163,6 +163,6 @@ async def refresh(
     refresh_token: str = await authenticator.create_new_refresh_token(user.id, session)
 
     await session.commit()
-    response.set_cookie("refresh_token", refresh_token, httponly=False)
+    authenticator.set_refresh_token_cookie(response, refresh_token)
 
     return AuthenticationModel(access_token=access_token)

@@ -12,6 +12,7 @@ from pytz import utc
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+from starlette.responses import Response
 from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
@@ -116,6 +117,19 @@ class Authenticator:
             )
 
         return refresh_token
+
+    @staticmethod
+    def set_refresh_token_cookie(
+            response: Response,
+            refresh_token: str
+    ) -> None:
+        response.set_cookie(
+            "refresh_token",
+            refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="none"
+        )
 
     async def create_register_token(
             self,
