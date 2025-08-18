@@ -153,6 +153,7 @@ async def refresh(
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
 ) -> AuthenticationModel:
     refresh_token: str = request.cookies.get("refresh_token")
+    print(refresh_token)
     user: User = await authenticator.verify_refresh_token(refresh_token, session)
 
     if not authenticator.verify(refresh_token, user.refresh_token.refresh_token):
