@@ -75,7 +75,9 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:8000",
         "https://localhost:3000",
-        "https://localhost:8000"
+        "https://localhost:8000",
+        "ws://localhost:8000",
+        "wss://localhost:8000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
