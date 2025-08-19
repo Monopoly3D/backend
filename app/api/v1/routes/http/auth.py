@@ -63,8 +63,24 @@ async def login(
 
 
 @auth_router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def logout(
+        response: Response,
+        user: Annotated[User, Authenticator.get_user()],
+        session: Annotated[AsyncSession, Depends(database_session)],
+        authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)]
+) -> None:
+    await authenticator.reset_refresh_token(user.id, session)
+    await session.commit()
+
+    authenticator.reset_refresh_token_cookie(response)
+
+
+@auth_router.post(
     "/register",
-    status_code=status.HTTP_202_ACCEPTED
+    status_code=status.HTTP_204_NO_CONTENT
 )
 async def register(
         credentials: RegisterCredentialsModel,

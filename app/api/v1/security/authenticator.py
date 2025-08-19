@@ -9,7 +9,7 @@ from fastapi import Depends, Form
 from fastapi.security import OAuth2PasswordBearer
 from jwt import encode, decode, InvalidTokenError
 from pytz import utc
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette.responses import Response
@@ -119,6 +119,16 @@ class Authenticator:
         return refresh_token
 
     @staticmethod
+    async def reset_refresh_token(
+            user_id: UUID,
+            session: AsyncSession
+    ) -> None:
+        await session.execute(
+            delete(UserRefreshToken)
+            .filter_by(user_id=user_id)
+        )
+
+    @staticmethod
     def set_refresh_token_cookie(
             response: Response,
             refresh_token: str
@@ -126,6 +136,15 @@ class Authenticator:
         response.set_cookie(
             "refresh_token",
             refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="none"
+        )
+
+    @staticmethod
+    def reset_refresh_token_cookie(response: Response) -> None:
+        response.delete_cookie(
+            "refresh_token",
             httponly=True,
             secure=True,
             samesite="none"
