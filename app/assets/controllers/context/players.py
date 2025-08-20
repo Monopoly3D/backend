@@ -138,8 +138,7 @@ class PlayersController(ContextController):
             ServerPlayerEnterGamePacket(
                 self.game.game_id,
                 self.game.code,
-                self.game.min_players,
-                self.game.max_players
+                self.game.player_amount
             )
         )
 

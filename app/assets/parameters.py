@@ -1,6 +1,7 @@
 class Parameters:
     MIN_PLAYERS = 2
     MAX_PLAYERS = 5
+    DEFAULT_PLAYER_AMOUNT = 4
 
     START_DELAY = 1
     START_BONUS_ROUND_AMOUNT = 65

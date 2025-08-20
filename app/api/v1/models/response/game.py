@@ -14,8 +14,7 @@ class GameResponseModel(BaseModel):
     is_started: bool
     round: int
     move: int
-    min_players: int
-    max_players: int
+    player_amount: int
     players: List[PlayerResponseModel]
     fields: List[FieldResponseModel]
 
@@ -36,8 +35,7 @@ class GameResponseModel(BaseModel):
             is_started=game.is_started,
             round=game.round,
             move=game.move,
-            min_players=game.min_players,
-            max_players=game.max_players,
+            player_amount=game.player_amount,
             players=game.players.models_list,
             fields=game.fields.models_list,
             with_players=with_players,
@@ -52,8 +50,7 @@ class GameResponseModel(BaseModel):
             "is_started": self.is_started,
             "round": self.round,
             "move": self.move,
-            "min_players": self.min_players,
-            "max_players": self.max_players
+            "player_amount": self.player_amount
         }
 
         if self.with_players:

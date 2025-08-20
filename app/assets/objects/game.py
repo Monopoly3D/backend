@@ -89,8 +89,7 @@ class Game(RedisObject):
     seed: int = 1
     round: int = 0
     move: int = 0
-    min_players: int = Parameters.MIN_PLAYERS
-    max_players: int = Parameters.MAX_PLAYERS
+    player_amount: int = Parameters.DEFAULT_PLAYER_AMOUNT
     start_delay: int = Parameters.START_DELAY
 
     action: Action | None = None
@@ -151,8 +150,7 @@ class Game(RedisObject):
             "round": self.round,
             "move": self.move,
             "seed": self.seed,
-            "min_players": self.min_players,
-            "max_players": self.max_players,
+            "player_amount": self.player_amount,
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
             "start_reward": self.start_reward,

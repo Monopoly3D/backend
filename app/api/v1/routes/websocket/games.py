@@ -82,7 +82,7 @@ async def authenticate(
 
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
-    if game.players.size >= game.max_players:
+    if game.players.size >= game.player_amount:
         raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
 
     player = Player(user.id, username=user.username)
@@ -109,7 +109,7 @@ async def on_player_ready(
 
     task: Task | None = game.get_start_task()
 
-    if game.players.are_ready and task is None and game.players.size >= game.min_players:
+    if game.players.are_ready and task is None and game.players.size == game.player_amount:
         await game.start_countdown()
     elif not game.players.are_ready and task is not None:
         await game.stop_countdown()

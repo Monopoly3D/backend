@@ -13,13 +13,11 @@ class ServerPlayerEnterGamePacket(ServerPacket):
 
     game_id: UUID
     code: GameCode
-    min_players: int
-    max_players: int
+    player_amount: int
 
     def to_json(self) -> Dict[str, Any]:
         return {
             "game_id": str(self.game_id),
             "code": self.code,
-            "min_players": self.min_players,
-            "max_players": self.max_players
+            "player_amount": self.player_amount
         }
