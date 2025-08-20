@@ -10,6 +10,7 @@ from app.assets.objects.game import Game
 
 class GameResponseModel(BaseModel):
     game_id: UUID
+    host_id: UUID
     code: str
     is_started: bool
     round: int
@@ -31,6 +32,7 @@ class GameResponseModel(BaseModel):
     ) -> 'GameResponseModel':
         return cls(
             game_id=game.game_id,
+            host_id=game.host_id,
             code=game.code,
             is_started=game.is_started,
             round=game.round,
@@ -46,6 +48,7 @@ class GameResponseModel(BaseModel):
     def serialize_model(self) -> Dict[str, Any]:
         model: Dict[str, Any] = {
             "game_id": self.game_id,
+            "host_id": self.host_id,
             "code": self.code,
             "is_started": self.is_started,
             "round": self.round,

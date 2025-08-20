@@ -47,7 +47,7 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.state.database = database
     fastapi_app.state.redis = redis
     fastapi_app.state.connections = ConnectionsController()
-    fastapi_app.state.games_controller = GamesController(redis, CodesController(redis))
+    fastapi_app.state.games_controller = GamesController(redis)
     fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3)
 
     fastapi_app.state.no_reply_email_config = ConnectionConfig(

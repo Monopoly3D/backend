@@ -62,10 +62,9 @@ async def join_game(
 )
 async def get_game(
         game_id: UUID,
-        games_controller: Annotated[GamesController, Depends(games_controller_dependency)],
-        connections: Annotated[ConnectionsController, Depends(ConnectionsController.dependency)]
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
 ) -> GameResponseModel:
-    game: Game | None = await games_controller.get_game(game_id, connections)
+    game: Game | None = await games_controller.get_game(game_id)
 
     if game is None:
         raise NotFoundError("Game with provided UUID was not found")

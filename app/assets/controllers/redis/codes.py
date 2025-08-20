@@ -12,7 +12,10 @@ class CodesController(RedisController):
     ) -> None:
         super().__init__(redis)
 
-    def key(self, code: str) -> str:
+    def key(
+            self,
+            code: str
+    ) -> str:
         return f"codes:{code}"
 
     async def save_code(

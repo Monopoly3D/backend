@@ -137,6 +137,7 @@ class PlayersController(ContextController):
         await player.send(
             ServerPlayerEnterGamePacket(
                 self.game.game_id,
+                self.game.host_id,
                 self.game.code,
                 self.game.player_amount
             )

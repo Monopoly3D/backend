@@ -6,33 +6,38 @@ from redis import Redis
 from app.assets.controllers.redis.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.base_redis import RedisController
+from app.assets.controllers.redis.game_players import GamePlayersController
 from app.assets.objects.game import Game
 
 
 class GamesController(RedisController):
     def __init__(
             self,
-            redis: Redis,
-            codes_controller: CodesController
+            redis: Redis
     ) -> None:
         super().__init__(redis)
-        self._codes_controller = codes_controller
+        self._codes_controller = CodesController(redis)
+        self._game_players_controller = GamePlayersController(redis)
 
     def key(self, game_id: UUID) -> str:
         return f"games:{game_id}"
 
-    async def create_game(self) -> Game:
-        game = Game(controller=self)
+    async def create_game(
+            self,
+            host_id: UUID
+    ) -> Game:
+        game = Game(controller=self, host_id=host_id)
 
         await game.save()
         await self._codes_controller.save_code(game.code, game.game_id)
+        await self._game_players_controller.create_game_player(game.game_id, host_id, is_host=True)
 
         return game
 
     async def get_game(
             self,
             game_id: UUID,
-            connections: ConnectionsController
+            connections: ConnectionsController | None = None
     ) -> Game | None:
         game_json: Dict[str, Any] | None = await self.get(self.key(game_id))
 
@@ -55,7 +60,7 @@ class GamesController(RedisController):
     async def get_game_by_code(
             self,
             code: str,
-            connections: ConnectionsController
+            connections: ConnectionsController | None = None
     ) -> Game | None:
         game_id: str = await self._codes_controller.get_game_id(code)
 
@@ -85,5 +90,10 @@ class GamesController(RedisController):
             self,
             game_id: UUID
     ) -> None:
+        game: Game = await self.get_game(game_id, None)
+
+        for player_id in game.players.ids:
+            await self._game_players_controller.remove_game_player(player_id)
+
         await self._codes_controller.remove_code(await self.get_game_code(game_id))
         await self.remove(self.key(game_id))
