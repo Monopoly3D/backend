@@ -2,13 +2,12 @@ from asyncio import Task
 from typing import Annotated, Tuple, Dict
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Form
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
-from app.api.v1.exceptions.http.invalid_packet import InvalidPacketError
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
 from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
@@ -16,7 +15,6 @@ from app.api.v1.packets.client.player_accept_prison import ClientPlayerAcceptPri
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_buy_filiation import ClientPlayerBuyFiliationPacket
 from app.api.v1.packets.client.player_buyout_field import ClientPlayerBuyoutFieldPacket
-from app.api.v1.packets.client.player_join_game import ClientPlayerEnterGamePacket
 from app.api.v1.packets.client.player_mortgage_field import ClientPlayerMortgageFieldPacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_pay_prison import ClientPlayerPayPrisonPacket
@@ -49,6 +47,7 @@ games_packets_router = PacketsRouter(prefix="/games")
 @games_packets_router.authenticate()
 async def authenticate(
         websocket: WebSocket,
+        ticket: Annotated[str, Form()],
         session: Annotated[AsyncSession, Depends(database_websocket_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
@@ -57,13 +56,7 @@ async def authenticate(
     await websocket.accept()
 
     try:
-        join_packet: ClientPlayerEnterGamePacket = ClientPlayerEnterGamePacket.unpack(await websocket.receive_text())
-    except InvalidPacketError:
-        await websocket.close(3000, "Provided packet data is invalid")
-        return
-
-    try:
-        ticket: Dict[str, str] = await authenticator.decode_game_ticket(join_packet.ticket)
+        ticket: Dict[str, str] = await authenticator.decode_game_ticket(ticket)
     except InvalidAccessTokenError:
         await websocket.close(3000, "Provided ticket is invalid")
         return
@@ -89,39 +82,18 @@ async def authenticate(
 
     if game is None:
         raise GameNotFoundError("Game with provided UUID was not found")
-    if game.players.exists(user.id):
-        raise PlayerAlreadyInGameError("You are already in game")
-    if game.is_started:
-        raise GameAlreadyStartedError("Game with provided UUID has already started")
     if game.players.size >= game.max_players:
         raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
 
     player = Player(user.id, username=user.username)
     player.connection = websocket
 
-    await game.players.join(player)
-    await game.save()
+    await game.players.enter(player, player.connection)
 
 
 @games_packets_router.handle(ClientPingPacket)
 async def on_ping() -> ServerPingPacket:
     return ServerPingPacket()
-
-
-@games_packets_router.handle(ClientPlayerEnterGamePacket)
-async def on_player_join_game(
-        websocket: WebSocket,
-        user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(is_started=False, has_player=False)]
-) -> None:
-    if game.players.size >= game.max_players:
-        raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
-
-    player = Player(user.id, username=user.username)
-    player.connection = websocket
-
-    await game.players.join(player)
-    await game.save()
 
 
 @games_packets_router.handle(ClientPlayerReadyPacket)
