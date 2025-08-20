@@ -32,10 +32,8 @@ from app.api.v1.security.authenticator import Authenticator
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
-from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
 from app.assets.exceptions.game_not_found import GameNotFoundError
-from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.database.models import User
@@ -47,7 +45,6 @@ games_packets_router = PacketsRouter(prefix="/games")
 @games_packets_router.authenticate()
 async def authenticate(
         websocket: WebSocket,
-        ticket: Annotated[str, Form()],
         session: Annotated[AsyncSession, Depends(database_websocket_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
@@ -56,7 +53,7 @@ async def authenticate(
     await websocket.accept()
 
     try:
-        ticket: Dict[str, str] = await authenticator.decode_game_ticket(ticket)
+        ticket: Dict[str, str] = await authenticator.decode_game_ticket(websocket.query_params.get("ticket"))
     except InvalidAccessTokenError:
         await websocket.close(3000, "Provided ticket is invalid")
         return

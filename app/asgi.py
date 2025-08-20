@@ -18,7 +18,6 @@ from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.assets.controllers.base_s3 import S3
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.codes import CodesController
 from app.assets.controllers.redis.games import GamesController
 from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
 from app.assets.exceptions.game_error import GameError
