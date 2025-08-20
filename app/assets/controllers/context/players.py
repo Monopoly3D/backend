@@ -2,6 +2,8 @@ from random import shuffle
 from typing import Dict, List, Any, Tuple
 from uuid import UUID
 
+from starlette.websockets import WebSocket
+
 from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
 from app.assets.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
@@ -9,6 +11,7 @@ from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacke
 from app.assets.actions.action import Action
 from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.controllers.base_context import ContextController
+from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.objects.player import Player
 
 
@@ -119,21 +122,33 @@ class PlayersController(ContextController):
     ) -> None:
         self.add(player)
 
-        await player.send(
-            ServerPlayerEnterGamePacket(
-                self.game.game_id,
-                self.game.code,
-                self.game.min_players,
-                self.game.max_players
-            )
-        )
-
         await self.game.send(
             ServerPlayerJoinGamePacket(
                 self.game.game_id,
                 self.list
             )
         )
+
+    async def enter(
+            self,
+            player: Player,
+            connection: WebSocket
+    ) -> None:
+        await player.send(
+            ServerPlayerEnterGamePacket(
+                self.game.game_id,
+                self.game.host_id,
+                self.game.code,
+                self.game.player_amount
+            )
+        )
+
+        if not self.exists(player.player_id) and not self.game.is_started:
+            await self.join(player)
+        elif self.exists(player.player_id):
+            self.get(player.player_id).connection = connection
+        else:
+            raise GameAlreadyStartedError("Game with provided UUID has already started")
 
     def shuffle(self) -> None:
         players_items: List[Tuple[UUID, Player]] = list(self.__players.items())

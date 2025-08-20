@@ -69,7 +69,11 @@ class PacketsRouter(APIRouter):
 
         return decorator
 
-    def authenticate(self) -> Callable:
+    def authenticate(
+            self,
+            *,
+            path: str | None = None
+    ) -> Callable:
         def decorator(func: Callable) -> None:
             route_index: int | None = None
 
@@ -85,7 +89,7 @@ class PacketsRouter(APIRouter):
                 self.routes.pop(route_index)
 
             self.add_api_websocket_route(
-                "",
+                "" if path is None else path,
                 self._handle_packets,
                 self._NAME,
                 dependencies=[Depends(func)]

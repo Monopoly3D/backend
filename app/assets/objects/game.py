@@ -82,6 +82,7 @@ class Game(RedisObject):
     }
 
     controller: Any
+    host_id: UUID
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     code: GameCode = dataclass_field(default_factory=GameCode.random)
@@ -89,8 +90,7 @@ class Game(RedisObject):
     seed: int = 1
     round: int = 0
     move: int = 0
-    min_players: int = Parameters.MIN_PLAYERS
-    max_players: int = Parameters.MAX_PLAYERS
+    player_amount: int = Parameters.DEFAULT_PLAYER_AMOUNT
     start_delay: int = Parameters.START_DELAY
 
     action: Action | None = None
@@ -123,7 +123,7 @@ class Game(RedisObject):
             cls,
             data: Dict[str, Any],
             controller: 'GamesController',
-            connections: ConnectionsController
+            connections: ConnectionsController | None = None
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
@@ -145,14 +145,14 @@ class Game(RedisObject):
     def to_json(self) -> Dict[str, Any]:
         return {
             "game_id": str(self.game_id),
+            "host_id": str(self.host_id),
             "code": self.code,
             "is_started": self.is_started,
             "action": self.action.pack() if self.action is not None else None,
             "round": self.round,
             "move": self.move,
             "seed": self.seed,
-            "min_players": self.min_players,
-            "max_players": self.max_players,
+            "player_amount": self.player_amount,
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
             "start_reward": self.start_reward,
