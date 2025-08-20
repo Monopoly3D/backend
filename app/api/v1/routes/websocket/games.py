@@ -16,7 +16,7 @@ from app.api.v1.packets.client.player_accept_prison import ClientPlayerAcceptPri
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_buy_filiation import ClientPlayerBuyFiliationPacket
 from app.api.v1.packets.client.player_buyout_field import ClientPlayerBuyoutFieldPacket
-from app.api.v1.packets.client.player_join_game import ClientPlayerJoinGamePacket
+from app.api.v1.packets.client.player_join_game import ClientPlayerEnterGamePacket
 from app.api.v1.packets.client.player_mortgage_field import ClientPlayerMortgageFieldPacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_pay_prison import ClientPlayerPayPrisonPacket
@@ -57,7 +57,7 @@ async def authenticate(
     await websocket.accept()
 
     try:
-        join_packet: ClientPlayerJoinGamePacket = ClientPlayerJoinGamePacket.unpack(await websocket.receive_text())
+        join_packet: ClientPlayerEnterGamePacket = ClientPlayerEnterGamePacket.unpack(await websocket.receive_text())
     except InvalidPacketError:
         await websocket.close(3000, "Provided packet data is invalid")
         return
@@ -108,7 +108,7 @@ async def on_ping() -> ServerPingPacket:
     return ServerPingPacket()
 
 
-@games_packets_router.handle(ClientPlayerJoinGamePacket)
+@games_packets_router.handle(ClientPlayerEnterGamePacket)
 async def on_player_join_game(
         websocket: WebSocket,
         user: User,
