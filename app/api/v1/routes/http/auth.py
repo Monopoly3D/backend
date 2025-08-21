@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Form
-from fastapi_mail import FastMail
 from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +8,7 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.api.v1.assets.email_creator import EmailCreator
+from app.api.v1.assets.email_sender import EmailSender
 from app.api.v1.exceptions.http.already_exists import AlreadyExistsError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.http.invalid_register_token import InvalidRegisterTokenError
@@ -18,7 +17,7 @@ from app.api.v1.models.post.register_credentials import RegisterCredentialsModel
 from app.api.v1.models.response.authentication import AuthenticationModel
 from app.api.v1.security.authenticator import Authenticator
 from app.database.models import User, UserRole, Role
-from app.dependencies import database_session, no_reply_email_dependency, config_dependency
+from app.dependencies import database_session, config_dependency, email_dependency
 from config import Config
 
 auth_router: APIRouter = APIRouter(prefix="/auth", tags=["Authorization"])
@@ -84,10 +83,10 @@ async def logout(
 )
 async def register(
         credentials: RegisterCredentialsModel,
-        session: Annotated[AsyncSession, Depends(database_session)],
         config: Annotated[Config, Depends(config_dependency)],
+        session: Annotated[AsyncSession, Depends(database_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.dependency)],
-        email: Annotated[FastMail, Depends(no_reply_email_dependency)],
+        email: Annotated[EmailSender, Depends(email_dependency)],
         background_tasks: BackgroundTasks
 ) -> None:
     is_user_exist = await session.scalar(
@@ -111,15 +110,10 @@ async def register(
         await authenticator.hash(credentials.password)
     )
 
-    background_tasks.add_task(
-        email.send_message,
-        EmailCreator.create_verification_message(
-            credentials.email,
-            verification_url=config.verification_url.format(register_token=register_token),
-        ),
-        template_name=None,
-        html_template=None,
-        plain_template=None
+    await email.send_verification_email(
+        credentials.email,
+        verification_url=config.verification_url.format(register_token=register_token),
+        background_tasks=background_tasks
     )
 
 

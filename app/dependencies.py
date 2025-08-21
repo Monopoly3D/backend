@@ -1,12 +1,12 @@
 from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
-from fastapi_mail import FastMail
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
+from app.api.v1.assets.email_sender import EmailSender
 from app.assets.controllers.redis.games import GamesController
 from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
 from app.database.database import Database
@@ -40,8 +40,8 @@ async def profile_pictures_controller_dependency(request: Request) -> ProfilePic
     return request.app.state.profile_pictures_controller
 
 
-async def no_reply_email_dependency(request: Request) -> FastMail:
-    return FastMail(request.app.state.no_reply_email_config)
+async def email_dependency(request: Request) -> EmailSender:
+    return request.app.state.email_sender
 
 
 async def config_websocket(websocket: WebSocket) -> Config:

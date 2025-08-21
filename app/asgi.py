@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi_mail import ConnectionConfig
 from pydantic import ValidationError
 from redis.asyncio import Redis
 from starlette import status
@@ -12,6 +11,7 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from app.api.router import api_router, ws_router
+from app.api.v1.assets.email_sender import EmailSender
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
@@ -50,16 +50,11 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.state.games_controller = GamesController(redis)
     fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3)
 
-    fastapi_app.state.no_reply_email_config = ConnectionConfig(
-        MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
-        MAIL_PASSWORD=config.no_reply_email_password,
-        MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
-        MAIL_SERVER=config.smtp_host,
-        MAIL_PORT=config.smtp_port,
-        MAIL_SSL_TLS=True,
-        MAIL_STARTTLS=False,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True
+    fastapi_app.state.email_sender = EmailSender(
+        config.email_name.get_secret_value(),
+        config.email_password.get_secret_value(),
+        config.smtp_host,
+        config.smtp_port
     )
 
     yield

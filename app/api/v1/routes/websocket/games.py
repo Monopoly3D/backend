@@ -32,8 +32,6 @@ from app.api.v1.security.authenticator import Authenticator
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
-from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
-from app.assets.exceptions.game_not_found import GameNotFoundError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.database.models import User
