@@ -125,7 +125,9 @@ class PlayersController(ContextController):
         await self.game.send(
             ServerPlayerJoinGamePacket(
                 self.game.game_id,
-                self.list
+                self.game.host_id,
+                self.game.code,
+                self.game.player_amount
             )
         )
 

@@ -36,6 +36,7 @@ class GamesController(RedisController):
 
         await game.save()
         await self._codes_controller.save_code(game.code, game.game_id)
+        await self._game_players_controller.create_game_player(game.game_id, host_id, is_host=True)
 
         return game
 
