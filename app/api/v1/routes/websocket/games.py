@@ -73,17 +73,16 @@ async def authenticate(
         await websocket.close(3000, "Provided ticket is invalid")
         return
 
-    await connections.add_connection(websocket, user_id)
-
     game: Game = await games_controller.get_game(game_id, connections)
 
     if game is None:
-        raise GameNotFoundError("Game with provided UUID was not found")
+        await websocket.close(3000, "Game with provided UUID was not found")
     if game.players.size >= game.player_amount:
-        raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
+        await websocket.close(3000, "Game with provided UUID has too many players")
 
     player = Player(user.id, username=user.username)
     player.connection = websocket
+    await connections.add_connection(websocket, user_id)
 
     await game.players.enter(player, player.connection)
 

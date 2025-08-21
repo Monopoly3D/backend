@@ -25,15 +25,32 @@ class GamesController(RedisController):
 
     async def create_game(
             self,
-            host_id: UUID
+            host_id: UUID,
+            player_amount: int
     ) -> Game:
-        game = Game(controller=self, host_id=host_id)
+        game = Game(
+            controller=self,
+            host_id=host_id,
+            player_amount=player_amount
+        )
 
         await game.save()
         await self._codes_controller.save_code(game.code, game.game_id)
-        await self._game_players_controller.create_game_player(game.game_id, host_id, is_host=True)
 
         return game
+
+    async def create_game_player(
+            self,
+            game_id: UUID,
+            player_id: UUID,
+            *,
+            is_host: bool
+    ) -> None:
+        await self._game_players_controller.create_game_player(
+            game_id,
+            player_id,
+            is_host=is_host
+        )
 
     async def get_game(
             self,

@@ -6,6 +6,7 @@ from starlette import status
 
 from app.api.v1.enums.permission import Permission
 from app.api.v1.exceptions.http.not_found import NotFoundError
+from app.api.v1.models.post.create_game import CreateGameModel
 from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.models.response.game_ticket import GameTicketResponseModel
 from app.api.v1.security.authenticator import Authenticator
@@ -28,13 +29,14 @@ games_router: APIRouter = APIRouter(prefix="/games", tags=["Games"])
     dependencies=[Authorizer.has_permission(Permission.CREATE_GAMES)]
 )
 async def create_game(
+        create_game_model: CreateGameModel,
         user: Annotated[User, Authenticator.get_user()],
         games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
 ) -> GameResponseModel:
-    if games_controller.is_playing(user.id):
+    if await games_controller.is_playing(user.id):
         raise PlayerAlreadyInGameError("You are already in game")
 
-    game: Game = await games_controller.create_game(user.id)
+    game: Game = await games_controller.create_game(user.id, create_game_model.player_amount)
     return GameResponseModel.from_game(game)
 
 

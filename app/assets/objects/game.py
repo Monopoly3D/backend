@@ -83,6 +83,7 @@ class Game(RedisObject):
 
     controller: Any
     host_id: UUID
+    player_amount: int
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     code: GameCode = dataclass_field(default_factory=GameCode.random)
@@ -90,7 +91,6 @@ class Game(RedisObject):
     seed: int = 1
     round: int = 0
     move: int = 0
-    player_amount: int = Parameters.DEFAULT_PLAYER_AMOUNT
     start_delay: int = Parameters.START_DELAY
 
     action: Action | None = None
