@@ -81,6 +81,21 @@ async def get_game(
 
 
 @games_router.delete(
+    "/{game_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Authorizer.has_permission(Permission.REMOVE_GAMES)]
+)
+async def remove_game(
+        game_id: UUID,
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
+) -> None:
+    if not await games_controller.exists_game(game_id):
+        raise NotFoundError("Game with provided UUID was not found")
+
+    await games_controller.remove_game(game_id)
+
+
+@games_router.delete(
     "",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Authorizer.has_permission(Permission.REMOVE_OWN_GAMES)]
@@ -97,18 +112,3 @@ async def remove_own_game(
         raise PlayerNotHostError("You are not a game host")
 
     await games_controller.remove_game(game.game_id)
-
-
-@games_router.delete(
-    "/{game_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Authorizer.has_permission(Permission.REMOVE_GAMES)]
-)
-async def remove_game(
-        game_id: UUID,
-        games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
-) -> None:
-    if not await games_controller.exists_game(game_id):
-        raise NotFoundError("Game with provided UUID was not found")
-
-    await games_controller.remove_game(game_id)

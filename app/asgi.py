@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi_mail import ConnectionConfig
@@ -104,19 +105,25 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 
 
 @app.exception_handler(GameError)
-async def on_game_error(websocket: WebSocket, exception: GameError) -> None:
-    try:
-        await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
+async def on_game_error(request: Request | WebSocket, exception: GameError) -> Any:
+    if isinstance(request, Request):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exception)}
+        )
+    elif isinstance(request, WebSocket):
+        try:
+            await request.send_text(ServerErrorPacket.from_error(exception).pack())
 
-        if isinstance(exception, InternalServerError):
-            raise exception.error
-        else:
-            logger.error(
-                f"(\'{websocket.client.host}\', {websocket.client.port}) "
-                f"Game error {exception.status_code}: {exception}"
-            )
-    except RuntimeError:
-        pass
+            if isinstance(exception, InternalServerError):
+                raise exception.error
+            else:
+                logger.error(
+                    f"(\'{request.client.host}\', {request.client.port}) "
+                    f"Game error {exception.status_code}: {exception}"
+                )
+        except RuntimeError:
+            pass
 
 
 @app.exception_handler(WebSocketError)
