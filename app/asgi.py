@@ -25,11 +25,11 @@ from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from config import Config
 
+config = Config(_env_file=".env")
+
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    config = Config(_env_file=".env")
-
     database = Database.from_dsn(
         config.database_dsn.get_secret_value()
     )
