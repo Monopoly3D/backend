@@ -2,7 +2,7 @@ from asyncio import Task
 from typing import Annotated, Tuple, Dict
 from uuid import UUID
 
-from fastapi import Depends, Form
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket

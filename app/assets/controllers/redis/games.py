@@ -8,6 +8,7 @@ from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.base_redis import RedisController
 from app.assets.controllers.redis.game_players import GamePlayersController
 from app.assets.objects.game import Game
+from app.assets.objects.game_player import GamePlayer
 
 
 class GamesController(RedisController):
@@ -62,17 +63,24 @@ class GamesController(RedisController):
             code: str,
             connections: ConnectionsController | None = None
     ) -> Game | None:
-        game_id: str = await self._codes_controller.get_game_id(code)
+        game_id: UUID | None = await self._codes_controller.get_game_id(code)
 
         if game_id is None:
             return
 
-        try:
-            game_id: UUID = UUID(game_id)
-        except ValueError:
+        return await self.get_game(game_id, connections)
+
+    async def get_game_by_player(
+            self,
+            player_id: UUID,
+            connections: ConnectionsController | None = None
+    ) -> Game | None:
+        game_player: GamePlayer | None = await self._game_players_controller.get_game_player(player_id)
+
+        if game_player is None:
             return
 
-        return await self.get_game(game_id, connections)
+        return await self.get_game(game_player.game_id, connections)
 
     async def exists_game(
             self,
@@ -85,6 +93,12 @@ class GamesController(RedisController):
             code: str,
     ) -> bool:
         return await self._codes_controller.exists_code(code)
+
+    async def is_playing(
+            self,
+            player_id: UUID
+    ) -> bool:
+        return await self._game_players_controller.exists_game_player(player_id)
 
     async def remove_game(
             self,

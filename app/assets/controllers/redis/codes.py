@@ -28,8 +28,11 @@ class CodesController(RedisController):
     async def get_game_id(
             self,
             code: str
-    ) -> str | None:
-        return await self.get(self.key(code))
+    ) -> UUID | None:
+        try:
+            return UUID(await self.get(self.key(code)))
+        except ValueError:
+            return
 
     async def exists_code(
             self,

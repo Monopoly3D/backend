@@ -2,5 +2,5 @@ from app.assets.exceptions import game_status
 from app.assets.exceptions.game_error import GameError
 
 
-class PlayerAlreadyInGameError(GameError):
-    status_code = game_status.G_4303_PLAYER_ALREADY_IN_GAME
+class PlayerNotHostError(GameError):
+    status_code = game_status.G_4305_PLAYER_NOT_HOST
