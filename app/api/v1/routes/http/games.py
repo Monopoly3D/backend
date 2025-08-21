@@ -85,7 +85,7 @@ async def get_game(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Authorizer.has_permission(Permission.REMOVE_OWN_GAMES)]
 )
-async def remove_game(
+async def remove_own_game(
         user: Annotated[User, Authenticator.get_user()],
         games_controller: Annotated[GamesController, Depends(games_controller_dependency)]
 ) -> None:
