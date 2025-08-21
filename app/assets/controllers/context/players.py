@@ -125,7 +125,9 @@ class PlayersController(ContextController):
         await self.game.send(
             ServerPlayerJoinGamePacket(
                 self.game.game_id,
-                self.list
+                self.game.host_id,
+                self.game.code,
+                self.game.player_amount
             )
         )
 
@@ -134,19 +136,25 @@ class PlayersController(ContextController):
             player: Player,
             connection: WebSocket
     ) -> None:
-        await player.send(
-            ServerPlayerEnterGamePacket(
-                self.game.game_id,
-                self.game.host_id,
-                self.game.code,
-                self.game.player_amount
-            )
+        packet = ServerPlayerEnterGamePacket(
+            self.game.game_id,
+            self.game.host_id,
+            self.game.code,
+            self.game.player_amount
         )
 
         if not self.exists(player.player_id) and not self.game.is_started:
+            self.game.controller.create_game_player(
+                self.game.game_id,
+                player.player_id,
+                is_host=player.player_id == self.game.host_id
+            )
+
+            await player.send(packet)
             await self.join(player)
         elif self.exists(player.player_id):
             self.get(player.player_id).connection = connection
+            await player.send(packet)
         else:
             raise GameAlreadyStartedError("Game with provided UUID has already started")
 

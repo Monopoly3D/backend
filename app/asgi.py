@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
-from fastapi_mail import ConnectionConfig
 from pydantic import ValidationError
 from redis.asyncio import Redis
 from starlette import status
@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket
 
 from app.api.router import api_router, ws_router
+from app.api.v1.assets.email_sender import EmailSender
 from app.api.v1.exceptions.http.http_error import HTTPError
 from app.api.v1.exceptions.websocket.internal_server_error import InternalServerError
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
@@ -24,11 +25,11 @@ from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from config import Config
 
+config = Config(_env_file=".env")
+
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
-    config = Config(_env_file=".env")
-
     database = Database.from_dsn(
         config.database_dsn.get_secret_value()
     )
@@ -49,16 +50,11 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.state.games_controller = GamesController(redis)
     fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3)
 
-    fastapi_app.state.no_reply_email_config = ConnectionConfig(
-        MAIL_USERNAME=config.no_reply_email_sender.get_secret_value(),
-        MAIL_PASSWORD=config.no_reply_email_password,
-        MAIL_FROM=config.no_reply_email_sender.get_secret_value(),
-        MAIL_SERVER=config.smtp_host,
-        MAIL_PORT=config.smtp_port,
-        MAIL_SSL_TLS=True,
-        MAIL_STARTTLS=False,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True
+    fastapi_app.state.email_sender = EmailSender(
+        config.email_name.get_secret_value(),
+        config.email_password.get_secret_value(),
+        config.smtp_host,
+        config.smtp_port
     )
 
     yield
@@ -104,19 +100,25 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 
 
 @app.exception_handler(GameError)
-async def on_game_error(websocket: WebSocket, exception: GameError) -> None:
-    try:
-        await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
+async def on_game_error(request: Request | WebSocket, exception: GameError) -> Any:
+    if isinstance(request, Request):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exception)}
+        )
+    elif isinstance(request, WebSocket):
+        try:
+            await request.send_text(ServerErrorPacket.from_error(exception).pack())
 
-        if isinstance(exception, InternalServerError):
-            raise exception.error
-        else:
-            logger.error(
-                f"(\'{websocket.client.host}\', {websocket.client.port}) "
-                f"Game error {exception.status_code}: {exception}"
-            )
-    except RuntimeError:
-        pass
+            if isinstance(exception, InternalServerError):
+                raise exception.error
+            else:
+                logger.error(
+                    f"(\'{request.client.host}\', {request.client.port}) "
+                    f"Game error {exception.status_code}: {exception}"
+                )
+        except RuntimeError:
+            pass
 
 
 @app.exception_handler(WebSocketError)

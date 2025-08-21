@@ -32,8 +32,6 @@ from app.api.v1.security.authenticator import Authenticator
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
-from app.assets.exceptions.game_max_players_reached import GameMaxPlayersReachedError
-from app.assets.exceptions.game_not_found import GameNotFoundError
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 from app.database.models import User
@@ -73,17 +71,16 @@ async def authenticate(
         await websocket.close(3000, "Provided ticket is invalid")
         return
 
-    await connections.add_connection(websocket, user_id)
-
     game: Game = await games_controller.get_game(game_id, connections)
 
     if game is None:
-        raise GameNotFoundError("Game with provided UUID was not found")
+        await websocket.close(3000, "Game with provided UUID was not found")
     if game.players.size >= game.player_amount:
-        raise GameMaxPlayersReachedError("Game with provided UUID has too many players")
+        await websocket.close(3000, "Game with provided UUID has too many players")
 
     player = Player(user.id, username=user.username)
     player.connection = websocket
+    await connections.add_connection(websocket, user_id)
 
     await game.players.enter(player, player.connection)
 

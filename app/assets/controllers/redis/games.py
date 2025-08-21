@@ -8,6 +8,7 @@ from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.base_redis import RedisController
 from app.assets.controllers.redis.game_players import GamePlayersController
 from app.assets.objects.game import Game
+from app.assets.objects.game_player import GamePlayer
 
 
 class GamesController(RedisController):
@@ -24,15 +25,33 @@ class GamesController(RedisController):
 
     async def create_game(
             self,
-            host_id: UUID
+            host_id: UUID,
+            player_amount: int
     ) -> Game:
-        game = Game(controller=self, host_id=host_id)
+        game = Game(
+            controller=self,
+            host_id=host_id,
+            player_amount=player_amount
+        )
 
         await game.save()
         await self._codes_controller.save_code(game.code, game.game_id)
         await self._game_players_controller.create_game_player(game.game_id, host_id, is_host=True)
 
         return game
+
+    async def create_game_player(
+            self,
+            game_id: UUID,
+            player_id: UUID,
+            *,
+            is_host: bool
+    ) -> None:
+        await self._game_players_controller.create_game_player(
+            game_id,
+            player_id,
+            is_host=is_host
+        )
 
     async def get_game(
             self,
@@ -62,17 +81,24 @@ class GamesController(RedisController):
             code: str,
             connections: ConnectionsController | None = None
     ) -> Game | None:
-        game_id: str = await self._codes_controller.get_game_id(code)
+        game_id: UUID | None = await self._codes_controller.get_game_id(code)
 
         if game_id is None:
             return
 
-        try:
-            game_id: UUID = UUID(game_id)
-        except ValueError:
+        return await self.get_game(game_id, connections)
+
+    async def get_game_by_player(
+            self,
+            player_id: UUID,
+            connections: ConnectionsController | None = None
+    ) -> Game | None:
+        game_player: GamePlayer | None = await self._game_players_controller.get_game_player(player_id)
+
+        if game_player is None:
             return
 
-        return await self.get_game(game_id, connections)
+        return await self.get_game(game_player.game_id, connections)
 
     async def exists_game(
             self,
@@ -85,6 +111,12 @@ class GamesController(RedisController):
             code: str,
     ) -> bool:
         return await self._codes_controller.exists_code(code)
+
+    async def is_playing(
+            self,
+            player_id: UUID
+    ) -> bool:
+        return await self._game_players_controller.exists_game_player(player_id)
 
     async def remove_game(
             self,

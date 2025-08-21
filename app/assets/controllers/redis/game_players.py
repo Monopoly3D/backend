@@ -30,8 +30,13 @@ class GamePlayersController(RedisController):
     async def get_game_player(
             self,
             player_id: UUID
-    ) -> GamePlayer:
-        return GamePlayer(**await self.get(self.key(player_id)))
+    ) -> GamePlayer | None:
+        game_player_json: Dict[str, Any] = await self.get(self.key(player_id))
+
+        if game_player_json is None:
+            return
+
+        return GamePlayer(**game_player_json)
 
     async def exists_game_player(
             self,
