@@ -34,7 +34,7 @@ class WebSocketDependency:
             if not hasattr(packet, "game_id"):
                 raise InvalidPacketDataError("Provided packet data is invalid")
 
-            game: Game | None = await games_controller.get_game(getattr(packet, "game_id"), connections)
+            game: Game | None = await games_controller.get_game(getattr(packet, "game_id"), connections=connections)
 
             if game is None or (user.id not in game.players.ids and has_player):
                 raise GameNotFoundError("Game with provided UUID was not found")

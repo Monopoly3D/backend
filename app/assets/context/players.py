@@ -1,5 +1,5 @@
 from random import shuffle
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, TYPE_CHECKING
 from uuid import UUID
 
 from starlette.websockets import WebSocket
@@ -12,32 +12,59 @@ from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.context.abstract import Context
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
+from app.assets.objects.game import Game
 from app.assets.objects.player import Player
+
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
 
 
 class Players(Context):
     def __init__(self) -> None:
-        self.__players: Dict[UUID, Player] = {}
-        self.__game_instance: Any = None
+        self._players: Dict[UUID, Player] = {}
+        self._game: Game | None = None
+
+    def init(
+            self,
+            players: List[Dict[str, Any]] | None,
+            *,
+            game: Game,
+            connections: Connections | None = None
+    ) -> None:
+        self._game = game
+
+        if players is None:
+            return
+
+        for player_json in players:
+            try:
+                player_id = UUID(player_json.get("player_id"))
+                connection: WebSocket | None = connections.get_connection(player_id)
+            except ValueError:
+                connection = None
+
+            player = Player.from_json(
+                player_json,
+                game=game,
+                connection=connection
+            )
+
+            self.add(player)
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [player.to_json() for player in self.list]
 
     @property
-    def game(self) -> Any:
-        return self.__game_instance
-
-    @game.setter
-    def game(self, value: Any) -> None:
-        self.__game_instance = value
+    def game(self) -> Game:
+        return self._game
 
     @property
     def ids(self) -> List[UUID]:
-        return list(self.__players.keys())
+        return list(self._players.keys())
 
     @property
     def list(self) -> List[Player]:
-        return list(self.__players.values())
+        return list(self._players.values())
 
     @property
     def models_list(self) -> List[PlayerResponseModel]:
@@ -45,7 +72,7 @@ class Players(Context):
 
     @property
     def size(self) -> int:
-        return len(self.__players)
+        return len(self._players)
 
     @property
     def are_ready(self) -> bool:
@@ -69,52 +96,31 @@ class Players(Context):
 
             return self.get(action.players[action.player])
 
-    def setup(
-            self,
-            players: List[Dict[str, Any]] | None = None,
-            *,
-            connections: Connections | None = None
-    ) -> None:
-        if players is None:
-            return
-
-        for data_player in players:
-            player: Player | None = Player.from_json(data_player)
-
-            if player is None:
-                continue
-
-            if connections is not None:
-                player.connection = connections.get_connection(player.player_id)
-
-            self.add(player)
-
     def add(
             self,
             player: Player
     ) -> None:
         if not self.exists(player.player_id):
-            player.game = self.game
-            self.__players[player.player_id] = player
+            self._players[player.player_id] = player
 
     def get(
             self,
             uuid: UUID
     ) -> Player | None:
-        return self.__players.get(uuid)
+        return self._players.get(uuid)
 
     def exists(
             self,
             uuid: UUID
     ) -> bool:
-        return uuid in self.__players
+        return uuid in self._players
 
     def remove(
             self,
             uuid: UUID
     ) -> None:
         if self.exists(uuid):
-            self.__players.pop(uuid)
+            self._players.pop(uuid)
 
     async def join(
             self,
@@ -131,8 +137,7 @@ class Players(Context):
 
     async def enter(
             self,
-            player: Player,
-            connection: WebSocket
+            player: Player
     ) -> None:
         packet = ServerPlayerEnterGamePacket(
             self.game.game_id,
@@ -142,7 +147,7 @@ class Players(Context):
         )
 
         if not self.exists(player.player_id) and not self.game.is_started:
-            self.game.controller.create_active_player(
+            await self.game.controller.create_active_player(
                 self.game.game_id,
                 player.player_id,
                 is_host=player.player_id == self.game.host_id
@@ -151,15 +156,15 @@ class Players(Context):
             await player.send(packet)
             await self.join(player)
         elif self.exists(player.player_id):
-            self.get(player.player_id).connection = connection
+            self.get(player.player_id).connection = player.connection
             await player.send(packet)
         else:
             raise GameAlreadyStartedError("Game with provided UUID has already started")
 
     def shuffle(self) -> None:
-        players_items: List[Tuple[UUID, Player]] = list(self.__players.items())
+        players_items: List[Tuple[UUID, Player]] = list(self._players.items())
         shuffle(players_items)
-        self.__players = dict(players_items)
+        self._players = dict(players_items)
 
     def get_players_with_sufficient_balance(
             self,

@@ -24,7 +24,7 @@ class Connections:
     def get_connection(
             self,
             user_id: UUID
-    ) -> WebSocket:
+    ) -> WebSocket | None:
         return self._connections.get(user_id)
 
     async def get_user_id(

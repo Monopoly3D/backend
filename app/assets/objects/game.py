@@ -82,9 +82,10 @@ class Game(RedisObject):
         ActionType.CONTRACT: ContractAction
     }
 
-    controller: GamesController
     host_id: UUID
     player_amount: int
+    _controller: GamesController
+    _connections: Connections
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     code: GameCode = dataclass_field(default_factory=GameCode.random)
@@ -107,15 +108,16 @@ class Game(RedisObject):
     _start_task: str | None = dataclass_field(default=None, repr=False)
     _random: random.Random | None = dataclass_field(default=None, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         for _ in range(self.__CODE_REGENERATION_LIMIT):
-            if not self.controller.exists_game_code(self.code):
+            if not self._controller.exists_game_code(self.code):
                 break
+
             self.code = GameCode.random()
         else:
             raise GameCreationFailedError("Game creation failed. Please try again")
 
-        self.players.game = self
+        self.players.init(None, game=self)
         self.fields.game = self
         self.monopolies.game = self
 
@@ -123,11 +125,28 @@ class Game(RedisObject):
         self._reset_random()
 
     @classmethod
+    def new(
+            cls,
+            host_id: UUID,
+            player_amount: int,
+            *,
+            controller: GamesController,
+            connections: Connections
+    ) -> 'Game':
+        return cls(
+            host_id,
+            player_amount,
+            _controller=controller,
+            _connections=connections
+        )
+
+    @classmethod
     def from_json(
             cls,
             data: Dict[str, Any],
-            controller: 'GamesController',
-            connections: Connections | None = None
+            *,
+            controller: GamesController,
+            connections: Connections
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
@@ -138,9 +157,13 @@ class Game(RedisObject):
         if data.get("action") is not None:
             data["action"] = cls.get_action(data["action"])
 
-        game: Game = cls(controller=controller, **data)
+        game: Game = cls(**data, _controller=controller, _connections=connections)
 
-        game.players.setup(players, connections=connections)
+        game.players.init(
+            players,
+            game=game,
+            connections=connections
+        )
         game.fields.setup(fields)
         game.monopolies.setup(monopolies, game.fields.companies)
 
@@ -168,7 +191,11 @@ class Game(RedisObject):
         }
 
     async def save(self) -> None:
-        await self.controller.set(self.controller.key(self.game_id), self.to_json())
+        await self._controller.set(self._controller.key(self.game_id), self.to_json())
+
+    @property
+    def controller(self) -> GamesController:
+        return self._controller
 
     async def send(
             self,

@@ -47,6 +47,7 @@ from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsuf
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.tax import Tax
+from app.assets.objects.game import Game
 from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
 
@@ -55,6 +56,8 @@ from app.assets.parameters import Parameters
 class Player(GameObject):
     player_id: UUID
     username: str
+    _game: Game
+
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
     is_ready: bool = False
@@ -63,12 +66,37 @@ class Player(GameObject):
     double_amount: int = 0
     contract_amount: int = 0
 
-    __connection_instance: WebSocket | None = None
-    __game_instance: Any = None
+    _connection: WebSocket | None = None
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> Any:
-        return cls(**data)
+    def new(
+            cls,
+            player_id: UUID,
+            username: str,
+            *,
+            game: Game,
+            connection: WebSocket | None
+    ) -> 'Player':
+        return cls(
+            player_id,
+            username,
+            _game=game,
+            _connection=connection
+        )
+
+    @classmethod
+    def from_json(
+            cls,
+            player_json: Dict[str, Any],
+            *,
+            game: Game,
+            connection: WebSocket | None
+    ) -> 'Player':
+        return cls(
+            **player_json,
+            _game=game,
+            _connection=connection
+        )
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -84,20 +112,16 @@ class Player(GameObject):
         }
 
     @property
-    def connection(self) -> WebSocket | None:
-        return self.__connection_instance
-
-    @connection.setter
-    def connection(self, value: WebSocket | None) -> None:
-        self.__connection_instance = value
+    def game(self) -> Any:
+        return self._game
 
     @property
-    def game(self) -> Any:
-        return self.__game_instance
+    def connection(self) -> WebSocket | None:
+        return self._connection
 
-    @game.setter
-    def game(self, value: Any) -> None:
-        self.__game_instance = value
+    @connection.setter
+    def connection(self, websocket: WebSocket) -> None:
+        self._connection = websocket
 
     @property
     def is_imprisoned(self) -> bool:

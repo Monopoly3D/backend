@@ -8,7 +8,7 @@ class Context(ABC):
         pass
 
     @abstractmethod
-    def setup(self, *args: Any, **kwargs: Any) -> None:
+    def init(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @abstractmethod
