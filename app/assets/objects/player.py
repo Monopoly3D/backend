@@ -1,7 +1,6 @@
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, TYPE_CHECKING
 from uuid import UUID
 
-from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
@@ -14,7 +13,9 @@ from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacke
 from app.api.v1.packets.server.player_buy_field_on_auction import ServerPlayerBuyFieldOnAuctionPacket
 from app.api.v1.packets.server.player_buy_filiation import ServerPlayerBuyFiliationPacket
 from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFieldPacket
+from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
+from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_must_pay_prison import ServerPlayerMustPayPrisonPacket
@@ -26,12 +27,6 @@ from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
 from app.api.v1.packets.server.player_sell_filiation import ServerPlayerSellFiliationPacket
-from app.assets.actions.action import Action
-from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.actions.move import MoveAction
-from app.assets.actions.pay_prison import PayPrisonAction
-from app.assets.actions.pay_rent import PayRentAction
-from app.assets.actions.pay_tax import PayTaxAction
 from app.assets.exceptions.field_already_filiated import FieldAlreadyFiliatedError
 from app.assets.exceptions.field_already_mortgaged import FieldAlreadyMortgagedError
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -44,31 +39,73 @@ from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.exceptions.invalid_filiation import InvalidFiliationError
 from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsufficientBalanceError
+from app.assets.objects.actions.abstract import AbstractAction
+from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.objects.actions.move import MoveAction
+from app.assets.objects.actions.pay_prison import PayPrisonAction
+from app.assets.objects.actions.pay_rent import PayRentAction
+from app.assets.objects.actions.pay_tax import PayTaxAction
+from app.assets.objects.active_player import ActivePlayer
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.tax import Tax
-from app.assets.objects.game_object import GameObject
+from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
 
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
+else:
+    Game = Any
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+
+@dataclass
 class Player(GameObject):
     player_id: UUID
     username: str
+    _game: 'Game'
+
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
+    is_host: bool = False
     is_ready: bool = False
     is_playing: bool = True
     prison: int = -1
     double_amount: int = 0
     contract_amount: int = 0
 
-    __connection_instance: WebSocket | None = None
-    __game_instance: Any = None
+    _connection: WebSocket | None = None
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> Any:
-        return cls(**data)
+    def new(
+            cls,
+            player_id: UUID,
+            username: str,
+            *,
+            is_host: bool = False,
+            game: 'Game',
+            connection: WebSocket | None
+    ) -> 'Player':
+        return cls(
+            player_id=player_id,
+            username=username,
+            is_host=is_host,
+            _game=game,
+            _connection=connection
+        )
+
+    @classmethod
+    def from_json(
+            cls,
+            player_json: Dict[str, Any],
+            *,
+            game: 'Game',
+            connection: WebSocket | None
+    ) -> 'Player':
+        return cls(
+            **player_json,
+            _game=game,
+            _connection=connection
+        )
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -76,6 +113,7 @@ class Player(GameObject):
             "username": self.username,
             "balance": self.balance,
             "field": self.field,
+            "is_host": self.is_host,
             "is_ready": self.is_ready,
             "is_playing": self.is_playing,
             "prison": self.prison,
@@ -84,20 +122,16 @@ class Player(GameObject):
         }
 
     @property
-    def connection(self) -> WebSocket | None:
-        return self.__connection_instance
-
-    @connection.setter
-    def connection(self, value: WebSocket | None) -> None:
-        self.__connection_instance = value
+    def game(self) -> 'Game':
+        return self._game
 
     @property
-    def game(self) -> Any:
-        return self.__game_instance
+    def connection(self) -> WebSocket | None:
+        return self._connection
 
-    @game.setter
-    def game(self, value: Any) -> None:
-        self.__game_instance = value
+    @connection.setter
+    def connection(self, websocket: WebSocket) -> None:
+        self._connection = websocket
 
     @property
     def is_imprisoned(self) -> bool:
@@ -117,6 +151,36 @@ class Player(GameObject):
     ) -> None:
         if self.connection is not None:
             await self.connection.send_text(packet.pack())
+
+    async def enter(self) -> None:
+        packet = ServerPlayerEnterGamePacket(self.game)
+
+        if self.game.players.exists(self.player_id):
+            self.game.players.get(self.player_id).connection = self.connection
+            await self.game.players.get(self.player_id).send(packet)
+            return
+
+        if not self.game.is_started:
+            await self.game.controller.active_players_controller.create_player(
+                ActivePlayer(
+                    game_id=self.game.game_id,
+                    player_id=self.player_id,
+                    is_host=self.is_host
+                )
+            )
+
+            await self.send(packet)
+            await self.join()
+
+    async def join(self) -> None:
+        self.game.players.add(self)
+
+        await self.game.send(
+            ServerPlayerJoinGamePacket(
+                self.game.game_id,
+                self.game.players.list
+            )
+        )
 
     async def set_ready(
             self,
@@ -172,7 +236,7 @@ class Player(GameObject):
         else:
             self.double_amount = 0
 
-        field: Field = self.game.fields.list[self.field]
+        field: AbstractField = self.game.fields.list[self.field]
         await field.on_stand(self, amount)
 
     async def buy_field(
@@ -225,7 +289,7 @@ class Player(GameObject):
     async def accept_auction(
             self
     ) -> None:
-        action: Action | None = self.game.action
+        action: AbstractAction | None = self.game.action
 
         if not isinstance(action, BuyFieldOnAuctionAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -256,7 +320,7 @@ class Player(GameObject):
     async def refuse_auction(
             self
     ) -> None:
-        action: Action | None = self.game.action
+        action: AbstractAction | None = self.game.action
 
         if not isinstance(action, BuyFieldOnAuctionAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -371,7 +435,7 @@ class Player(GameObject):
         if company.owner_id == self.player_id:
             raise FieldAlreadyOwnedError("Provided field is already owned")
 
-        action: Action = self.game.action
+        action: AbstractAction = self.game.action
 
         if not isinstance(action, PayRentAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -400,7 +464,7 @@ class Player(GameObject):
     async def pay_tax(self) -> None:
         self.__get_tax(self.field)
 
-        action: Action = self.game.action
+        action: AbstractAction = self.game.action
 
         if not isinstance(action, PayTaxAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -599,8 +663,8 @@ class Player(GameObject):
     def __get_field(
             self,
             field: int | None = None
-    ) -> Field:
-        field: Field | None = self.game.fields.get(field if field is not None else self.field)
+    ) -> AbstractField:
+        field: AbstractField | None = self.game.fields.get(field if field is not None else self.field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -611,7 +675,7 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> Company:
-        field: Field = self.__get_field(field)
+        field: AbstractField = self.__get_field(field)
 
         if not isinstance(field, Company):
             raise InvalidFieldTypeError("Provided field is not a company")
@@ -622,7 +686,7 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> Tax:
-        field: Field = self.__get_field(field)
+        field: AbstractField = self.__get_field(field)
 
         if not isinstance(field, Tax):
             raise InvalidFieldTypeError("Provided field is not a company")

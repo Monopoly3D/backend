@@ -13,9 +13,9 @@ from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
 from app.assets.exceptions.game_error import GameError
+from app.assets.objects.connections import Connections
+from app.assets.redis.games import GamesController
 from app.database.database import Database
 from app.database.models import User
 from app.dependencies import games_controller_websocket, config_websocket, \
@@ -28,7 +28,7 @@ async def _dependencies(
         database: Annotated[Database, Depends(database_websocket)],
         redis: Annotated[Redis, Depends(redis_websocket)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
-        connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)],
+        connections: Annotated[Connections, Depends(Connections.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
         user: Annotated[User, Authenticator.get_websocket_user()]
 ) -> Dict[str, Any]:

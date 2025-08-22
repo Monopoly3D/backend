@@ -7,8 +7,8 @@ from starlette.requests import Request
 from starlette.websockets import WebSocket
 
 from app.api.v1.assets.email_sender import EmailSender
-from app.assets.controllers.redis.games import GamesController
-from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
+from app.assets.redis.games import GamesController
+from app.assets.s3.profile_pictures import ProfilePicturesController
 from app.database.database import Database
 from config import Config
 

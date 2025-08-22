@@ -1,32 +1,51 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, TYPE_CHECKING, Optional
 
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
-from app.assets.controllers.base_context import ContextController
+from app.assets.context.abstract import Context
 from app.assets.enums.field_type import FieldType
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
+
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
 
 
-class FieldsController(ContextController):
+class Fields(Context):
     def __init__(self) -> None:
-        self.__fields: List[Field] = []
-        self.__game_instance: Any = None
+        self._fields: List[AbstractField] = []
+        self._game: Optional['Game'] = None
+
+    def init(
+            self,
+            fields: List[Dict[str, Any]] | None,
+            *,
+            game: 'Game'
+    ) -> None:
+        self._fields.clear()
+        self._game = game
+
+        if fields is None:
+            return
+
+        for field_json in fields:
+            field: AbstractField | None = self.game.get_field(field_json)
+
+            if field is None:
+                continue
+
+            self.add(field)
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [field.pack() for field in self.list]
 
     @property
-    def game(self) -> Any:
-        return self.__game_instance
-
-    @game.setter
-    def game(self, value: Any) -> None:
-        self.__game_instance = value
+    def game(self) -> Optional['Game'] | None:
+        return self._game
 
     @property
-    def list(self) -> List[Field]:
-        return self.__fields
+    def list(self) -> List[AbstractField]:
+        return self._fields
 
     @property
     def models_list(self) -> List[FieldResponseModel]:
@@ -38,35 +57,24 @@ class FieldsController(ContextController):
 
     @property
     def size(self) -> int:
-        return len(self.__fields)
+        return len(self._fields)
 
     @property
     def prison(self) -> int:
-        return [field.FIELD_TYPE for field in self.__fields].index(FieldType.PRISON)
-
-    def setup(
-            self,
-            fields: List[Dict[str, Any]] | None = None
-    ) -> None:
-        self.__fields.clear()
-
-        if fields is None or self.game is None:
-            return
-
-        for data_field in fields:
-            field: Field | None = self.game.get_field(data_field)
-
-            if field is None:
-                continue
-
-            self.add(field)
+        return [field.FIELD_TYPE for field in self._fields].index(FieldType.PRISON)
 
     def add(
             self,
-            field: Field
+            field: AbstractField
     ) -> None:
         field.game = self.game
-        self.__fields.append(field)
+        self._fields.append(field)
+
+    def get(
+            self,
+            index: int
+    ) -> AbstractField | None:
+        return self._fields[index] if index < len(self._fields) else None
 
     async def decrease_all_mortgages(self) -> None:
         has_any_mortgaged_fields: bool = False

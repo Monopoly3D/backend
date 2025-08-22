@@ -3,11 +3,11 @@ from typing import Any
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 
 
 @dataclass
-class Chance(Field):
+class Chance(AbstractField):
     FIELD_TYPE = FieldType.CHANCE
 
     async def on_stand(

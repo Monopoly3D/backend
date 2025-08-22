@@ -1,7 +1,5 @@
 from typing import Callable, List
 
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_client import ClientPacket
 from app.assets.enums.action_type import ActionType
@@ -11,8 +9,10 @@ from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveErro
 from app.assets.exceptions.game_not_found import GameNotFoundError
 from app.assets.exceptions.game_not_started import GameNotStartedError
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
+from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
+from app.assets.redis.games import GamesController
 from app.database.models import User
 
 
@@ -27,14 +27,14 @@ class WebSocketDependency:
     ) -> Callable:
         async def __get_game(
                 packet: ClientPacket,
-                connections: ConnectionsController,
+                connections: Connections,
                 games_controller: GamesController,
                 user: User
         ) -> Game:
             if not hasattr(packet, "game_id"):
                 raise InvalidPacketDataError("Provided packet data is invalid")
 
-            game: Game | None = await games_controller.get_game(getattr(packet, "game_id"), connections)
+            game: Game | None = await games_controller.get_game(getattr(packet, "game_id"), connections=connections)
 
             if game is None or (user.id not in game.players.ids and has_player):
                 raise GameNotFoundError("Game with provided UUID was not found")

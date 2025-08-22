@@ -2,7 +2,8 @@ from uuid import UUID
 
 from redis import Redis
 
-from app.assets.controllers.base_redis import RedisController
+from app.assets.objects.code import GameCode
+from app.assets.redis.abstract import RedisController
 
 
 class CodesController(RedisController):
@@ -18,9 +19,9 @@ class CodesController(RedisController):
     ) -> str:
         return f"codes:{code}"
 
-    async def save_code(
+    async def create_code(
             self,
-            code: str,
+            code: GameCode,
             game_id: UUID
     ) -> None:
         await self.set(self.key(code), str(game_id))

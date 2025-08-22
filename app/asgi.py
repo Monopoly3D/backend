@@ -17,11 +17,11 @@ from app.api.v1.exceptions.websocket.internal_server_error import InternalServer
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
-from app.assets.controllers.base_s3 import S3
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
-from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
 from app.assets.exceptions.game_error import GameError
+from app.assets.objects.connections import Connections
+from app.assets.redis.games import GamesController
+from app.assets.s3.abstract import S3Config
+from app.assets.s3.profile_pictures import ProfilePicturesController
 from app.database.database import Database
 from config import Config
 
@@ -36,7 +36,7 @@ async def lifespan(fastapi_app: FastAPI):
     redis = Redis.from_url(
         config.redis_dsn.get_secret_value()
     )
-    s3 = S3(
+    s3_config = S3Config(
         config.s3_dsn.get_secret_value(),
         config.s3_region,
         config.s3_username.get_secret_value(),
@@ -46,9 +46,9 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.state.config = config
     fastapi_app.state.database = database
     fastapi_app.state.redis = redis
-    fastapi_app.state.connections = ConnectionsController()
+    fastapi_app.state.connections = Connections()
     fastapi_app.state.games_controller = GamesController(redis)
-    fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3)
+    fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3_config)
 
     fastapi_app.state.email_sender = EmailSender(
         config.email_name.get_secret_value(),

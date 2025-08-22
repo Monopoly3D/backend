@@ -18,7 +18,7 @@ from starlette.websockets import WebSocket
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
 from app.api.v1.exceptions.websocket.not_authenticated_address import NotAuthenticatedAddressError
-from app.assets.controllers.connections import ConnectionsController
+from app.assets.objects.connections import Connections
 from app.database.models import User, Role, UserRefreshToken
 from app.dependencies import config_websocket, config_dependency, database_session, database_websocket_session
 from config import Config
@@ -343,7 +343,7 @@ class Authenticator:
         async def __get_websocket_user(
                 websocket: WebSocket,
                 session: Annotated[AsyncSession, Depends(database_websocket_session)],
-                connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
+                connections: Annotated[Connections, Depends(Connections.websocket_dependency)]
         ) -> User:
             user: User | None = await session.scalar(
                 select(User)

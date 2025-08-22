@@ -2,12 +2,13 @@ from asyncio import Task
 from typing import Annotated, Tuple, Dict
 from uuid import UUID
 
-from fastapi import Depends, Form
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
+from app.api.v1.exceptions.websocket import websocket_status
 from app.api.v1.packets.client.ping import ClientPingPacket
 from app.api.v1.packets.client.player_accept_auction import ClientPlayerAcceptAuctionPacket
 from app.api.v1.packets.client.player_accept_casino import ClientPlayerAcceptCasinoPacket
@@ -29,11 +30,12 @@ from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
+from app.assets.exceptions import game_status
+from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
+from app.assets.redis.games import GamesController
 from app.database.models import User
 from app.dependencies import database_websocket_session, games_controller_websocket
 
@@ -46,21 +48,27 @@ async def authenticate(
         session: Annotated[AsyncSession, Depends(database_websocket_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
-        connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
+        connections: Annotated[Connections, Depends(Connections.websocket_dependency)]
 ) -> None:
     await websocket.accept()
 
     try:
         ticket: Dict[str, str] = await authenticator.decode_game_ticket(websocket.query_params.get("ticket"))
     except InvalidAccessTokenError:
-        await websocket.close(3000, "Provided ticket is invalid")
+        await websocket.close(
+            websocket_status.WS_4001_UNAUTHORIZED,
+            "Provided ticket is invalid"
+        )
         return
 
     try:
         user_id: UUID = UUID(ticket["id"])
         game_id: UUID = UUID(ticket["game_id"])
     except ValueError | KeyError:
-        await websocket.close(3000, "Provided ticket is invalid")
+        await websocket.close(
+            websocket_status.WS_4001_UNAUTHORIZED,
+            "Provided ticket is invalid"
+        )
         return
 
     user: User = await session.scalar(
@@ -68,21 +76,40 @@ async def authenticate(
         .filter_by(id=user_id)
     )
     if user is None:
-        await websocket.close(3000, "Provided ticket is invalid")
+        await websocket.close(
+            websocket_status.WS_4001_UNAUTHORIZED,
+            "Provided ticket is invalid"
+        )
         return
 
-    game: Game = await games_controller.get_game(game_id, connections)
+    game: Game = await games_controller.get_game(game_id, connections=connections)
 
     if game is None:
-        await websocket.close(3000, "Game with provided UUID was not found")
-    if game.players.size >= game.player_amount:
-        await websocket.close(3000, "Game with provided UUID has too many players")
+        await websocket.close(
+            game_status.G_4201_GAME_NOT_FOUND,
+            "Game was not found"
+        )
+    if not game.players.exists(user.id) and game.players.size >= game.player_amount:
+        await websocket.close(
+            game_status.G_4206_GAME_MAX_PLAYERS_REACHED,
+            "Game with provided UUID has too many players"
+        )
+    if game.players.exists(user.id) and game.is_started:
+        await websocket.close(
+            game_status.G_4302_PLAYER_NOT_IN_GAME,
+            "You are not in game"
+        )
 
-    player = Player(user.id, username=user.username)
-    player.connection = websocket
     await connections.add_connection(websocket, user_id)
+    await Player.new(
+        user.id,
+        user.username,
+        is_host=user.id == game.host_id,
+        game=game,
+        connection=websocket
+    ).enter()
 
-    await game.players.enter(player, player.connection)
+    await game.save()
 
 
 @games_packets_router.handle(ClientPingPacket)

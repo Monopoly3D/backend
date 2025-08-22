@@ -2,17 +2,13 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class ContextController(ABC):
+class Context(ABC):
     @abstractmethod
     def __init__(self) -> None:
         pass
 
     @abstractmethod
-    def setup(
-            self,
-            *args: Any,
-            **kwargs: Any
-    ) -> None:
+    def init(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @abstractmethod

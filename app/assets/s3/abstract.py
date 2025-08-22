@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -9,7 +9,7 @@ from pydantic.dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class S3:
+class S3Config:
     dsn: str
     region: str
     username: str
@@ -17,8 +17,8 @@ class S3:
 
 
 @dataclass
-class S3Controller:
-    s3: S3
+class S3Controller(ABC):
+    s3: S3Config
 
     @abstractmethod
     def bucket(self) -> str: pass

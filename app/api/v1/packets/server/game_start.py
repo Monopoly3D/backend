@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.base_server import ServerPacket
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.player import Player
 
 
@@ -14,7 +14,7 @@ class ServerGameStartPacket(ServerPacket):
 
     game_id: UUID
     players: List[Player]
-    fields: List[Field]
+    fields: List[AbstractField]
 
     def to_json(self) -> Dict[str, Any]:
         return {
