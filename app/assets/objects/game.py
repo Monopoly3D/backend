@@ -40,7 +40,7 @@ from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.police import Police
 from app.assets.objects.fields.prison import Prison
 from app.assets.objects.fields.start import Start
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 class Game(RedisObject):
     __CODE_REGENERATION_LIMIT: ClassVar[int] = 10
 
-    __FIELDS: ClassVar[Dict[FieldType, Type[Field]]] = {
+    __FIELDS: ClassVar[Dict[FieldType, Type[AbstractField]]] = {
         FieldType.COMPANY: Company,
         FieldType.START: Start,
         FieldType.CHANCE: Chance,
@@ -377,7 +377,7 @@ class Game(RedisObject):
     def get_field(
             cls,
             data: Dict[str, Any]
-    ) -> Field | None:
+    ) -> AbstractField | None:
         if "field_type" not in data:
             return
 

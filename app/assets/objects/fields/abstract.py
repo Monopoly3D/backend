@@ -9,7 +9,7 @@ from app.assets.objects.object import GameObject
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
-class Field(GameObject, ABC):
+class AbstractField(GameObject, ABC):
     FIELD_TYPE: ClassVar[FieldType]
     field_id: int
 
@@ -31,7 +31,7 @@ class Field(GameObject, ABC):
         return {"field_id": self.field_id, "field_type": self.FIELD_TYPE.value}
 
     @classmethod
-    def unpack(cls, data: Dict[str, Any]) -> 'Field':
+    def unpack(cls, data: Dict[str, Any]) -> 'AbstractField':
         return cls.from_json(data)
 
     def pack(self) -> Dict[str, Any]:

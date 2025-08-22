@@ -4,11 +4,11 @@ from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_got_start_reward import ServerPlayerGotStartRewardPacket
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 
 
 @dataclass
-class Start(Field):
+class Start(AbstractField):
     FIELD_TYPE = FieldType.START
 
     async def on_stand(

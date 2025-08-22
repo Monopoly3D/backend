@@ -11,12 +11,12 @@ from app.assets.enums.field_type import FieldType
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.actions.buy_field import BuyFieldAction
 from app.assets.objects.actions.pay_rent import PayRentAction
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.parameters import Parameters
 
 
 @dataclass
-class Company(Field):
+class Company(AbstractField):
     FIELD_TYPE = FieldType.COMPANY
 
     owner_id: UUID | None = None

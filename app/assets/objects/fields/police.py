@@ -4,11 +4,11 @@ from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_got_imprisoned import ServerPlayerGotImprisonedPacket
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 
 
 @dataclass
-class Police(Field):
+class Police(AbstractField):
     FIELD_TYPE = FieldType.POLICE
 
     async def on_stand(

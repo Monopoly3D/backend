@@ -5,12 +5,12 @@ from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLo
 from app.assets.controllers.base_context import ContextController
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 
 
 class FieldsController(ContextController):
     def __init__(self) -> None:
-        self.__fields: List[Field] = []
+        self.__fields: List[AbstractField] = []
         self.__game_instance: Any = None
 
     def to_json(self) -> List[Dict[str, Any]]:
@@ -25,7 +25,7 @@ class FieldsController(ContextController):
         self.__game_instance = value
 
     @property
-    def list(self) -> List[Field]:
+    def list(self) -> List[AbstractField]:
         return self.__fields
 
     @property
@@ -54,7 +54,7 @@ class FieldsController(ContextController):
             return
 
         for data_field in fields:
-            field: Field | None = self.game.get_field(data_field)
+            field: AbstractField | None = self.game.get_field(data_field)
 
             if field is None:
                 continue
@@ -63,7 +63,7 @@ class FieldsController(ContextController):
 
     def add(
             self,
-            field: Field
+            field: AbstractField
     ) -> None:
         field.game = self.game
         self.__fields.append(field)

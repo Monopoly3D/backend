@@ -45,7 +45,7 @@ from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.exceptions.invalid_filiation import InvalidFiliationError
 from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsufficientBalanceError
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.field import Field
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.tax import Tax
 from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
@@ -172,7 +172,7 @@ class Player(GameObject):
         else:
             self.double_amount = 0
 
-        field: Field = self.game.fields.list[self.field]
+        field: AbstractField = self.game.fields.list[self.field]
         await field.on_stand(self, amount)
 
     async def buy_field(
@@ -599,8 +599,8 @@ class Player(GameObject):
     def __get_field(
             self,
             field: int | None = None
-    ) -> Field:
-        field: Field | None = self.game.fields.get(field if field is not None else self.field)
+    ) -> AbstractField:
+        field: AbstractField | None = self.game.fields.get(field if field is not None else self.field)
 
         if field is None:
             raise FieldNotFoundError("Field with provided index was not found")
@@ -611,7 +611,7 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> Company:
-        field: Field = self.__get_field(field)
+        field: AbstractField = self.__get_field(field)
 
         if not isinstance(field, Company):
             raise InvalidFieldTypeError("Provided field is not a company")
@@ -622,7 +622,7 @@ class Player(GameObject):
             self,
             field: int | None = None
     ) -> Tax:
-        field: Field = self.__get_field(field)
+        field: AbstractField = self.__get_field(field)
 
         if not isinstance(field, Tax):
             raise InvalidFieldTypeError("Provided field is not a company")
