@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, ClassVar
 
-from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.object import GameObject
 
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+@dataclass
 class AbstractField(GameObject, ABC):
     FIELD_TYPE: ClassVar[FieldType]
     field_id: int

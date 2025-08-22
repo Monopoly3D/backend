@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+
+from pydantic.dataclasses import dataclass
 
 from app.assets.objects.object import GameObject
 
@@ -8,9 +9,6 @@ from app.assets.objects.object import GameObject
 class RedisObject(GameObject, ABC):
     @abstractmethod
     async def save(self) -> None: pass
-
-    @abstractmethod
-    async def exists(self) -> bool: pass
 
     @abstractmethod
     async def clear(self) -> None: pass

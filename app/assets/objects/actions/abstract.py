@@ -1,14 +1,13 @@
 from abc import ABC
 from typing import Dict, Any, ClassVar
 
-from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.object import GameObject
 
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+@dataclass
 class AbstractAction(GameObject, ABC):
     ACTION_TYPE: ClassVar[ActionType]
 

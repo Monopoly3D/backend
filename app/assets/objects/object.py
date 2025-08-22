@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
 
+
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class GameObject(ABC):
     @classmethod
     @abstractmethod

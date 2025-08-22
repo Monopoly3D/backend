@@ -1,7 +1,6 @@
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, TYPE_CHECKING
 from uuid import UUID
 
-from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocket
 
@@ -53,12 +52,17 @@ from app.assets.objects.fields.tax import Tax
 from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
 
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
+else:
+    Game = Any
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+
+@dataclass
 class Player(GameObject):
     player_id: UUID
     username: str
-    _game: Any
+    _game: 'Game'
 
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
@@ -78,12 +82,12 @@ class Player(GameObject):
             username: str,
             *,
             is_host: bool = False,
-            game: Any,
+            game: 'Game',
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
-            player_id,
-            username,
+            player_id=player_id,
+            username=username,
             is_host=is_host,
             _game=game,
             _connection=connection
@@ -94,7 +98,7 @@ class Player(GameObject):
             cls,
             player_json: Dict[str, Any],
             *,
-            game: Any,
+            game: 'Game',
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
@@ -118,7 +122,7 @@ class Player(GameObject):
         }
 
     @property
-    def game(self) -> Any:
+    def game(self) -> 'Game':
         return self._game
 
     @property
@@ -164,8 +168,8 @@ class Player(GameObject):
         if not self.game.is_started:
             await self.game.controller.active_players_controller.create_player(
                 ActivePlayer(
-                    self.game.game_id,
-                    self.player_id,
+                    game_id=self.game.game_id,
+                    player_id=self.player_id,
                     is_host=self.is_host
                 )
             )

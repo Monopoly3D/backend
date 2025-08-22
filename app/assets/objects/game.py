@@ -3,10 +3,9 @@ import json
 import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
-from typing import Dict, Any, List, Tuple, ClassVar, Type
+from typing import Dict, Any, List, Tuple, ClassVar, Type, TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.base_server import ServerPacket
@@ -51,8 +50,13 @@ from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
 
+if TYPE_CHECKING:
+    from app.assets.redis.games import GamesController
+else:
+    GamesController = Any
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+
+@dataclass
 class Game(RedisObject):
     __CODE_REGENERATION_LIMIT: ClassVar[int] = 10
 
@@ -81,7 +85,7 @@ class Game(RedisObject):
 
     host_id: UUID
     player_amount: int
-    _controller: Any
+    _controller: 'GamesController'
     _connections: Connections
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
@@ -119,12 +123,12 @@ class Game(RedisObject):
             host_id: UUID,
             player_amount: int,
             *,
-            controller: Any,
+            controller: 'GamesController',
             connections: Connections
     ) -> 'Game':
         return cls(
-            host_id,
-            player_amount,
+            host_id=host_id,
+            player_amount=player_amount,
             _controller=controller,
             _connections=connections
         )
@@ -134,9 +138,9 @@ class Game(RedisObject):
             cls,
             data: Dict[str, Any],
             *,
-            controller: Any,
+            controller: 'GamesController',
             connections: Connections
-    ) -> Any:
+    ) -> 'Game':
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
         monopolies: Dict[str, Any] = data.pop("monopolies")
@@ -189,14 +193,11 @@ class Game(RedisObject):
     async def save(self) -> None:
         await self._controller.set(self._controller.key(self.game_id), self.to_json())
 
-    async def exists(self) -> bool:
-        return await self._controller.exists(self._controller.key(self.game_id))
-
     async def clear(self) -> None:
         await self._controller.remove(self._controller.key(self.game_id))
 
     @property
-    def controller(self) -> Any:
+    def controller(self) -> 'GamesController':
         return self._controller
 
     async def create_unique_code(self) -> None:

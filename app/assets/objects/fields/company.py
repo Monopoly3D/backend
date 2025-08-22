@@ -42,8 +42,7 @@ class Company(AbstractField):
             return
 
         return cls(
-            data.get("field_id"),
-            data.get("field_type"),
+            field_id=data.get("field_id"),
             **data.get("company")
         )
 
