@@ -13,9 +13,9 @@ from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
+from app.assets.exceptions.game_error import GameError
 from app.assets.objects.connections import Connections
 from app.assets.redis.games import GamesController
-from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from app.database.models import User
 from app.dependencies import games_controller_websocket, config_websocket, \

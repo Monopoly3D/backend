@@ -30,12 +30,12 @@ from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.api.v1.security.authenticator import Authenticator
+from app.assets.enums.action_type import ActionType
 from app.assets.exceptions import game_status
 from app.assets.objects.connections import Connections
-from app.assets.redis.games import GamesController
-from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
+from app.assets.redis.games import GamesController
 from app.database.models import User
 from app.dependencies import database_websocket_session, games_controller_websocket
 

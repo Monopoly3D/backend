@@ -2,8 +2,6 @@ from typing import Callable, List
 
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_client import ClientPacket
-from app.assets.objects.connections import Connections
-from app.assets.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.exceptions.game_invalid_action import GameInvalidActionError
@@ -11,8 +9,10 @@ from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveErro
 from app.assets.exceptions.game_not_found import GameNotFoundError
 from app.assets.exceptions.game_not_started import GameNotStartedError
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
+from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
+from app.assets.redis.games import GamesController
 from app.database.models import User
 
 

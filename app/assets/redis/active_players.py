@@ -1,8 +1,8 @@
 from typing import Dict, Any
 from uuid import UUID
 
-from app.assets.redis.abstract import RedisController
 from app.assets.objects.active_player import ActivePlayer
+from app.assets.redis.abstract import RedisController
 
 
 class ActivePlayersController(RedisController):

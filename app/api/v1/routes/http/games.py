@@ -11,12 +11,12 @@ from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.models.response.game_ticket import GameTicketResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
-from app.assets.objects.connections import Connections
-from app.assets.redis.games import GamesController
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.assets.exceptions.player_not_host import PlayerNotHostError
 from app.assets.exceptions.player_not_in_game import PlayerNotInGameError
+from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
+from app.assets.redis.games import GamesController
 from app.database.models import User
 from app.dependencies import games_controller_dependency
 

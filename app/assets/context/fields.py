@@ -4,8 +4,8 @@ from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
 from app.assets.context.abstract import Context
 from app.assets.enums.field_type import FieldType
-from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.abstract import AbstractField
+from app.assets.objects.fields.company import Company
 
 if TYPE_CHECKING:
     from app.assets.objects.game import Game

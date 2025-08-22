@@ -5,7 +5,6 @@ from uuid import UUID
 from starlette.websockets import WebSocket
 
 from app.api.v1.models.response.player import PlayerResponseModel
-from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.context.abstract import Context
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
