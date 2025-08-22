@@ -88,7 +88,7 @@ class Game(RedisObject):
     game_id: UUID = dataclass_field(default_factory=uuid4)
     code: GameCode = dataclass_field(default_factory=GameCode.random)
     is_started: bool = False
-    seed: int = 1
+    seed: int = random.random() * 2 ** 63
     round: int = 0
     move: int = 0
     start_delay: int = Parameters.START_DELAY
@@ -116,7 +116,7 @@ class Game(RedisObject):
         self.monopolies.game = self
 
         self._start_task = f"start:{self.game_id}"
-        self._random = random.Random(self.seed)
+        self._reset_random()
 
     @classmethod
     def from_json(
@@ -358,10 +358,31 @@ class Game(RedisObject):
             *,
             amount: int = 2
     ) -> Tuple[int, ...]:
-        return tuple(self._random.randint(1, 6) for _ in range(amount))
+        return tuple(self.roll_die() for _ in range(amount))
 
     def roll_die(self) -> int:
-        return self._random.randint(1, 6)
+        return self.randint(1, 6)
+
+    def random(self) -> float:
+        random_value: float = self._random.random()
+
+        self.seed = int(random_value * 2 ** 63)
+        self._reset_random()
+
+        return random_value
+
+    def randint(
+            self,
+            from_int: int,
+            to_int: int
+    ) -> int:
+        if from_int > to_int:
+            raise ValueError("From value must be less or equal than to value")
+
+        return int(self.random() * (to_int - from_int + 1) + from_int)
+
+    def _reset_random(self) -> None:
+        self._random = random.Random(self.seed)
 
     @staticmethod
     def get_auction_players(
