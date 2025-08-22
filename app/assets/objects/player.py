@@ -14,6 +14,7 @@ from app.api.v1.packets.server.player_buy_field import ServerPlayerBuyFieldPacke
 from app.api.v1.packets.server.player_buy_field_on_auction import ServerPlayerBuyFieldOnAuctionPacket
 from app.api.v1.packets.server.player_buy_filiation import ServerPlayerBuyFiliationPacket
 from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFieldPacket
+from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
@@ -26,6 +27,7 @@ from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
 from app.api.v1.packets.server.player_sell_filiation import ServerPlayerSellFiliationPacket
+from app.assets.exceptions.player_not_in_game import PlayerNotInGameError
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.objects.actions.move import MoveAction
@@ -143,6 +145,29 @@ class Player(GameObject):
     ) -> None:
         if self.connection is not None:
             await self.connection.send_text(packet.pack())
+
+    async def enter(self) -> None:
+        packet = ServerPlayerEnterGamePacket(
+            self.game.game_id,
+            self.game.host_id,
+            self.game.code,
+            self.game.player_amount
+        )
+
+        if self.game.players.exists(self.player_id):
+            self.game.players.get(self.player_id).connection = self.connection
+            await self.game.players.get(self.player_id).send(packet)
+            return
+
+        if not self.game.is_started:
+            await self.game.controller.create_active_player(
+                self.game.game_id,
+                self.player_id,
+                is_host=self.player_id == self.game.host_id
+            )
+
+            await self.send(packet)
+            await self.game.players.join(self)
 
     async def set_ready(
             self,

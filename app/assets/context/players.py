@@ -4,14 +4,12 @@ from uuid import UUID
 
 from starlette.websockets import WebSocket
 
-from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
-from app.assets.objects.connections import Connections
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
+from app.assets.context.abstract import Context
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.context.abstract import Context
-from app.assets.exceptions.game_already_started import GameAlreadyStartedError
+from app.assets.objects.connections import Connections
 from app.assets.objects.player import Player
 
 if TYPE_CHECKING:
@@ -134,32 +132,6 @@ class Players(Context):
                 self.list
             )
         )
-
-    async def enter(
-            self,
-            player: Player
-    ) -> None:
-        packet = ServerPlayerEnterGamePacket(
-            self.game.game_id,
-            self.game.host_id,
-            self.game.code,
-            self.game.player_amount
-        )
-
-        if not self.exists(player.player_id) and not self.game.is_started:
-            await self.game.controller.create_active_player(
-                self.game.game_id,
-                player.player_id,
-                is_host=player.player_id == self.game.host_id
-            )
-
-            await player.send(packet)
-            await self.join(player)
-        elif self.exists(player.player_id):
-            self.get(player.player_id).connection = player.connection
-            await player.send(packet)
-        else:
-            raise GameAlreadyStartedError("Game with provided UUID has already started")
 
     def shuffle(self) -> None:
         players_items: List[Tuple[UUID, Player]] = list(self._players.items())
