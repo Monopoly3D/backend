@@ -5,7 +5,7 @@ from uuid import UUID
 from starlette.websockets import WebSocket
 
 from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
-from app.assets.controllers.connections import ConnectionsController
+from app.assets.objects.connections import Connections
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.objects.actions.abstract import AbstractAction
@@ -73,7 +73,7 @@ class Players(Context):
             self,
             players: List[Dict[str, Any]] | None = None,
             *,
-            connections: ConnectionsController | None = None
+            connections: Connections | None = None
     ) -> None:
         if players is None:
             return

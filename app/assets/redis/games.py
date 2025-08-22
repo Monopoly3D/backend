@@ -4,7 +4,7 @@ from uuid import UUID
 from redis import Redis
 
 from app.assets.redis.codes import CodesController
-from app.assets.controllers.connections import ConnectionsController
+from app.assets.objects.connections import Connections
 from app.assets.redis.abstract import RedisController
 from app.assets.redis.active_players import ActivePlayersController
 from app.assets.objects.game import Game
@@ -56,7 +56,7 @@ class GamesController(RedisController):
     async def get_game(
             self,
             game_id: UUID,
-            connections: ConnectionsController | None = None
+            connections: Connections | None = None
     ) -> Game | None:
         game_json: Dict[str, Any] | None = await self.get(self.key(game_id))
 
@@ -79,7 +79,7 @@ class GamesController(RedisController):
     async def get_game_by_code(
             self,
             code: str,
-            connections: ConnectionsController | None = None
+            connections: Connections | None = None
     ) -> Game | None:
         game_id: UUID | None = await self._codes_controller.get_game_id(code)
 
@@ -91,7 +91,7 @@ class GamesController(RedisController):
     async def get_game_by_player(
             self,
             player_id: UUID,
-            connections: ConnectionsController | None = None
+            connections: Connections | None = None
     ) -> Game | None:
         active_player: ActivePlayer | None = await self._active_players_controller.get_active_player(player_id)
 

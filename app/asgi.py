@@ -18,8 +18,8 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.assets.s3.abstract import S3Config
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.redis.redis import GamesController
+from app.assets.objects.connections import Connections
+from app.assets.redis.games import GamesController
 from app.assets.s3.profile_pictures import ProfilePicturesController
 from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
@@ -46,7 +46,7 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.state.config = config
     fastapi_app.state.database = database
     fastapi_app.state.redis = redis
-    fastapi_app.state.connections = ConnectionsController()
+    fastapi_app.state.connections = Connections()
     fastapi_app.state.games_controller = GamesController(redis)
     fastapi_app.state.profile_pictures_controller = ProfilePicturesController(s3_config)
 

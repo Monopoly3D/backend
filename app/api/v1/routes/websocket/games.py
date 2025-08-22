@@ -29,8 +29,8 @@ from app.api.v1.packets.server.ping import ServerPingPacket
 from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.redis.redis import GamesController
+from app.assets.objects.connections import Connections
+from app.assets.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
@@ -46,7 +46,7 @@ async def authenticate(
         session: Annotated[AsyncSession, Depends(database_websocket_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
-        connections: Annotated[ConnectionsController, Depends(ConnectionsController.websocket_dependency)]
+        connections: Annotated[Connections, Depends(Connections.websocket_dependency)]
 ) -> None:
     await websocket.accept()
 

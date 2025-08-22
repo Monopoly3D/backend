@@ -2,8 +2,8 @@ from typing import Callable, List
 
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_client import ClientPacket
-from app.assets.controllers.connections import ConnectionsController
-from app.assets.redis.redis import GamesController
+from app.assets.objects.connections import Connections
+from app.assets.redis.games import GamesController
 from app.assets.enums.action_type import ActionType
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.exceptions.game_invalid_action import GameInvalidActionError
@@ -27,7 +27,7 @@ class WebSocketDependency:
     ) -> Callable:
         async def __get_game(
                 packet: ClientPacket,
-                connections: ConnectionsController,
+                connections: Connections,
                 games_controller: GamesController,
                 user: User
         ) -> Game:

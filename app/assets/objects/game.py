@@ -29,7 +29,7 @@ from app.assets.objects.actions.pay_prison import PayPrisonAction
 from app.assets.objects.actions.pay_rent import PayRentAction
 from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.objects.actions.prison import PrisonAction
-from app.assets.controllers.connections import ConnectionsController
+from app.assets.objects.connections import Connections
 from app.assets.context.fields import Fields
 from app.assets.context.monopolies import Monopolies
 from app.assets.context.players import Players
@@ -51,7 +51,7 @@ from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
 
 if TYPE_CHECKING:
-    from app.assets.redis.redis import GamesController
+    from app.assets.redis.games import GamesController
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
@@ -123,7 +123,7 @@ class Game(RedisObject):
             cls,
             data: Dict[str, Any],
             controller: 'GamesController',
-            connections: ConnectionsController | None = None
+            connections: Connections | None = None
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
         fields: List[Dict[str, Any]] = data.pop("fields")
