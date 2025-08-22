@@ -153,12 +153,7 @@ class Player(GameObject):
             await self.connection.send_text(packet.pack())
 
     async def enter(self) -> None:
-        packet = ServerPlayerEnterGamePacket(
-            self.game.game_id,
-            self.game.host_id,
-            self.game.code,
-            self.game.player_amount
-        )
+        packet = ServerPlayerEnterGamePacket(self.game)
 
         if self.game.players.exists(self.player_id):
             self.game.players.get(self.player_id).connection = self.connection
