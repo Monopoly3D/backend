@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.base_server import ServerPacket
-from app.assets.objects.player import Player
 
 
 @dataclass
@@ -12,7 +11,7 @@ class ServerPlayerJoinGamePacket(ServerPacket):
     PACKET_TAG = "player_join_game"
 
     game_id: UUID
-    players: List[Player]
+    players: List[Any]
 
     def to_json(self) -> Dict[str, Any]:
         return {

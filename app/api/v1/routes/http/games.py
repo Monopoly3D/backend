@@ -35,7 +35,7 @@ async def create_game(
         games_controller: Annotated[GamesController, Depends(games_controller_dependency)],
         connections: Annotated[Connections, Depends(Connections.dependency)]
 ) -> GameResponseModel:
-    if await games_controller.is_playing(user.id):
+    if await games_controller.active_players_controller.exists_player(user.id):
         raise PlayerAlreadyInGameError("You are already in game")
 
     game: Game = await games_controller.create_game(

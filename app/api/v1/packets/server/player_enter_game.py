@@ -20,6 +20,6 @@ class ServerPlayerEnterGamePacket(ServerPacket):
         return {
             "game_id": str(self.game_id),
             "host_id": str(self.host_id),
-            "code": self.code.to_json(),
+            "code": self.code,
             "player_amount": self.player_amount
         }

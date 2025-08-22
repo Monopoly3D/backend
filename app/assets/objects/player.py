@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, List, TYPE_CHECKING
+from typing import Any, Dict, Tuple, List
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -46,21 +46,19 @@ from app.assets.objects.actions.move import MoveAction
 from app.assets.objects.actions.pay_prison import PayPrisonAction
 from app.assets.objects.actions.pay_rent import PayRentAction
 from app.assets.objects.actions.pay_tax import PayTaxAction
+from app.assets.objects.active_player import ActivePlayer
 from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.tax import Tax
 from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
 
-if TYPE_CHECKING:
-    from app.assets.objects.game import Game
-
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Player(GameObject):
     player_id: UUID
     username: str
-    _game: 'Game'
+    _game: Any
 
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
@@ -80,7 +78,7 @@ class Player(GameObject):
             username: str,
             *,
             is_host: bool = False,
-            game: 'Game',
+            game: Any,
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
@@ -96,7 +94,7 @@ class Player(GameObject):
             cls,
             player_json: Dict[str, Any],
             *,
-            game: 'Game',
+            game: Any,
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
@@ -120,7 +118,7 @@ class Player(GameObject):
         }
 
     @property
-    def game(self) -> 'Game':
+    def game(self) -> Any:
         return self._game
 
     @property
@@ -164,10 +162,12 @@ class Player(GameObject):
             return
 
         if not self.game.is_started:
-            await self.game.controller.create_player(
-                self.game.game_id,
-                self.player_id,
-                is_host=self.is_host
+            await self.game.controller.active_players_controller.create_player(
+                ActivePlayer(
+                    self.game.game_id,
+                    self.player_id,
+                    is_host=self.is_host
+                )
             )
 
             await self.send(packet)
@@ -175,6 +175,8 @@ class Player(GameObject):
 
     async def join(self) -> None:
         self.game.players.add(self)
+
+        print(self.game.players.list)
 
         await self.game.send(
             ServerPlayerJoinGamePacket(

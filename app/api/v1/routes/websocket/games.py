@@ -109,6 +109,8 @@ async def authenticate(
         connection=websocket
     ).enter()
 
+    await game.save()
+
 
 @games_packets_router.handle(ClientPingPacket)
 async def on_ping() -> ServerPingPacket:

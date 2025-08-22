@@ -3,7 +3,7 @@ import json
 import random
 from asyncio import CancelledError, Task
 from dataclasses import field as dataclass_field
-from typing import Dict, Any, List, Tuple, ClassVar, Type, TYPE_CHECKING
+from typing import Dict, Any, List, Tuple, ClassVar, Type
 from uuid import UUID, uuid4
 
 from pydantic import ConfigDict
@@ -18,7 +18,14 @@ from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_players_refused_auction import ServerGamePlayersRefusedAuctionPacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.api.v1.packets.server.player_put_field_for_auction import ServerPlayerPutFieldForAuctionPacket
+from app.assets.context.fields import Fields
+from app.assets.context.monopolies import Monopolies
+from app.assets.context.players import Players
+from app.assets.enums.action_type import ActionType
+from app.assets.enums.field_type import FieldType
+from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
 from app.assets.exceptions.game_creation_failed import GameCreationFailedError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field import BuyFieldAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
@@ -30,29 +37,19 @@ from app.assets.objects.actions.pay_prison import PayPrisonAction
 from app.assets.objects.actions.pay_rent import PayRentAction
 from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.objects.actions.prison import PrisonAction
+from app.assets.objects.code import GameCode
 from app.assets.objects.connections import Connections
-from app.assets.context.fields import Fields
-from app.assets.context.monopolies import Monopolies
-from app.assets.context.players import Players
-from app.assets.enums.action_type import ActionType
-from app.assets.enums.field_type import FieldType
-from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
-from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.casino import Casino
 from app.assets.objects.fields.chance import Chance
 from app.assets.objects.fields.company import Company
-from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.police import Police
 from app.assets.objects.fields.prison import Prison
 from app.assets.objects.fields.start import Start
 from app.assets.objects.fields.tax import Tax
-from app.assets.objects.code import GameCode
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
-
-if TYPE_CHECKING:
-    from app.assets.redis.games import GamesController
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
@@ -84,7 +81,7 @@ class Game(RedisObject):
 
     host_id: UUID
     player_amount: int
-    _controller: 'GamesController'
+    _controller: Any
     _connections: Connections
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
@@ -98,7 +95,7 @@ class Game(RedisObject):
     start_reward: int = Parameters.START_REWARD
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
     auction_minimum_bet: int = Parameters.AUCTION_MINIMUM_BET
-    seed: int = random.random() * 2 ** 63
+    seed: int = int(random.random() * 2 ** 63)
 
     players: Players = dataclass_field(default_factory=Players)
     fields: Fields = dataclass_field(default_factory=Fields)
@@ -109,14 +106,6 @@ class Game(RedisObject):
     _random: random.Random | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self) -> None:
-        for _ in range(self.__CODE_REGENERATION_LIMIT):
-            self.code = GameCode.random(controller=self.controller.codes_controller)
-
-            if not asyncio.get_event_loop().run_until_complete(self.code.exists()):
-                break
-        else:
-            raise GameCreationFailedError("Game creation failed. Please try again")
-
         self.players.init(None, game=self)
         self.fields.init(None, game=self)
         self.monopolies.init(None, None, game=self)
@@ -130,7 +119,7 @@ class Game(RedisObject):
             host_id: UUID,
             player_amount: int,
             *,
-            controller: 'GamesController',
+            controller: Any,
             connections: Connections
     ) -> 'Game':
         return cls(
@@ -145,7 +134,7 @@ class Game(RedisObject):
             cls,
             data: Dict[str, Any],
             *,
-            controller: 'GamesController',
+            controller: Any,
             connections: Connections
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
@@ -153,7 +142,7 @@ class Game(RedisObject):
         monopolies: Dict[str, Any] = data.pop("monopolies")
 
         if data.get("code") is not None:
-            data["code"] = GameCode.from_json(data["code"], controller=controller.codes_controller)
+            data["code"] = GameCode(data["code"])
         if data.get("action") is not None:
             data["action"] = cls.get_action(data["action"])
 
@@ -207,8 +196,17 @@ class Game(RedisObject):
         await self._controller.remove(self._controller.key(self.game_id))
 
     @property
-    def controller(self) -> 'GamesController':
+    def controller(self) -> Any:
         return self._controller
+
+    async def create_unique_code(self) -> None:
+        for _ in range(self.__CODE_REGENERATION_LIMIT):
+            self.code = GameCode.random()
+
+            if not await self.controller.codes_controller.exists_code(self.code):
+                break
+        else:
+            raise GameCreationFailedError("Game creation failed. Please try again")
 
     async def send(
             self,

@@ -44,25 +44,12 @@ class GamesController(RedisController):
             controller=self,
             connections=connections
         )
+        await game.create_unique_code()
 
         await game.save()
-        await game.code.save()
+        await self.codes_controller.create_code(game.code, game.game_id)
 
         return game
-
-    async def create_player(
-            self,
-            game_id: UUID,
-            player_id: UUID,
-            *,
-            is_host: bool
-    ) -> None:
-        await ActivePlayer(
-            game_id=game_id,
-            player_id=player_id,
-            is_host=is_host,
-            _controller=self.active_players_controller
-        ).save()
 
     async def get_game(
             self,
@@ -96,7 +83,7 @@ class GamesController(RedisController):
             *,
             connections: Connections
     ) -> Game | None:
-        active_player: ActivePlayer | None = await self._active_players_controller.get_active_player(player_id)
+        active_player: ActivePlayer | None = await self._active_players_controller.get_player(player_id)
 
         if active_player is None:
             return
@@ -109,12 +96,6 @@ class GamesController(RedisController):
     ) -> bool:
         return await self.exists(self.key(game_id))
 
-    async def is_playing(
-            self,
-            player_id: UUID
-    ) -> bool:
-        return await self._active_players_controller.exists_active_player(player_id)
-
     async def remove_game(
             self,
             game_id: UUID,
@@ -124,12 +105,7 @@ class GamesController(RedisController):
         game: Game = await self.get_game(game_id, connections=connections)
 
         for player_id in game.players.ids:
-            await ActivePlayer(
-                game.game_id,
-                player_id,
-                is_host=game.players.get(player_id).is_host,
-                _controller=self.active_players_controller
-            ).clear()
+            await self.active_players_controller.remove_player(player_id)
 
-        await game.code.clear()
+        await self.codes_controller.remove_code(game.code)
         await game.clear()

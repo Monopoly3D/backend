@@ -17,11 +17,11 @@ from app.api.v1.exceptions.websocket.internal_server_error import InternalServer
 from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
-from app.assets.s3.abstract import S3Config
+from app.assets.exceptions.game_error import GameError
 from app.assets.objects.connections import Connections
 from app.assets.redis.games import GamesController
+from app.assets.s3.abstract import S3Config
 from app.assets.s3.profile_pictures import ProfilePicturesController
-from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from config import Config
 
