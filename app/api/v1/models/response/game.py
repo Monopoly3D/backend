@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, model_serializer
 
+from app.api.v1.models.response.action import ActionResponseModel
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.assets.objects.game import Game
@@ -16,6 +17,13 @@ class GameResponseModel(BaseModel):
     round: int
     move: int
     player_amount: int
+    action: ActionResponseModel | None
+    start_delay: int
+    start_bonus: int
+    start_reward: int
+    start_bonus_round_amount: int
+    auction_minimum_bet: int
+    seed: int
     players: List[PlayerResponseModel]
     fields: List[FieldResponseModel]
 
@@ -28,7 +36,7 @@ class GameResponseModel(BaseModel):
             game: Game,
             *,
             with_players: bool = True,
-            with_fields: bool = False
+            with_fields: bool = True
     ) -> 'GameResponseModel':
         return cls(
             game_id=game.game_id,
@@ -38,6 +46,13 @@ class GameResponseModel(BaseModel):
             round=game.round,
             move=game.move,
             player_amount=game.player_amount,
+            action=ActionResponseModel.from_action(game.action),
+            start_delay=game.start_delay,
+            start_bonus=game.start_bonus,
+            start_reward=game.start_reward,
+            start_bonus_round_amount=game.start_bonus_round_amount,
+            auction_minimum_bet=game.auction_minimum_bet,
+            seed=game.seed,
             players=game.players.models_list,
             fields=game.fields.models_list,
             with_players=with_players,
@@ -53,7 +68,14 @@ class GameResponseModel(BaseModel):
             "is_started": self.is_started,
             "round": self.round,
             "move": self.move,
-            "player_amount": self.player_amount
+            "player_amount": self.player_amount,
+            "action": self.action,
+            "start_delay": self.start_delay,
+            "start_bonus": self.start_bonus,
+            "start_reward": self.start_reward,
+            "start_bonus_round_amount": self.start_bonus_round_amount,
+            "auction_minimum_bet": self.auction_minimum_bet,
+            "seed": self.seed
         }
 
         if self.with_players:
