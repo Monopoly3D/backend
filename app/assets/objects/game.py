@@ -88,7 +88,7 @@ class Game(RedisObject):
     _connections: Connections
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
-    code: GameCode = dataclass_field(default_factory=GameCode.random)
+    code: GameCode | None = None
     is_started: bool = False
     round: int = 0
     move: int = 0
@@ -110,10 +110,10 @@ class Game(RedisObject):
 
     def __post_init__(self) -> None:
         for _ in range(self.__CODE_REGENERATION_LIMIT):
-            if not self._controller.exists_game_code(self.code):
-                break
+            self.code = GameCode.random(controller=self.controller.codes_controller)
 
-            self.code = GameCode.random()
+            if not asyncio.get_event_loop().run_until_complete(self.code.exists()):
+                break
         else:
             raise GameCreationFailedError("Game creation failed. Please try again")
 
@@ -153,7 +153,7 @@ class Game(RedisObject):
         monopolies: Dict[str, Any] = data.pop("monopolies")
 
         if data.get("code") is not None:
-            data["code"] = GameCode(data["code"])
+            data["code"] = GameCode.from_json(data["code"], controller=controller.codes_controller)
         if data.get("action") is not None:
             data["action"] = cls.get_action(data["action"])
 
@@ -199,6 +199,12 @@ class Game(RedisObject):
 
     async def save(self) -> None:
         await self._controller.set(self._controller.key(self.game_id), self.to_json())
+
+    async def exists(self) -> bool:
+        return await self._controller.exists(self._controller.key(self.game_id))
+
+    async def clear(self) -> None:
+        await self._controller.remove(self._controller.key(self.game_id))
 
     @property
     def controller(self) -> 'GamesController':

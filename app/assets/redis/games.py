@@ -23,6 +23,14 @@ class GamesController(RedisController):
     def key(self, game_id: UUID) -> str:
         return f"games:{game_id}"
 
+    @property
+    def codes_controller(self) -> CodesController:
+        return self._codes_controller
+
+    @property
+    def active_players_controller(self) -> ActivePlayersController:
+        return self._active_players_controller
+
     async def create_game(
             self,
             host_id: UUID,
