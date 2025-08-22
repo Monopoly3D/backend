@@ -180,8 +180,6 @@ class Player(GameObject):
     async def join(self) -> None:
         self.game.players.add(self)
 
-        print(self.game.players.list)
-
         await self.game.send(
             ServerPlayerJoinGamePacket(
                 self.game.game_id,
