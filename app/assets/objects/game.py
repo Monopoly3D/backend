@@ -119,7 +119,7 @@ class Game(RedisObject):
 
         self.players.init(None, game=self)
         self.fields.init(None, game=self)
-        self.monopolies.game = self
+        self.monopolies.init(None, None, game=self)
 
         self._start_task = f"start:{self.game_id}"
         self._reset_random()
@@ -168,7 +168,11 @@ class Game(RedisObject):
             fields,
             game=game
         )
-        game.monopolies.setup(monopolies, game.fields.companies)
+        game.monopolies.init(
+            monopolies,
+            game.fields.companies,
+            game=game
+        )
 
         return game
 
@@ -211,9 +215,9 @@ class Game(RedisObject):
         self.is_started = True
         self.action = MoveAction()
 
-        #  self.players.shuffle()  TESTING
+        self.players.shuffle()
         self.fields = self.get_map(self._map_path)
-        self.monopolies.setup(companies=self.fields.companies)
+        self.monopolies.init(None, self.fields.companies, game=self)
 
         await self.send(
             ServerGameStartPacket(
