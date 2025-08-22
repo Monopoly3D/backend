@@ -3,11 +3,11 @@ from uuid import UUID
 
 from pydantic.dataclasses import dataclass
 
-from app.assets.objects.game_object import GameObject
+from app.assets.objects.object import GameObject
 
 
 @dataclass
-class GamePlayer(GameObject):
+class ActivePlayer(GameObject):
     game_id: UUID
     player_id: UUID
     is_host: bool

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from app.assets.objects.game_object import GameObject
+from app.assets.objects.object import GameObject
 
 
 @dataclass

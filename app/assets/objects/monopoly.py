@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from pydantic.dataclasses import dataclass
 
 from app.assets.objects.fields.company import Company
-from app.assets.objects.game_object import GameObject
+from app.assets.objects.object import GameObject
 
 
 @dataclass

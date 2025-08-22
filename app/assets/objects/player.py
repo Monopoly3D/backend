@@ -47,7 +47,7 @@ from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsuf
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.field import Field
 from app.assets.objects.fields.tax import Tax
-from app.assets.objects.game_object import GameObject
+from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
 
 

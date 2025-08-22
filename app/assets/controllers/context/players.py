@@ -142,7 +142,7 @@ class PlayersController(ContextController):
         )
 
         if not self.exists(player.player_id) and not self.game.is_started:
-            self.game.controller.create_game_player(
+            self.game.controller.create_active_player(
                 self.game.game_id,
                 player.player_id,
                 is_host=player.player_id == self.game.host_id

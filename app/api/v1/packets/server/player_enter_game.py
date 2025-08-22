@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.base_server import ServerPacket
-from app.assets.objects.game_code import GameCode
+from app.assets.objects.code import GameCode
 
 
 @dataclass

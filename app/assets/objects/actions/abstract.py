@@ -5,7 +5,7 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from app.assets.enums.action_type import ActionType
-from app.assets.objects.game_object import GameObject
+from app.assets.objects.object import GameObject
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))

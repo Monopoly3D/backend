@@ -45,7 +45,7 @@ from app.assets.objects.fields.police import Police
 from app.assets.objects.fields.prison import Prison
 from app.assets.objects.fields.start import Start
 from app.assets.objects.fields.tax import Tax
-from app.assets.objects.game_code import GameCode
+from app.assets.objects.code import GameCode
 from app.assets.objects.player import Player
 from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
