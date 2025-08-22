@@ -164,7 +164,7 @@ class Player(GameObject):
             return
 
         if not self.game.is_started:
-            await self.game.controller.create_active_player(
+            await self.game.controller.create_player(
                 self.game.game_id,
                 self.player_id,
                 is_host=self.is_host

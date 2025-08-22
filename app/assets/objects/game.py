@@ -200,9 +200,6 @@ class Game(RedisObject):
     async def save(self) -> None:
         await self._controller.set(self._controller.key(self.game_id), self.to_json())
 
-    async def exists(self) -> bool:
-        return await self._controller.exists(self._controller.key(self.game_id))
-
     async def clear(self) -> None:
         await self._controller.remove(self._controller.key(self.game_id))
 

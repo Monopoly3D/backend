@@ -12,22 +12,6 @@ class ActivePlayersController(RedisController):
     ) -> str:
         return f"player:{player_id}"
 
-    async def create_active_player(
-            self,
-            game_id: UUID,
-            player_id: UUID,
-            *,
-            is_host: bool
-    ) -> None:
-        await self.set(
-            self.key(player_id),
-            ActivePlayer(
-                game_id=game_id,
-                player_id=player_id,
-                is_host=is_host
-            ).to_json()
-        )
-
     async def get_active_player(
             self,
             player_id: UUID
@@ -44,9 +28,3 @@ class ActivePlayersController(RedisController):
             player_id: UUID
     ) -> bool:
         return await self.exists(self.key(player_id))
-
-    async def remove_active_player(
-            self,
-            player_id: UUID
-    ) -> None:
-        await self.remove(self.key(player_id))

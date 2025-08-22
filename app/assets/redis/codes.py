@@ -18,13 +18,6 @@ class CodesController(RedisController):
     ) -> str:
         return f"codes:{code}"
 
-    async def save_code(
-            self,
-            code: str,
-            game_id: UUID
-    ) -> None:
-        await self.set(self.key(code), str(game_id))
-
     async def get_game_id(
             self,
             code: str
@@ -33,15 +26,3 @@ class CodesController(RedisController):
             return UUID(await self.get(self.key(code)))
         except ValueError:
             return
-
-    async def exists_code(
-            self,
-            code: str
-    ) -> bool:
-        return await self.exists(self.key(code))
-
-    async def remove_code(
-            self,
-            code: str
-    ) -> None:
-        await self.remove(self.key(code))

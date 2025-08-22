@@ -10,7 +10,4 @@ class RedisObject(GameObject, ABC):
     async def save(self) -> None: pass
 
     @abstractmethod
-    async def exists(self) -> bool: pass
-
-    @abstractmethod
     async def clear(self) -> None: pass
