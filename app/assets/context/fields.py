@@ -70,6 +70,12 @@ class Fields(Context):
         field.game = self.game
         self._fields.append(field)
 
+    def get(
+            self,
+            index: int
+    ) -> AbstractField | None:
+        return self._fields[index] if index < len(self._fields) else None
+
     async def decrease_all_mortgages(self) -> None:
         has_any_mortgaged_fields: bool = False
 
