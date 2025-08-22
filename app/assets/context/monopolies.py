@@ -1,13 +1,13 @@
 from collections import defaultdict
 from typing import Dict, Any, List
 
-from app.assets.context.abstract import AbstractContext
+from app.assets.context.abstract import Context
 from app.assets.enums.monopoly_type import MonopolyType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.monopoly import Monopoly
 
 
-class Monopolies(AbstractContext):
+class Monopolies(Context):
     def __init__(self) -> None:
         self.__monopolies: Dict[MonopolyType, Monopoly] = defaultdict(Monopoly)
         self.__game_instance: Any = None

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class AbstractContext(ABC):
+class Context(ABC):
     @abstractmethod
     def __init__(self) -> None:
         pass

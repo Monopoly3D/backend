@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from app.assets.controllers.base_s3 import S3Controller
+from app.assets.s3.abstract import S3Controller
 
 
 class ProfilePicturesController(S3Controller):

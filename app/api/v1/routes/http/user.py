@@ -8,7 +8,7 @@ from app.api.v1.models.response.profile_picture import ProfilePictureResponseMod
 from app.api.v1.models.response.user import UserResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
-from app.assets.controllers.s3.profile_pictures import ProfilePicturesController
+from app.assets.s3.profile_pictures import ProfilePicturesController
 from app.database.models import User
 from app.dependencies import profile_pictures_controller_dependency
 
