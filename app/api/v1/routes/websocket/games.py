@@ -101,7 +101,13 @@ async def authenticate(
         )
 
     await connections.add_connection(websocket, user_id)
-    await Player.new(user.id, user.username, game=game, connection=websocket).enter()
+    await Player.new(
+        user.id,
+        user.username,
+        is_host=user.id == game.host_id,
+        game=game,
+        connection=websocket
+    ).enter()
 
 
 @games_packets_router.handle(ClientPingPacket)

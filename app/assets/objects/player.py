@@ -16,6 +16,7 @@ from app.api.v1.packets.server.player_buy_filiation import ServerPlayerBuyFiliat
 from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFieldPacket
 from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
+from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_must_pay_prison import ServerPlayerMustPayPrisonPacket
@@ -27,13 +28,6 @@ from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
 from app.api.v1.packets.server.player_sell_filiation import ServerPlayerSellFiliationPacket
-from app.assets.exceptions.player_not_in_game import PlayerNotInGameError
-from app.assets.objects.actions.abstract import AbstractAction
-from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.objects.actions.move import MoveAction
-from app.assets.objects.actions.pay_prison import PayPrisonAction
-from app.assets.objects.actions.pay_rent import PayRentAction
-from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.exceptions.field_already_filiated import FieldAlreadyFiliatedError
 from app.assets.exceptions.field_already_mortgaged import FieldAlreadyMortgagedError
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -46,8 +40,14 @@ from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.exceptions.invalid_filiation import InvalidFiliationError
 from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsufficientBalanceError
-from app.assets.objects.fields.company import Company
+from app.assets.objects.actions.abstract import AbstractAction
+from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.objects.actions.move import MoveAction
+from app.assets.objects.actions.pay_prison import PayPrisonAction
+from app.assets.objects.actions.pay_rent import PayRentAction
+from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.objects.fields.abstract import AbstractField
+from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.tax import Tax
 from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
@@ -64,6 +64,7 @@ class Player(GameObject):
 
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
+    is_host: bool = False
     is_ready: bool = False
     is_playing: bool = True
     prison: int = -1
@@ -78,12 +79,14 @@ class Player(GameObject):
             player_id: UUID,
             username: str,
             *,
+            is_host: bool = False,
             game: 'Game',
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
             player_id,
             username,
+            is_host=is_host,
             _game=game,
             _connection=connection
         )
@@ -108,6 +111,7 @@ class Player(GameObject):
             "username": self.username,
             "balance": self.balance,
             "field": self.field,
+            "is_host": self.is_host,
             "is_ready": self.is_ready,
             "is_playing": self.is_playing,
             "prison": self.prison,
@@ -163,11 +167,21 @@ class Player(GameObject):
             await self.game.controller.create_active_player(
                 self.game.game_id,
                 self.player_id,
-                is_host=self.player_id == self.game.host_id
+                is_host=self.is_host
             )
 
             await self.send(packet)
-            await self.game.players.join(self)
+            await self.join()
+
+    async def join(self) -> None:
+        self.game.players.add(self)
+
+        await self.game.send(
+            ServerPlayerJoinGamePacket(
+                self.game.game_id,
+                self.game.players.list
+            )
+        )
 
     async def set_ready(
             self,

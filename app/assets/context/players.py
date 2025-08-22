@@ -120,19 +120,6 @@ class Players(Context):
         if self.exists(uuid):
             self._players.pop(uuid)
 
-    async def join(
-            self,
-            player: Player
-    ) -> None:
-        self.add(player)
-
-        await self.game.send(
-            ServerPlayerJoinGamePacket(
-                self.game.game_id,
-                self.list
-            )
-        )
-
     def shuffle(self) -> None:
         players_items: List[Tuple[UUID, Player]] = list(self._players.items())
         shuffle(players_items)
