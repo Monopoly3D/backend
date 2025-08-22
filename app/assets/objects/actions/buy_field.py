@@ -2,18 +2,18 @@ from typing import Dict, Any
 
 from pydantic.dataclasses import dataclass
 
-from app.assets.actions.action import Action
+from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class BuyFieldAction(Action):
+class BuyFieldAction(AbstractAction):
     ACTION_TYPE = ActionType.BUY_FIELD
 
     cost: int
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> 'Action':
+    def from_json(cls, data: Dict[str, Any]) -> 'AbstractAction':
         return cls(cost=data.get("cost"))
 
     def to_json(self) -> Dict[str, Any]:

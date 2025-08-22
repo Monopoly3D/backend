@@ -8,8 +8,8 @@ from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePac
 from app.assets.controllers.connections import ConnectionsController
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
-from app.assets.actions.action import Action
-from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.objects.actions.abstract import AbstractAction
+from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.controllers.base_context import ContextController
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.objects.player import Player
@@ -62,7 +62,7 @@ class PlayersController(ContextController):
     @property
     def current_on_auction(self) -> Player | None:
         if self.game is not None:
-            action: Action | None = self.game.action
+            action: AbstractAction | None = self.game.action
 
             if not isinstance(action, BuyFieldOnAuctionAction):
                 return
@@ -125,9 +125,7 @@ class PlayersController(ContextController):
         await self.game.send(
             ServerPlayerJoinGamePacket(
                 self.game.game_id,
-                self.game.host_id,
-                self.game.code,
-                self.game.player_amount
+                self.list
             )
         )
 

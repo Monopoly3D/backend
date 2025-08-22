@@ -2,12 +2,12 @@ from typing import Dict, Any
 
 from pydantic.dataclasses import dataclass
 
-from app.assets.actions.action import Action
+from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class PayRentAction(Action):
+class PayRentAction(AbstractAction):
     ACTION_TYPE = ActionType.PAY_RENT
 
     amount: int

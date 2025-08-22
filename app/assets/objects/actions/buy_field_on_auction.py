@@ -4,12 +4,12 @@ from uuid import UUID
 
 from pydantic.dataclasses import dataclass
 
-from app.assets.actions.action import Action
+from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.enums.action_type import ActionType
 
 
 @dataclass
-class BuyFieldOnAuctionAction(Action):
+class BuyFieldOnAuctionAction(AbstractAction):
     ACTION_TYPE = ActionType.BUY_FIELD_ON_AUCTION
 
     field: int

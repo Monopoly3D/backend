@@ -18,17 +18,17 @@ from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_players_refused_auction import ServerGamePlayersRefusedAuctionPacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.api.v1.packets.server.player_put_field_for_auction import ServerPlayerPutFieldForAuctionPacket
-from app.assets.actions.action import Action
-from app.assets.actions.buy_field import BuyFieldAction
-from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.actions.casino import CasinoAction
-from app.assets.actions.contract import ContractAction
-from app.assets.actions.move import MoveAction
-from app.assets.actions.pay_chance import PayChanceAction
-from app.assets.actions.pay_prison import PayPrisonAction
-from app.assets.actions.pay_rent import PayRentAction
-from app.assets.actions.pay_tax import PayTaxAction
-from app.assets.actions.prison import PrisonAction
+from app.assets.objects.actions.abstract import AbstractAction
+from app.assets.objects.actions.buy_field import BuyFieldAction
+from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.objects.actions.casino import CasinoAction
+from app.assets.objects.actions.contract import ContractAction
+from app.assets.objects.actions.move import MoveAction
+from app.assets.objects.actions.pay_chance import PayChanceAction
+from app.assets.objects.actions.pay_prison import PayPrisonAction
+from app.assets.objects.actions.pay_rent import PayRentAction
+from app.assets.objects.actions.pay_tax import PayTaxAction
+from app.assets.objects.actions.prison import PrisonAction
 from app.assets.controllers.connections import ConnectionsController
 from app.assets.controllers.context.fields import FieldsController
 from app.assets.controllers.context.monopolies import MonopoliesController
@@ -68,7 +68,7 @@ class Game(RedisObject):
         FieldType.CASINO: Casino
     }
 
-    __ACTIONS: ClassVar[Dict[ActionType, Type[Action]]] = {
+    __ACTIONS: ClassVar[Dict[ActionType, Type[AbstractAction]]] = {
         ActionType.MOVE: MoveAction,
         ActionType.BUY_FIELD: BuyFieldAction,
         ActionType.BUY_FIELD_ON_AUCTION: BuyFieldOnAuctionAction,
@@ -93,7 +93,7 @@ class Game(RedisObject):
     move: int = 0
     start_delay: int = Parameters.START_DELAY
 
-    action: Action | None = None
+    action: AbstractAction | None = None
     start_bonus: int = Parameters.START_BONUS
     start_reward: int = Parameters.START_REWARD
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
@@ -387,7 +387,7 @@ class Game(RedisObject):
     def get_action(
             cls,
             data: Dict[str, Any]
-    ) -> Action | None:
+    ) -> AbstractAction | None:
         if "action_type" not in data:
             return
 

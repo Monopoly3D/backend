@@ -3,7 +3,7 @@ from typing import Any, Dict
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.server.player_must_pay_tax import ServerPlayerMustPayTaxPacket
-from app.assets.actions.pay_tax import PayTaxAction
+from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.field import Field
 

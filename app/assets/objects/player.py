@@ -26,12 +26,12 @@ from app.api.v1.packets.server.player_ready import ServerPlayerReadyPacket
 from app.api.v1.packets.server.player_refuse_auction import ServerPlayerRefuseAuctionPacket
 from app.api.v1.packets.server.player_refuse_casino import ServerPlayerRefuseCasinoPacket
 from app.api.v1.packets.server.player_sell_filiation import ServerPlayerSellFiliationPacket
-from app.assets.actions.action import Action
-from app.assets.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.actions.move import MoveAction
-from app.assets.actions.pay_prison import PayPrisonAction
-from app.assets.actions.pay_rent import PayRentAction
-from app.assets.actions.pay_tax import PayTaxAction
+from app.assets.objects.actions.abstract import AbstractAction
+from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.objects.actions.move import MoveAction
+from app.assets.objects.actions.pay_prison import PayPrisonAction
+from app.assets.objects.actions.pay_rent import PayRentAction
+from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.exceptions.field_already_filiated import FieldAlreadyFiliatedError
 from app.assets.exceptions.field_already_mortgaged import FieldAlreadyMortgagedError
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -225,7 +225,7 @@ class Player(GameObject):
     async def accept_auction(
             self
     ) -> None:
-        action: Action | None = self.game.action
+        action: AbstractAction | None = self.game.action
 
         if not isinstance(action, BuyFieldOnAuctionAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -256,7 +256,7 @@ class Player(GameObject):
     async def refuse_auction(
             self
     ) -> None:
-        action: Action | None = self.game.action
+        action: AbstractAction | None = self.game.action
 
         if not isinstance(action, BuyFieldOnAuctionAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -371,7 +371,7 @@ class Player(GameObject):
         if company.owner_id == self.player_id:
             raise FieldAlreadyOwnedError("Provided field is already owned")
 
-        action: Action = self.game.action
+        action: AbstractAction = self.game.action
 
         if not isinstance(action, PayRentAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
@@ -400,7 +400,7 @@ class Player(GameObject):
     async def pay_tax(self) -> None:
         self.__get_tax(self.field)
 
-        action: Action = self.game.action
+        action: AbstractAction = self.game.action
 
         if not isinstance(action, PayTaxAction):
             raise GameInvalidActionError("Game with provided UUID awaits different action")
