@@ -2,7 +2,7 @@ from uuid import UUID
 
 from redis import Redis
 
-from app.assets.controllers.base_redis import RedisController
+from app.assets.redis.abstract import RedisController
 
 
 class CodesController(RedisController):

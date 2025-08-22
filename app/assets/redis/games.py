@@ -3,10 +3,10 @@ from uuid import UUID
 
 from redis import Redis
 
-from app.assets.controllers.redis.codes import CodesController
+from app.assets.redis.codes import CodesController
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.base_redis import RedisController
-from app.assets.controllers.redis.active_players import ActivePlayersController
+from app.assets.redis.abstract import RedisController
+from app.assets.redis.active_players import ActivePlayersController
 from app.assets.objects.game import Game
 from app.assets.objects.active_player import ActivePlayer
 

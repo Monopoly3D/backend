@@ -30,7 +30,7 @@ from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
+from app.assets.redis.redis import GamesController
 from app.assets.enums.action_type import ActionType
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player

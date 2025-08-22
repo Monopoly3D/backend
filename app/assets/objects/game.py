@@ -51,7 +51,7 @@ from app.assets.objects.redis import RedisObject
 from app.assets.parameters import Parameters
 
 if TYPE_CHECKING:
-    from app.assets.controllers.redis.games import GamesController
+    from app.assets.redis.redis import GamesController
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))

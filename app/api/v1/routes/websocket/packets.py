@@ -14,7 +14,7 @@ from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.redis.games import GamesController
+from app.assets.redis.redis import GamesController
 from app.assets.exceptions.game_error import GameError
 from app.database.database import Database
 from app.database.models import User
