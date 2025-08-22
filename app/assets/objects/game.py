@@ -30,9 +30,9 @@ from app.assets.objects.actions.pay_rent import PayRentAction
 from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.objects.actions.prison import PrisonAction
 from app.assets.controllers.connections import ConnectionsController
-from app.assets.controllers.context.fields import FieldsController
-from app.assets.controllers.context.monopolies import MonopoliesController
-from app.assets.controllers.context.players import PlayersController
+from app.assets.context.fields import Fields
+from app.assets.context.monopolies import Monopolies
+from app.assets.context.players import Players
 from app.assets.enums.action_type import ActionType
 from app.assets.enums.field_type import FieldType
 from app.assets.exceptions.field_already_owned import FieldAlreadyOwnedError
@@ -99,9 +99,9 @@ class Game(RedisObject):
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
     auction_minimum_bet: int = Parameters.AUCTION_MINIMUM_BET
 
-    players: PlayersController = dataclass_field(default_factory=PlayersController)
-    fields: FieldsController = dataclass_field(default_factory=FieldsController)
-    monopolies: MonopoliesController = dataclass_field(default_factory=MonopoliesController)
+    players: Players = dataclass_field(default_factory=Players)
+    fields: Fields = dataclass_field(default_factory=Fields)
+    monopolies: Monopolies = dataclass_field(default_factory=Monopolies)
 
     _map_path: str = dataclass_field(default=Parameters.DEFAULT_MAP_PATH, repr=False)
     _start_task: str | None = dataclass_field(default=None, repr=False)
@@ -325,14 +325,14 @@ class Game(RedisObject):
     def get_map(
             self,
             map_path: str
-    ) -> FieldsController:
+    ) -> Fields:
         with open(map_path, "r") as file:
             data: List[Dict[str, Any]] = json.load(file)
 
         for index, field in enumerate(data):
             field.update({"field_id": index})
 
-        fields: FieldsController = FieldsController()
+        fields: Fields = Fields()
         fields.game = self
         fields.setup(data)
 

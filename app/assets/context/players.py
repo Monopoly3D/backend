@@ -10,12 +10,12 @@ from app.api.v1.models.response.player import PlayerResponseModel
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
-from app.assets.controllers.base_context import ContextController
+from app.assets.context.abstract import AbstractContext
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
 from app.assets.objects.player import Player
 
 
-class PlayersController(ContextController):
+class Players(AbstractContext):
     def __init__(self) -> None:
         self.__players: Dict[UUID, Player] = {}
         self.__game_instance: Any = None
