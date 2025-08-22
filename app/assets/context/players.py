@@ -31,6 +31,7 @@ class Players(Context):
             game: Game,
             connections: Connections | None = None
     ) -> None:
+        self._players.clear()
         self._game = game
 
         if players is None:
@@ -55,7 +56,7 @@ class Players(Context):
         return [player.to_json() for player in self.list]
 
     @property
-    def game(self) -> Game:
+    def game(self) -> Game | None:
         return self._game
 
     @property

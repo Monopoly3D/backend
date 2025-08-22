@@ -118,7 +118,7 @@ class Game(RedisObject):
             raise GameCreationFailedError("Game creation failed. Please try again")
 
         self.players.init(None, game=self)
-        self.fields.game = self
+        self.fields.init(None, game=self)
         self.monopolies.game = self
 
         self._start_task = f"start:{self.game_id}"
@@ -164,7 +164,10 @@ class Game(RedisObject):
             game=game,
             connections=connections
         )
-        game.fields.setup(fields)
+        game.fields.init(
+            fields,
+            game=game
+        )
         game.monopolies.setup(monopolies, game.fields.companies)
 
         return game
@@ -358,14 +361,16 @@ class Game(RedisObject):
             map_path: str
     ) -> Fields:
         with open(map_path, "r") as file:
-            data: List[Dict[str, Any]] = json.load(file)
+            game_map: List[Dict[str, Any]] = json.load(file)
 
-        for index, field in enumerate(data):
+        for index, field in enumerate(game_map):
             field.update({"field_id": index})
 
         fields: Fields = Fields()
-        fields.game = self
-        fields.setup(data)
+        fields.init(
+            game_map,
+            game=self
+        )
 
         return fields
 

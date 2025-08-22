@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, TYPE_CHECKING
 
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
@@ -7,26 +7,45 @@ from app.assets.enums.field_type import FieldType
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.abstract import AbstractField
 
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
+
 
 class Fields(Context):
     def __init__(self) -> None:
-        self.__fields: List[AbstractField] = []
-        self.__game_instance: Any = None
+        self._fields: List[AbstractField] = []
+        self._game: Game | None = None
+
+    def init(
+            self,
+            fields: List[Dict[str, Any]] | None,
+            *,
+            game: Game
+    ) -> None:
+        self._fields.clear()
+        self._game = game
+
+        if fields is None:
+            return
+
+        for field_json in fields:
+            field: AbstractField | None = self.game.get_field(field_json)
+
+            if field is None:
+                continue
+
+            self.add(field)
 
     def to_json(self) -> List[Dict[str, Any]]:
         return [field.pack() for field in self.list]
 
     @property
-    def game(self) -> Any:
-        return self.__game_instance
-
-    @game.setter
-    def game(self, value: Any) -> None:
-        self.__game_instance = value
+    def game(self) -> Game | None:
+        return self._game
 
     @property
     def list(self) -> List[AbstractField]:
-        return self.__fields
+        return self._fields
 
     @property
     def models_list(self) -> List[FieldResponseModel]:
@@ -38,35 +57,18 @@ class Fields(Context):
 
     @property
     def size(self) -> int:
-        return len(self.__fields)
+        return len(self._fields)
 
     @property
     def prison(self) -> int:
-        return [field.FIELD_TYPE for field in self.__fields].index(FieldType.PRISON)
-
-    def setup(
-            self,
-            fields: List[Dict[str, Any]] | None = None
-    ) -> None:
-        self.__fields.clear()
-
-        if fields is None or self.game is None:
-            return
-
-        for data_field in fields:
-            field: AbstractField | None = self.game.get_field(data_field)
-
-            if field is None:
-                continue
-
-            self.add(field)
+        return [field.FIELD_TYPE for field in self._fields].index(FieldType.PRISON)
 
     def add(
             self,
             field: AbstractField
     ) -> None:
         field.game = self.game
-        self.__fields.append(field)
+        self._fields.append(field)
 
     async def decrease_all_mortgages(self) -> None:
         has_any_mortgaged_fields: bool = False
