@@ -65,7 +65,7 @@ async def join_game(
         game: Game | None = await games_controller.get_game_by_code(code, connections=connections)
 
     if game is None:
-        raise NotFoundError("Game with provided code was not found")
+        raise NotFoundError("Game was not found")
 
     game_ticket: str = await authenticator.create_game_ticket(game.game_id, user.id)
     return GameTicketResponseModel(ticket=game_ticket)
