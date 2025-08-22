@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import ConfigDict
@@ -47,16 +47,18 @@ from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsuf
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.tax import Tax
-from app.assets.objects.game import Game
 from app.assets.objects.object import GameObject
 from app.assets.parameters import Parameters
+
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Player(GameObject):
     player_id: UUID
     username: str
-    _game: Game
+    _game: 'Game'
 
     balance: int = Parameters.DEFAULT_PLAYER_BALANCE
     field: int = 0
@@ -74,7 +76,7 @@ class Player(GameObject):
             player_id: UUID,
             username: str,
             *,
-            game: Game,
+            game: 'Game',
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
@@ -89,7 +91,7 @@ class Player(GameObject):
             cls,
             player_json: Dict[str, Any],
             *,
-            game: Game,
+            game: 'Game',
             connection: WebSocket | None
     ) -> 'Player':
         return cls(
@@ -112,7 +114,7 @@ class Player(GameObject):
         }
 
     @property
-    def game(self) -> Any:
+    def game(self) -> 'Game':
         return self._game
 
     @property

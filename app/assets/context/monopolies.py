@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, Any, List, TYPE_CHECKING
+from typing import Dict, Any, List, TYPE_CHECKING, Optional
 
 from app.assets.context.abstract import Context
 from app.assets.enums.monopoly_type import MonopolyType
@@ -13,14 +13,14 @@ if TYPE_CHECKING:
 class Monopolies(Context):
     def __init__(self) -> None:
         self._monopolies: Dict[MonopolyType, Monopoly] = defaultdict(Monopoly)
-        self._game: Game | None = None
+        self._game: Optional['Game'] | None = None
 
     def init(
             self,
             monopolies: Dict[str, Any] | None,
             companies: List[Company] | None,
             *,
-            game: Game
+            game: 'Game'
     ) -> None:
         self._monopolies.clear()
 
@@ -38,7 +38,7 @@ class Monopolies(Context):
         return {monopoly_type: monopoly.to_json() for monopoly_type, monopoly in self._monopolies.items()}
 
     @property
-    def game(self) -> Game:
+    def game(self) -> Optional['Game']:
         return self._game
 
     def add(

@@ -1,5 +1,5 @@
 from random import shuffle
-from typing import Dict, List, Any, Tuple, TYPE_CHECKING
+from typing import Dict, List, Any, Tuple, TYPE_CHECKING, Optional
 from uuid import UUID
 
 from starlette.websockets import WebSocket
@@ -12,7 +12,6 @@ from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.context.abstract import Context
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
-from app.assets.objects.game import Game
 from app.assets.objects.player import Player
 
 if TYPE_CHECKING:
@@ -22,13 +21,13 @@ if TYPE_CHECKING:
 class Players(Context):
     def __init__(self) -> None:
         self._players: Dict[UUID, Player] = {}
-        self._game: Game | None = None
+        self._game: Optional['Game'] | None = None
 
     def init(
             self,
             players: List[Dict[str, Any]] | None,
             *,
-            game: Game,
+            game: 'Game',
             connections: Connections | None = None
     ) -> None:
         self._players.clear()
@@ -56,7 +55,7 @@ class Players(Context):
         return [player.to_json() for player in self.list]
 
     @property
-    def game(self) -> Game | None:
+    def game(self) -> Optional['Game'] | None:
         return self._game
 
     @property

@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, TYPE_CHECKING
+from typing import Dict, List, Any, TYPE_CHECKING, Optional
 
 from app.api.v1.models.response.field import FieldResponseModel
 from app.api.v1.packets.server.player_lose_mortgaged_field import ServerPlayerLoseMortgagedFieldPacket
@@ -14,13 +14,13 @@ if TYPE_CHECKING:
 class Fields(Context):
     def __init__(self) -> None:
         self._fields: List[AbstractField] = []
-        self._game: Game | None = None
+        self._game: Optional['Game'] = None
 
     def init(
             self,
             fields: List[Dict[str, Any]] | None,
             *,
-            game: Game
+            game: 'Game'
     ) -> None:
         self._fields.clear()
         self._game = game
@@ -40,7 +40,7 @@ class Fields(Context):
         return [field.pack() for field in self.list]
 
     @property
-    def game(self) -> Game | None:
+    def game(self) -> Optional['Game'] | None:
         return self._game
 
     @property

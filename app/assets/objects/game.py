@@ -84,7 +84,7 @@ class Game(RedisObject):
 
     host_id: UUID
     player_amount: int
-    _controller: GamesController
+    _controller: 'GamesController'
     _connections: Connections
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
@@ -130,7 +130,7 @@ class Game(RedisObject):
             host_id: UUID,
             player_amount: int,
             *,
-            controller: GamesController,
+            controller: 'GamesController',
             connections: Connections
     ) -> 'Game':
         return cls(
@@ -145,7 +145,7 @@ class Game(RedisObject):
             cls,
             data: Dict[str, Any],
             *,
-            controller: GamesController,
+            controller: 'GamesController',
             connections: Connections
     ) -> Any:
         players: List[Dict[str, Any]] = data.pop("players")
@@ -201,7 +201,7 @@ class Game(RedisObject):
         await self._controller.set(self._controller.key(self.game_id), self.to_json())
 
     @property
-    def controller(self) -> GamesController:
+    def controller(self) -> 'GamesController':
         return self._controller
 
     async def send(
