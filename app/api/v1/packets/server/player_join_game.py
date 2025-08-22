@@ -1,9 +1,14 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TYPE_CHECKING
 from uuid import UUID
 
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.base_server import ServerPacket
+
+if TYPE_CHECKING:
+    from app.assets.objects.player import Player
+else:
+    Player = Any
 
 
 @dataclass
@@ -11,7 +16,7 @@ class ServerPlayerJoinGamePacket(ServerPacket):
     PACKET_TAG = "player_join_game"
 
     game_id: UUID
-    players: List[Any]
+    players: List[Player]
 
     def to_json(self) -> Dict[str, Any]:
         return {

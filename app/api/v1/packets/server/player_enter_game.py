@@ -1,9 +1,13 @@
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 
 from pydantic.dataclasses import dataclass
 
 from app.api.v1.packets.base_server import ServerPacket
-from app.assets.objects.game import Game
+
+if TYPE_CHECKING:
+    from app.assets.objects.game import Game
+else:
+    Game = Any
 
 
 @dataclass
