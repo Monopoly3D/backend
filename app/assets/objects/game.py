@@ -18,6 +18,7 @@ from app.api.v1.packets.server.game_move import ServerGameMovePacket
 from app.api.v1.packets.server.game_players_refused_auction import ServerGamePlayersRefusedAuctionPacket
 from app.api.v1.packets.server.game_start import ServerGameStartPacket
 from app.api.v1.packets.server.player_put_field_for_auction import ServerPlayerPutFieldForAuctionPacket
+from app.assets.exceptions.game_creation_failed import GameCreationFailedError
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field import BuyFieldAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
@@ -81,23 +82,22 @@ class Game(RedisObject):
         ActionType.CONTRACT: ContractAction
     }
 
-    controller: Any
+    controller: GamesController
     host_id: UUID
     player_amount: int
 
     game_id: UUID = dataclass_field(default_factory=uuid4)
     code: GameCode = dataclass_field(default_factory=GameCode.random)
     is_started: bool = False
-    seed: int = random.random() * 2 ** 63
     round: int = 0
     move: int = 0
-    start_delay: int = Parameters.START_DELAY
-
     action: AbstractAction | None = None
+    start_delay: int = Parameters.START_DELAY
     start_bonus: int = Parameters.START_BONUS
     start_reward: int = Parameters.START_REWARD
     start_bonus_round_amount: int = Parameters.START_BONUS_ROUND_AMOUNT
     auction_minimum_bet: int = Parameters.AUCTION_MINIMUM_BET
+    seed: int = random.random() * 2 ** 63
 
     players: Players = dataclass_field(default_factory=Players)
     fields: Fields = dataclass_field(default_factory=Fields)
@@ -109,7 +109,11 @@ class Game(RedisObject):
 
     def __post_init__(self):
         for _ in range(self.__CODE_REGENERATION_LIMIT):
-            pass
+            if not self.controller.exists_game_code(self.code):
+                break
+            self.code = GameCode.random()
+        else:
+            raise GameCreationFailedError("Game creation failed. Please try again")
 
         self.players.game = self
         self.fields.game = self
@@ -148,11 +152,10 @@ class Game(RedisObject):
             "host_id": str(self.host_id),
             "code": self.code,
             "is_started": self.is_started,
-            "action": self.action.pack() if self.action is not None else None,
             "round": self.round,
             "move": self.move,
-            "seed": self.seed,
             "player_amount": self.player_amount,
+            "action": self.action.pack() if self.action is not None else None,
             "start_delay": self.start_delay,
             "start_bonus": self.start_bonus,
             "start_reward": self.start_reward,
@@ -160,7 +163,8 @@ class Game(RedisObject):
             "auction_minimum_bet": self.auction_minimum_bet,
             "players": self.players.to_json(),
             "fields": self.fields.to_json(),
-            "monopolies": self.monopolies.to_json()
+            "monopolies": self.monopolies.to_json(),
+            "seed": self.seed
         }
 
     async def save(self) -> None:
