@@ -89,7 +89,7 @@ async def authenticate(
             game_status.G_4201_GAME_NOT_FOUND,
             "Game was not found"
         )
-    if game.players.size >= game.player_amount:
+    if not game.players.exists(user.id) and game.players.size >= game.player_amount:
         await websocket.close(
             game_status.G_4206_GAME_MAX_PLAYERS_REACHED,
             "Game with provided UUID has too many players"
