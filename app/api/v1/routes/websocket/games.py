@@ -1,5 +1,5 @@
 from asyncio import Task
-from typing import Annotated, Tuple, Dict
+from typing import Annotated, Tuple, Dict, List, Callable
 from uuid import UUID
 
 from fastapi import Depends
@@ -27,11 +27,15 @@ from app.api.v1.packets.client.player_refuse_auction import ClientPlayerRefuseAu
 from app.api.v1.packets.client.player_refuse_casino import ClientPlayerRefuseCasinoPacket
 from app.api.v1.packets.client.player_sell_filiation import ClientPlayerSellFiliationPacket
 from app.api.v1.packets.server.ping import ServerPingPacket
-from app.api.v1.routes.websocket.dependencies import WebSocketDependency
 from app.api.v1.routes.websocket.packets import PacketsRouter
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.enums.action_type import ActionType
 from app.assets.exceptions import game_status
+from app.assets.exceptions.game_already_started import GameAlreadyStartedError
+from app.assets.exceptions.game_invalid_action import GameInvalidActionError
+from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveError
+from app.assets.exceptions.game_not_found import GameNotFoundError
+from app.assets.exceptions.game_not_started import GameNotStartedError
 from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
@@ -40,6 +44,47 @@ from app.database.models import User
 from app.dependencies import database_websocket_session, games_controller_websocket
 
 games_packets_router = PacketsRouter(prefix="/games")
+
+
+def get_game(
+        *,
+        is_started: bool | None = True,
+        action: ActionType | List[ActionType] | None = None,
+        is_players_turn: bool | None = False
+) -> Callable:
+    async def __get_game(
+            connections: Connections,
+            games_controller: GamesController,
+            user: User
+    ) -> Game:
+        game: Game | None = await games_controller.get_game_by_player(user.id, connections=connections)
+
+        if game is None:
+            raise GameNotFoundError("Game with provided UUID was not found")
+
+        if is_started is not None:
+            if game.is_started and not is_started:
+                raise GameAlreadyStartedError("Game with provided UUID has already started")
+            if not game.is_started and is_started:
+                raise GameNotStartedError("Game with provided UUID has not been started")
+
+        if is_players_turn:
+            player: Player | None = game.players.current
+
+            if player is None or player.player_id != user.id:
+                raise GameNotAwaitingMoveError("Player is not awaited to move")
+
+        if action is not None:
+            if isinstance(action, ActionType):
+                action_list: List[ActionType] = [action]
+            else:
+                action_list = action
+            if game.action.ACTION_TYPE not in action_list:
+                raise GameInvalidActionError("Game with provided UUID awaits different action")
+
+        return game
+
+    return __get_game
 
 
 @games_packets_router.authenticate()
@@ -122,7 +167,7 @@ async def on_ping() -> ServerPingPacket:
 async def on_player_ready(
         packet: ClientPlayerReadyPacket,
         user: User,
-        game: Annotated[Game, WebSocketDependency.get_game(is_started=False)]
+        game: Annotated[Game, get_game(is_started=False)]
 ) -> None:
     player: Player = game.players.get(user.id)
 
@@ -139,7 +184,7 @@ async def on_player_ready(
 
 @games_packets_router.handle(ClientPlayerMovePacket)
 async def on_player_move(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -151,7 +196,7 @@ async def on_player_move(
 
 @games_packets_router.handle(ClientPlayerBuyFieldPacket)
 async def on_player_buy_field(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -161,7 +206,7 @@ async def on_player_buy_field(
 
 @games_packets_router.handle(ClientPlayerPutFieldForAuctionPacket)
 async def on_player_put_field_for_auction(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.BUY_FIELD, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -171,10 +216,13 @@ async def on_player_put_field_for_auction(
 
 @games_packets_router.handle(ClientPlayerAcceptAuctionPacket)
 async def on_player_accept_auction(
-        game: Annotated[Game, WebSocketDependency.get_game(
-            action=ActionType.BUY_FIELD_ON_AUCTION,
-            is_players_turn=True
-        )]
+        game: Annotated[
+            Game,
+            get_game(
+                action=ActionType.BUY_FIELD_ON_AUCTION,
+                is_players_turn=True
+            )
+        ]
 ) -> None:
     player: Player = game.players.current_on_auction
 
@@ -184,10 +232,13 @@ async def on_player_accept_auction(
 
 @games_packets_router.handle(ClientPlayerRefuseAuctionPacket)
 async def on_player_refuse_auction(
-        game: Annotated[Game, WebSocketDependency.get_game(
-            action=ActionType.BUY_FIELD_ON_AUCTION,
-            is_players_turn=True
-        )]
+        game: Annotated[
+            Game,
+            get_game(
+                action=ActionType.BUY_FIELD_ON_AUCTION,
+                is_players_turn=True
+            )
+        ]
 ) -> None:
     player: Player = game.players.current_on_auction
 
@@ -197,7 +248,7 @@ async def on_player_refuse_auction(
 
 @games_packets_router.handle(ClientPlayerPayRentPacket)
 async def on_player_pay_rent(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_RENT, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.PAY_RENT, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -207,7 +258,7 @@ async def on_player_pay_rent(
 
 @games_packets_router.handle(ClientPlayerPayTaxPacket)
 async def on_player_pay_tax(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.PAY_TAX, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.PAY_TAX, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -217,7 +268,7 @@ async def on_player_pay_tax(
 
 @games_packets_router.handle(ClientPlayerAcceptPrisonPacket)
 async def on_player_accept_prison(
-        game: Annotated[Game, WebSocketDependency.get_game(action=[ActionType.PRISON], is_players_turn=True)]
+        game: Annotated[Game, get_game(action=[ActionType.PRISON], is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -227,10 +278,13 @@ async def on_player_accept_prison(
 
 @games_packets_router.handle(ClientPlayerPayPrisonPacket)
 async def on_player_pay_prison(
-        game: Annotated[Game, WebSocketDependency.get_game(
-            action=[ActionType.PRISON, ActionType.PAY_PRISON],
-            is_players_turn=True
-        )]
+        game: Annotated[
+            Game,
+            get_game(
+                action=[ActionType.PRISON, ActionType.PAY_PRISON],
+                is_players_turn=True
+            )
+        ]
 ) -> None:
     player: Player = game.players.current
 
@@ -241,7 +295,7 @@ async def on_player_pay_prison(
 @games_packets_router.handle(ClientPlayerAcceptCasinoPacket)
 async def on_player_accept_casino(
         packet: ClientPlayerAcceptCasinoPacket,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.CASINO, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -251,7 +305,7 @@ async def on_player_accept_casino(
 
 @games_packets_router.handle(ClientPlayerRefuseCasinoPacket)
 async def on_player_refuse_casino(
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.CASINO, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.CASINO, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -262,7 +316,7 @@ async def on_player_refuse_casino(
 @games_packets_router.handle(ClientPlayerMortgageFieldPacket)
 async def on_player_mortgage_field(
         packet: ClientPlayerMortgageFieldPacket,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -273,7 +327,7 @@ async def on_player_mortgage_field(
 @games_packets_router.handle(ClientPlayerBuyoutFieldPacket)
 async def on_player_buyout_field(
         packet: ClientPlayerBuyoutFieldPacket,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -284,7 +338,7 @@ async def on_player_buyout_field(
 @games_packets_router.handle(ClientPlayerBuyFiliationPacket)
 async def on_player_buy_filiation(
         packet: ClientPlayerBuyFiliationPacket,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
@@ -295,7 +349,7 @@ async def on_player_buy_filiation(
 @games_packets_router.handle(ClientPlayerSellFiliationPacket)
 async def on_player_sell_filiation(
         packet: ClientPlayerSellFiliationPacket,
-        game: Annotated[Game, WebSocketDependency.get_game(action=ActionType.MOVE, is_players_turn=True)]
+        game: Annotated[Game, get_game(action=ActionType.MOVE, is_players_turn=True)]
 ) -> None:
     player: Player = game.players.current
 
