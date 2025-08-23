@@ -164,8 +164,7 @@ class Player(GameObject):
             await self.game.controller.active_players_controller.create_player(
                 ActivePlayer(
                     game_id=self.game.game_id,
-                    player_id=self.player_id,
-                    is_host=self.is_host
+                    player_id=self.player_id
                 )
             )
 

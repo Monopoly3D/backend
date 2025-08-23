@@ -10,7 +10,6 @@ from app.assets.objects.object import GameObject
 class ActivePlayer(GameObject):
     game_id: UUID
     player_id: UUID
-    is_host: bool
 
     @classmethod
     def from_json(
@@ -22,6 +21,5 @@ class ActivePlayer(GameObject):
     def to_json(self) -> Dict[str, Any]:
         return {
             "game_id": str(self.game_id),
-            "player_id": str(self.player_id),
-            "is_host": self.is_host
+            "player_id": str(self.player_id)
         }

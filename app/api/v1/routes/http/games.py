@@ -11,6 +11,7 @@ from app.api.v1.models.response.game import GameResponseModel
 from app.api.v1.models.response.game_ticket import GameTicketResponseModel
 from app.api.v1.security.authenticator import Authenticator
 from app.api.v1.security.authorizer import Authorizer
+from app.assets.exceptions.player_already_host import PlayerAlreadyHostError
 from app.assets.exceptions.player_already_in_game import PlayerAlreadyInGameError
 from app.assets.exceptions.player_not_host import PlayerNotHostError
 from app.assets.exceptions.player_not_in_game import PlayerNotInGameError
@@ -38,11 +39,15 @@ async def create_game(
     if await games_controller.active_players_controller.exists_player(user.id):
         raise PlayerAlreadyInGameError("You are already in game")
 
+    if await games_controller.hosts_controller.exists_host(user.id):
+        raise PlayerAlreadyHostError("You are already hosting a game")
+
     game: Game = await games_controller.create_game(
         user.id,
         create_game_model.player_amount,
         connections=connections
     )
+
     return GameResponseModel.from_game(game)
 
 
@@ -61,6 +66,8 @@ async def join_game(
 ) -> GameTicketResponseModel:
     if code is None:
         game: Game | None = await games_controller.get_game_by_player(user.id, connections=connections)
+        if game is None:
+            game: Game | None = await games_controller.get_game_by_host(user.id, connections=connections)
     else:
         game: Game | None = await games_controller.get_game_by_code(code, connections=connections)
 
@@ -116,7 +123,7 @@ async def remove_own_game(
         games_controller: Annotated[GamesController, Depends(games_controller_dependency)],
         connections: Annotated[Connections, Depends(Connections.dependency)]
 ) -> None:
-    game: Game | None = await games_controller.get_game_by_player(user.id, connections=connections)
+    game: Game | None = await games_controller.get_game_by_host(user.id, connections=connections)
 
     if game is None:
         raise PlayerNotInGameError("You are not in game")
