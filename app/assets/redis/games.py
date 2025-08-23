@@ -9,6 +9,7 @@ from app.assets.objects.game import Game
 from app.assets.redis.abstract import RedisController
 from app.assets.redis.active_players import ActivePlayersController
 from app.assets.redis.codes import CodesController
+from app.assets.redis.hosts import HostsController
 
 
 class GamesController(RedisController):
@@ -18,6 +19,7 @@ class GamesController(RedisController):
     ) -> None:
         super().__init__(redis)
         self._codes_controller = CodesController(redis)
+        self._hosts_controller = HostsController(redis)
         self._active_players_controller = ActivePlayersController(redis)
 
     def key(self, game_id: UUID) -> str:
@@ -26,6 +28,10 @@ class GamesController(RedisController):
     @property
     def codes_controller(self) -> CodesController:
         return self._codes_controller
+
+    @property
+    def hosts_controller(self) -> HostsController:
+        return self._hosts_controller
 
     @property
     def active_players_controller(self) -> ActivePlayersController:
@@ -48,6 +54,7 @@ class GamesController(RedisController):
 
         await game.save()
         await self.codes_controller.create_code(game.game_id, game.code)
+        await self.hosts_controller.create_host(game.game_id, host_id)
 
         return game
 
@@ -70,7 +77,20 @@ class GamesController(RedisController):
             *,
             connections: Connections
     ) -> Game | None:
-        game_id: UUID | None = await self._codes_controller.get_game_id(code)
+        game_id: UUID | None = await self.codes_controller.get_game_id(code)
+
+        if game_id is None:
+            return
+
+        return await self.get_game(game_id, connections=connections)
+
+    async def get_game_by_host(
+            self,
+            host_id: UUID,
+            *,
+            connections: Connections
+    ) -> Game | None:
+        game_id: UUID | None = await self.hosts_controller.get_game_id(host_id)
 
         if game_id is None:
             return
@@ -83,7 +103,7 @@ class GamesController(RedisController):
             *,
             connections: Connections
     ) -> Game | None:
-        active_player: ActivePlayer | None = await self._active_players_controller.get_player(player_id)
+        active_player: ActivePlayer | None = await self.active_players_controller.get_player(player_id)
 
         if active_player is None:
             return
@@ -107,5 +127,7 @@ class GamesController(RedisController):
         for player_id in game.players.ids:
             await self.active_players_controller.remove_player(player_id)
 
+        await self.hosts_controller.remove_host(game.host_id)
         await self.codes_controller.remove_code(game.code)
+
         await game.clear()

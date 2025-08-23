@@ -27,7 +27,7 @@ class ActivePlayersController(RedisController):
         if active_player_json is None:
             return
 
-        return ActivePlayer(**active_player_json)
+        return ActivePlayer.from_json(active_player_json)
 
     async def exists_player(
             self,

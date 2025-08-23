@@ -101,6 +101,7 @@ async def authenticate(
         )
 
     await connections.add_connection(websocket, user_id)
+
     await Player.new(
         user.id,
         user.username,
