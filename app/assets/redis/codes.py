@@ -21,8 +21,8 @@ class CodesController(RedisController):
 
     async def create_code(
             self,
-            code: GameCode,
-            game_id: UUID
+            game_id: UUID,
+            code: GameCode
     ) -> None:
         await self.set(self.key(code), str(game_id))
 

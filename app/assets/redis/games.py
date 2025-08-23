@@ -47,7 +47,7 @@ class GamesController(RedisController):
         await game.create_unique_code()
 
         await game.save()
-        await self.codes_controller.create_code(game.code, game.game_id)
+        await self.codes_controller.create_code(game.game_id, game.code)
 
         return game
 
