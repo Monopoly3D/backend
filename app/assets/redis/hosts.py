@@ -28,7 +28,7 @@ class HostsController(RedisController):
     ) -> UUID | None:
         try:
             return UUID(await self.get(self.key(host_id)))
-        except ValueError | TypeError:
+        except (ValueError, TypeError):
             return
 
     async def exists_host(

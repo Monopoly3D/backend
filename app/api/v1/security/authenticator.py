@@ -226,7 +226,7 @@ class Authenticator:
 
         try:
             user_id: UUID = UUID(data["id"])
-        except ValueError | TypeError:
+        except (ValueError, TypeError):
             raise InvalidCredentialsError("Provided credentials are invalid")
 
         user: User | None = await session.scalar(
@@ -276,7 +276,7 @@ class Authenticator:
 
         try:
             user_id: UUID = UUID(data["id"])
-        except ValueError | TypeError:
+        except (ValueError, TypeError):
             raise InvalidCredentialsError("Provided credentials are invalid")
 
         user: User | None = await session.scalar(

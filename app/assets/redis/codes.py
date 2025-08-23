@@ -32,7 +32,7 @@ class CodesController(RedisController):
     ) -> UUID | None:
         try:
             return UUID(await self.get(self.key(code)))
-        except ValueError | TypeError:
+        except (ValueError, TypeError):
             return
 
     async def exists_code(
