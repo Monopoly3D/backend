@@ -23,7 +23,6 @@ class GameResponseModel(BaseModel):
     start_reward: int
     start_bonus_round_amount: int
     auction_minimum_bet: int
-    seed: int
     players: List[PlayerResponseModel]
     fields: List[FieldResponseModel]
 
@@ -52,7 +51,6 @@ class GameResponseModel(BaseModel):
             start_reward=game.start_reward,
             start_bonus_round_amount=game.start_bonus_round_amount,
             auction_minimum_bet=game.auction_minimum_bet,
-            seed=game.seed,
             players=game.players.models_list,
             fields=game.fields.models_list,
             with_players=with_players,
@@ -74,8 +72,7 @@ class GameResponseModel(BaseModel):
             "start_bonus": self.start_bonus,
             "start_reward": self.start_reward,
             "start_bonus_round_amount": self.start_bonus_round_amount,
-            "auction_minimum_bet": self.auction_minimum_bet,
-            "seed": self.seed
+            "auction_minimum_bet": self.auction_minimum_bet
         }
 
         if self.with_players:

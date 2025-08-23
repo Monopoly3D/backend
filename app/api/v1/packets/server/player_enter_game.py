@@ -18,14 +18,14 @@ class ServerPlayerEnterGamePacket(ServerPacket):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "game_id": self.game.game_id,
-            "host_id": self.game.host_id,
+            "game_id": str(self.game.game_id),
+            "host_id": str(self.game.host_id),
             "code": self.game.code,
             "is_started": self.game.is_started,
             "round": self.game.round,
             "move": self.game.move,
             "player_amount": self.game.player_amount,
-            "action": self.game.action.to_json(),
+            "action": self.game.action.to_json() if self.game.action is not None else None,
             "start_delay": self.game.start_delay,
             "start_bonus": self.game.start_bonus,
             "start_reward": self.game.start_reward,

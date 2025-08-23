@@ -13,7 +13,7 @@ class HostsController(RedisController):
         super().__init__(redis)
 
     def key(self, host_id: UUID) -> str:
-        pass
+        return f"hosts:{host_id}"
 
     async def create_host(
             self,
