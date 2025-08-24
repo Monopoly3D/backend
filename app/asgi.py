@@ -1,4 +1,3 @@
-import traceback
 from contextlib import asynccontextmanager
 from typing import Any, Annotated
 
@@ -114,13 +113,13 @@ async def on_websocket_error(
         connection: Annotated[Connection, Connection.dependency],
         exception: WebSocketError
 ) -> None:
-    await connection.send(ServerErrorPacket.from_error(exception))
+    await connection.send_packet(ServerErrorPacket.from_error(exception))
 
     if isinstance(exception, InternalServerError):
         raise exception.error
     else:
         logger.error(
-            f"(\'{connection.websocket.client.host}\', {connection.websocket.client.port}) "
+            f"(\'{connection.client.host}\', {connection.client.port}) "
             f"WebSocket Error {exception.status_code}: {exception}"
         )
 

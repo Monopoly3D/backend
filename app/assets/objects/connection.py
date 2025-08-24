@@ -1,29 +1,25 @@
 from asyncio import CancelledError
+from typing import Any
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.api.v1.packets.base_server import ServerPacket
 
 
-class Connection:
+class Connection(WebSocket):
     def __init__(
             self,
-            websocket: WebSocket
+            *args: Any,
+            **kwargs: Any
     ) -> None:
-        self.websocket = websocket
+        super().__init__(*args, **kwargs)
 
-    async def send(
+    async def send_packet(
             self,
             packet: ServerPacket
     ) -> None:
-        await self.send_text(packet.pack())
-
-    async def send_text(
-            self,
-            text: str
-    ) -> None:
         try:
-            await self.websocket.send_text(text)
+            await self.send_text(packet.pack())
         except (WebSocketDisconnect, RuntimeError, CancelledError):
             pass
 

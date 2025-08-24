@@ -2,7 +2,6 @@ from typing import Any, Dict, Tuple, List, TYPE_CHECKING
 from uuid import UUID
 
 from pydantic.dataclasses import dataclass
-from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.websocket.invalid_packet_data import InvalidPacketDataError
 from app.api.v1.packets.base_server import ServerPacket
@@ -46,6 +45,7 @@ from app.assets.objects.actions.pay_prison import PayPrisonAction
 from app.assets.objects.actions.pay_rent import PayRentAction
 from app.assets.objects.actions.pay_tax import PayTaxAction
 from app.assets.objects.active_player import ActivePlayer
+from app.assets.objects.connection import Connection
 from app.assets.objects.fields.abstract import AbstractField
 from app.assets.objects.fields.company import Company
 from app.assets.objects.fields.tax import Tax
@@ -73,7 +73,7 @@ class Player(GameObject):
     double_amount: int = 0
     contract_amount: int = 0
 
-    _connection: WebSocket | None = None
+    _connection: Connection | None = None
 
     @classmethod
     def new(
@@ -83,7 +83,7 @@ class Player(GameObject):
             *,
             is_host: bool = False,
             game: 'Game',
-            connection: WebSocket | None
+            connection: Connection | None
     ) -> 'Player':
         return cls(
             player_id=player_id,
@@ -99,7 +99,7 @@ class Player(GameObject):
             player_json: Dict[str, Any],
             *,
             game: 'Game',
-            connection: WebSocket | None
+            connection: Connection | None
     ) -> 'Player':
         return cls(
             **player_json,
@@ -126,12 +126,12 @@ class Player(GameObject):
         return self._game
 
     @property
-    def connection(self) -> WebSocket | None:
+    def connection(self) -> Connection | None:
         return self._connection
 
     @connection.setter
-    def connection(self, websocket: WebSocket) -> None:
-        self._connection = websocket
+    def connection(self, value: Connection) -> None:
+        self._connection = value
 
     @property
     def is_imprisoned(self) -> bool:
@@ -149,8 +149,7 @@ class Player(GameObject):
             self,
             packet: ServerPacket
     ) -> None:
-        if self.connection is not None:
-            await self.connection.send_text(packet.pack())
+        await self.connection.send_packet(packet)
 
     async def enter(self) -> None:
         packet = ServerPlayerEnterGamePacket(self.game)

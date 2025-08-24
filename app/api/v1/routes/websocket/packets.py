@@ -14,6 +14,7 @@ from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
 from app.api.v1.security.authenticator import Authenticator
 from app.assets.exceptions.game_error import GameError
+from app.assets.objects.connection import Connection
 from app.assets.objects.connections import Connections
 from app.assets.redis.games import GamesController
 from app.database.database import Database
@@ -99,20 +100,20 @@ class PacketsRouter(APIRouter):
 
     async def _handle_packets(
             self,
-            websocket: WebSocket,
+            connection: Annotated[Connection, Connection.dependency],
             dp: Annotated[Dict[str, Any], Depends(_dependencies)]
     ) -> None:
         try:
             while True:
-                packet: str = await websocket.receive_text()
-                await self._handle_packet(packet, websocket, **dp)  # At some point it must create asyncio tasks
+                packet: str = await connection.receive_text()
+                await self._handle_packet(packet, connection, **dp)  # At some point it must create asyncio tasks
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
 
     async def _handle_packet(
             self,
             packet: str,
-            websocket: WebSocket,
+            connection: Connection,
             **kwargs
     ) -> None:
         try:
@@ -121,7 +122,7 @@ class PacketsRouter(APIRouter):
             if type(packet) not in self._handlers:
                 raise UnknownPacketError("Unknown packet")
 
-            await self._execute_handler(self._handlers[type(packet)], packet, websocket, **kwargs)
+            await self._execute_handler(self._handlers[type(packet)], packet, connection, **kwargs)
         except GameError or WebSocketError as e:
             raise e
         except Exception as e:
@@ -131,20 +132,20 @@ class PacketsRouter(APIRouter):
             self,
             handler: Any,
             packet: ClientPacket,
-            websocket: WebSocket,
+            connection: Connection,
             **kwargs: Any
     ) -> None:
         handler_dependencies: Dict[str, Any] = await self._inject_dependencies(
             handler,
             packet=packet,
-            websocket=websocket,
+            connection=connection,
             **kwargs
         )
 
         prepared_args: Dict[str, Any] = self._prepare_args(
             handler,
             packet=packet,
-            websocket=websocket,
+            connection=connection,
             router=self,
             **handler_dependencies,
             **kwargs
@@ -153,7 +154,7 @@ class PacketsRouter(APIRouter):
         response_packet: ServerPacket | None = await handler(**prepared_args)
 
         if response_packet is not None:
-            await websocket.send_text(response_packet.pack())
+            await connection.send_packet(response_packet)
 
     async def _inject_dependencies(
             self,

@@ -2,12 +2,11 @@ from random import shuffle
 from typing import Dict, List, Any, Tuple, TYPE_CHECKING, Optional
 from uuid import UUID
 
-from starlette.websockets import WebSocket
-
 from app.api.v1.models.response.player import PlayerResponseModel
 from app.assets.context.abstract import Context
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
+from app.assets.objects.connection import Connection
 from app.assets.objects.connections import Connections
 from app.assets.objects.player import Player
 
@@ -36,7 +35,7 @@ class Players(Context):
         for player_json in players:
             try:
                 player_id = UUID(player_json.get("player_id"))
-                connection: WebSocket | None = connections.get_connection(player_id)
+                connection: Connection | None = connections.get_connection(player_id)
             except ValueError:
                 connection = None
 

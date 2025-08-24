@@ -5,7 +5,6 @@ from uuid import UUID
 from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.websocket import websocket_status
@@ -36,6 +35,7 @@ from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.assets.exceptions.game_not_found import GameNotFoundError
 from app.assets.exceptions.game_not_started import GameNotStartedError
+from app.assets.objects.connection import Connection
 from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
 from app.assets.objects.player import Player
@@ -89,18 +89,18 @@ def get_game(
 
 @games_packets_router.authenticate()
 async def authenticate(
-        websocket: WebSocket,
+        connection: Annotated[Connection, Connection.dependency],
         session: Annotated[AsyncSession, Depends(database_websocket_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
         connections: Annotated[Connections, Depends(Connections.websocket_dependency)]
 ) -> None:
-    await websocket.accept()
+    await connection.accept()
 
     try:
-        ticket: Dict[str, str] = await authenticator.decode_game_ticket(websocket.query_params.get("ticket"))
+        ticket: Dict[str, str] = await authenticator.decode_game_ticket(connection.query_params.get("ticket"))
     except InvalidAccessTokenError:
-        await websocket.close(
+        await connection.close(
             websocket_status.WS_4001_UNAUTHORIZED,
             "Provided ticket is invalid"
         )
@@ -110,7 +110,7 @@ async def authenticate(
         user_id: UUID = UUID(ticket["id"])
         game_id: UUID = UUID(ticket["game_id"])
     except ValueError | KeyError:
-        await websocket.close(
+        await connection.close(
             websocket_status.WS_4001_UNAUTHORIZED,
             "Provided ticket is invalid"
         )
@@ -121,7 +121,7 @@ async def authenticate(
         .filter_by(id=user_id)
     )
     if user is None:
-        await websocket.close(
+        await connection.close(
             websocket_status.WS_4001_UNAUTHORIZED,
             "Provided ticket is invalid"
         )
@@ -130,29 +130,29 @@ async def authenticate(
     game: Game = await games_controller.get_game(game_id, connections=connections)
 
     if game is None:
-        await websocket.close(
+        await connection.close(
             game_status.G_4201_GAME_NOT_FOUND,
             "Game was not found"
         )
     if not game.players.exists(user.id) and game.players.size >= game.player_amount:
-        await websocket.close(
+        await connection.close(
             game_status.G_4206_GAME_MAX_PLAYERS_REACHED,
             "Game with provided UUID has too many players"
         )
     if game.players.exists(user.id) and game.is_started:
-        await websocket.close(
+        await connection.close(
             game_status.G_4302_PLAYER_NOT_IN_GAME,
             "You are not in game"
         )
 
-    await connections.add_connection(websocket, user_id)
+    await connections.add_connection(connection, user_id)
 
     await Player.new(
         user.id,
         user.username,
         is_host=user.id == game.host_id,
         game=game,
-        connection=websocket
+        connection=connection
     ).enter()
 
     await game.save()

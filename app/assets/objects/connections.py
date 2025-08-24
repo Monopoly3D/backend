@@ -5,42 +5,44 @@ from starlette.datastructures import Address
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
+from app.assets.objects.connection import Connection
+
 
 class Connections:
     def __init__(self) -> None:
-        self._connections: Dict[UUID, WebSocket] = {}
+        self._connections: Dict[UUID, Connection] = {}
         self._addresses: Dict[Address, UUID] = {}
 
     async def add_connection(
             self,
-            websocket: WebSocket,
+            connection: Connection,
             user_id: UUID
     ) -> None:
-        self._connections[user_id] = websocket
+        self._connections[user_id] = connection
 
-        if websocket.client is not None:
-            self._addresses[websocket.client] = user_id
+        if connection.client is not None:
+            self._addresses[connection.client] = user_id
 
     def get_connection(
             self,
             user_id: UUID
-    ) -> WebSocket | None:
+    ) -> Connection | None:
         return self._connections.get(user_id)
 
     async def get_user_id(
             self,
-            websocket: WebSocket
+            connection: Connection
     ) -> UUID | None:
-        if websocket.client is not None:
-            return self._addresses.get(websocket.client)
+        if connection.client is not None:
+            return self._addresses.get(connection.client)
 
     async def remove_connection(
             self,
             user_id: UUID
     ) -> None:
-        websocket: WebSocket = self._connections.pop(user_id, None)
-        if websocket is not None and websocket.client is not None:
-            self._addresses.pop(websocket.client, None)
+        connection: Connection = self._connections.pop(user_id, None)
+        if connection is not None and connection.client is not None:
+            self._addresses.pop(connection.client, None)
 
     @staticmethod
     async def dependency(request: Request) -> 'Connections':
