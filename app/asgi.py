@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, Annotated
 
@@ -110,9 +111,11 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 
 @app.exception_handler(WebSocketError)
 async def on_websocket_error(
-        connection: Annotated[Connection, Connection.dependency],
-        exception: WebSocketError
+        websocket: WebSocket,
+        exception: WebSocketError,
+        connections: Annotated[Connections, Connections.dependency],
 ) -> None:
+    connection = Connection(websocket, connections)
     await connection.send_packet(ServerErrorPacket.from_error(exception))
 
     if isinstance(exception, InternalServerError):

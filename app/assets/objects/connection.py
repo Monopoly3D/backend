@@ -1,25 +1,24 @@
 import asyncio
 from asyncio import CancelledError
-from typing import Any, TYPE_CHECKING, Annotated
+from typing import Any, Annotated
 
+from starlette.datastructures import QueryParams, Headers, Address
+from starlette.types import Message
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.api.v1.packets.base_server import ServerPacket
-
-if TYPE_CHECKING:
-    from app.assets.objects.connections import Connections
+from app.assets.objects.connections import Connections
 
 
-class Connection(WebSocket):
+class Connection:
     __CONNECTION_REMOVAL_DELAY: float = 0.5
 
     def __init__(
             self,
-            *args: Any,
-            connections: Connections,
-            **kwargs: Any
+            websocket: WebSocket,
+            connections: Connections
     ) -> None:
-        super().__init__(*args, **kwargs)
+        self.websocket = websocket
         self.connections = connections
 
     async def send_packet(
@@ -34,12 +33,49 @@ class Connection(WebSocket):
                 await self.connections.get_user_id(self)
             )
 
+    async def receive(self) -> Message:
+        return await self.websocket.receive()
+
+    async def send(self, message: Message) -> None:
+        await self.websocket.send(message)
+
+    async def accept(self) -> None:
+        await self.websocket.accept()
+
+    async def receive_text(self) -> str:
+        return await self.websocket.receive_text()
+
+    async def receive_json(self, mode: str = "text") -> Any:
+        return await self.websocket.receive_json(mode)
+
+    async def send_text(self, data: str) -> None:
+        await self.websocket.send_text(data)
+
+    async def send_json(self, data: Any, mode: str = "text") -> None:
+        await self.websocket.send_json(data, mode)
+
+    async def close(self, code: int = 1000, reason: str | None = None) -> None:
+        await self.websocket.close(code, reason)
+
+    @property
+    def app(self) -> Any:
+        return self.websocket.app
+
+    @property
+    def headers(self) -> Headers:
+        return self.websocket.headers
+
+    @property
+    def query_params(self) -> QueryParams:
+        return self.websocket.query_params
+
+    @property
+    def client(self) -> Address | None:
+        return self.websocket.client
+
     @staticmethod
     def dependency(
             websocket: WebSocket,
             connections: Annotated[Connections, Connections.dependency]
     ) -> 'Connection':
-        return Connection(
-            websocket,
-            connections=connections
-        )
+        return Connection(websocket, connections)

@@ -13,6 +13,7 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette.responses import Response
+from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.http.invalid_credentials import InvalidCredentialsError
@@ -341,10 +342,12 @@ class Authenticator:
     @staticmethod
     def get_websocket_user() -> Depends:
         async def __get_websocket_user(
-                connection: Annotated[Connection, Connection.dependency],
+                websocket: WebSocket,
                 session: Annotated[AsyncSession, Depends(database_websocket_session)],
                 connections: Annotated[Connections, Depends(Connections.websocket_dependency)]
         ) -> User:
+            connection = Connection(websocket, connections)
+
             user: User | None = await session.scalar(
                 select(User)
                 .filter_by(id=await connections.get_user_id(connection))

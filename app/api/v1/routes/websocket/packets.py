@@ -100,15 +100,19 @@ class PacketsRouter(APIRouter):
 
     async def _handle_packets(
             self,
-            connection: Annotated[Connection, Connection.dependency],
+            websocket: WebSocket,
             dp: Annotated[Dict[str, Any], Depends(_dependencies)]
     ) -> None:
+        connection = Connection(websocket, dp.get("connections"))
+
         try:
             while True:
                 packet: str = await connection.receive_text()
                 await self._handle_packet(packet, connection, **dp)  # At some point it must create asyncio tasks
         except WebSocketDisconnect as e:
             logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
+        except RuntimeError:
+            pass
 
     async def _handle_packet(
             self,

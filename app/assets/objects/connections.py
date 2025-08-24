@@ -1,21 +1,25 @@
-from typing import Dict
+from typing import Dict, TYPE_CHECKING, Optional
 from uuid import UUID
 
 from starlette.datastructures import Address
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from app.assets.objects.connection import Connection
+if TYPE_CHECKING:
+    from app.assets.objects.connection import Connection
 
 
 class Connections:
     def __init__(self) -> None:
-        self._connections: Dict[UUID, Connection] = {}
+        self._connections: Dict[UUID, 'Connection'] = {}
         self._addresses: Dict[Address, UUID] = {}
+
+    def p(self):
+        print(self._connections)
 
     async def add_connection(
             self,
-            connection: Connection,
+            connection: 'Connection',
             user_id: UUID
     ) -> None:
         self._connections[user_id] = connection
@@ -26,12 +30,12 @@ class Connections:
     def get_connection(
             self,
             user_id: UUID
-    ) -> Connection | None:
+    ) -> Optional['Connection']:
         return self._connections.get(user_id)
 
     async def get_user_id(
             self,
-            connection: Connection
+            connection: 'Connection'
     ) -> UUID | None:
         if connection.client is not None:
             return self._addresses.get(connection.client)
@@ -40,7 +44,7 @@ class Connections:
             self,
             user_id: UUID
     ) -> None:
-        connection: Connection = self._connections.pop(user_id, None)
+        connection: 'Connection' = self._connections.pop(user_id, None)
         if connection is not None and connection.client is not None:
             self._addresses.pop(connection.client, None)
 

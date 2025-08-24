@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.websockets import WebSocket
 
 from app.api.v1.exceptions.http.invalid_access_token import InvalidAccessTokenError
 from app.api.v1.exceptions.websocket import websocket_status
@@ -89,12 +90,13 @@ def get_game(
 
 @games_packets_router.authenticate()
 async def authenticate(
-        connection: Annotated[Connection, Connection.dependency],
+        websocket: WebSocket,
         session: Annotated[AsyncSession, Depends(database_websocket_session)],
         authenticator: Annotated[Authenticator, Depends(Authenticator.websocket_dependency)],
         games_controller: Annotated[GamesController, Depends(games_controller_websocket)],
         connections: Annotated[Connections, Depends(Connections.websocket_dependency)]
 ) -> None:
+    connection = Connection(websocket, connections)
     await connection.accept()
 
     try:
