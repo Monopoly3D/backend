@@ -29,7 +29,7 @@ class ClientPacket(BasePacket, ABC):
 
         try:
             return cls.from_json(packet["data"])
-        except KeyError or ValueError or ValidationError:
+        except (KeyError, ValueError, ValidationError):
             raise InvalidPacketDataError("Provided packet data is invalid")
 
     @classmethod
