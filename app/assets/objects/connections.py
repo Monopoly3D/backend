@@ -14,9 +14,6 @@ class Connections:
         self._connections: Dict[UUID, 'Connection'] = {}
         self._addresses: Dict[Address, UUID] = {}
 
-    def p(self):
-        print(self._connections)
-
     async def add_connection(
             self,
             connection: 'Connection',
