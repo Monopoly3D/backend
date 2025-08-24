@@ -11,8 +11,8 @@ else:
 
 
 @dataclass
-class ServerPlayerJoinGamePacket(ServerPacket):
-    PACKET_TAG = "player_join_game"
+class ServerPlayerLeaveGamePacket(ServerPacket):
+    PACKET_TAG = "player_leave_game"
 
     players: List[Player]
 

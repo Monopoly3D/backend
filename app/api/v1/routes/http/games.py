@@ -17,6 +17,7 @@ from app.assets.exceptions.player_not_host import PlayerNotHostError
 from app.assets.exceptions.player_not_in_game import PlayerNotInGameError
 from app.assets.objects.connections import Connections
 from app.assets.objects.game import Game
+from app.assets.objects.player import Player
 from app.assets.redis.games import GamesController
 from app.database.models import User
 from app.dependencies import games_controller_dependency
@@ -78,6 +79,30 @@ async def join_game(
     return GameTicketResponseModel(ticket=game_ticket)
 
 
+@games_router.post(
+    "/leave",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Authorizer.has_permission(Permission.LEAVE_GAMES)]
+)
+async def leave_game(
+        user: Annotated[User, Authenticator.get_user()],
+        games_controller: Annotated[GamesController, Depends(games_controller_dependency)],
+        connections: Annotated[Connections, Depends(Connections.dependency)],
+) -> None:
+    game: Game | None = await games_controller.get_game_by_player(user.id, connections=connections)
+
+    if game is None:
+        raise NotFoundError("Game was not found")
+
+    player: Player | None = game.players.get(user.id)
+
+    if player is None:
+        raise PlayerNotInGameError("You are not in game")
+
+    await player.leave()
+    await game.save()
+
+
 @games_router.get(
     "/{game_id}",
     status_code=status.HTTP_200_OK,
@@ -126,7 +151,7 @@ async def remove_own_game(
     game: Game | None = await games_controller.get_game_by_host(user.id, connections=connections)
 
     if game is None:
-        raise PlayerNotInGameError("You are not in game")
+        raise NotFoundError("Game was not found")
     if game.host_id != user.id:
         raise PlayerNotHostError("You are not a game host")
 

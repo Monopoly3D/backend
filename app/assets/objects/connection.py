@@ -31,6 +31,7 @@ class Connection:
             await self.remove()
 
     async def remove(self) -> None:
+        await self.close()
         await asyncio.sleep(self.__CONNECTION_REMOVAL_DELAY)
         await self.connections.remove_connection(await self.connections.get_user_id(self))
 

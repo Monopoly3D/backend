@@ -15,6 +15,7 @@ from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFiel
 from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
+from app.api.v1.packets.server.player_leave_game import ServerPlayerLeaveGamePacket
 from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
 from app.api.v1.packets.server.player_must_pay_prison import ServerPlayerMustPayPrisonPacket
@@ -178,6 +179,22 @@ class Player(GameObject):
                 self.game.players.list
             )
         )
+
+    async def leave(self) -> None:
+        if self.game.is_started:
+            self.is_playing = False
+        else:
+            self.game.players.remove(self.player_id)
+
+        await self.game.controller.active_players_controller.remove_player(self.player_id)
+
+        await self.game.send(
+            ServerPlayerLeaveGamePacket(
+                self.game.players.list
+            )
+        )
+
+        await self.connection.remove()
 
     async def set_ready(
             self,
