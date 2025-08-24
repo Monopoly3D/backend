@@ -28,10 +28,11 @@ class Connection:
         try:
             await self.send_text(packet.pack())
         except (WebSocketDisconnect, RuntimeError, CancelledError):
-            await asyncio.sleep(self.__CONNECTION_REMOVAL_DELAY)
-            await self.connections.remove_connection(
-                await self.connections.get_user_id(self)
-            )
+            await self.remove()
+
+    async def remove(self) -> None:
+        await asyncio.sleep(self.__CONNECTION_REMOVAL_DELAY)
+        await self.connections.remove_connection(await self.connections.get_user_id(self))
 
     async def receive(self) -> Message:
         return await self.websocket.receive()
