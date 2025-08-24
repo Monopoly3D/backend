@@ -1,5 +1,6 @@
+import traceback
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Annotated
 
 from fastapi import FastAPI
 from pydantic import ValidationError
@@ -18,6 +19,7 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.server.error import ServerErrorPacket
 from app.assets.exceptions.game_error import GameError
+from app.assets.objects.connection import Connection
 from app.assets.objects.connections import Connections
 from app.assets.redis.games import GamesController
 from app.assets.s3.abstract import S3Config
@@ -83,6 +85,14 @@ app.include_router(api_router)
 app.include_router(ws_router)
 
 
+@app.exception_handler(GameError)
+async def on_game_error(request: Request | WebSocket, exception: GameError) -> Any:
+    if isinstance(request, Request):
+        raise HTTPError(str(exception))
+    elif isinstance(request, WebSocket):
+        raise WebSocketError(str(exception))
+
+
 @app.exception_handler(ValidationError)
 async def on_validation_error(request: Request, exception: ValidationError) -> JSONResponse:
     return JSONResponse(
@@ -99,47 +109,30 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
     )
 
 
-@app.exception_handler(GameError)
-async def on_game_error(request: Request | WebSocket, exception: GameError) -> Any:
-    if isinstance(request, Request):
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"detail": str(exception)}
-        )
-    elif isinstance(request, WebSocket):
-        try:
-            await request.send_text(ServerErrorPacket.from_error(exception).pack())
-
-            if isinstance(exception, InternalServerError):
-                raise exception.error
-            else:
-                logger.error(
-                    f"(\'{request.client.host}\', {request.client.port}) "
-                    f"Game error {exception.status_code}: {exception}"
-                )
-        except RuntimeError:
-            pass
-
-
 @app.exception_handler(WebSocketError)
-async def on_websocket_error(websocket: WebSocket, exception: WebSocketError) -> None:
-    try:
-        await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
+async def on_websocket_error(
+        connection: Annotated[Connection, Connection.dependency],
+        exception: WebSocketError
+) -> None:
+    await connection.send(ServerErrorPacket.from_error(exception))
 
-        if isinstance(exception, InternalServerError):
-            raise exception.error
-        else:
-            logger.error(
-                f"(\'{websocket.client.host}\', {websocket.client.port}) "
-                f"WebSocket error {exception.status_code}: {exception}"
-            )
-    except RuntimeError:
-        pass
+    if isinstance(exception, InternalServerError):
+        raise exception.error
+    else:
+        logger.error(
+            f"(\'{connection.websocket.client.host}\', {connection.websocket.client.port}) "
+            f"WebSocket Error {exception.status_code}: {exception}"
+        )
 
 
 @app.exception_handler(Exception)
-async def on_server_error(request: Request, exception: Exception) -> JSONResponse:
+async def on_server_error(
+        request: Request,
+        exception: Exception
+) -> JSONResponse:
+    logger.exception(exception)
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": str(exception)}
+        content={"detail": "Internal Server Error"}
     )
