@@ -113,7 +113,7 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 async def on_websocket_error(
         websocket: WebSocket,
         exception: WebSocketError,
-        connections: Annotated[Connections, Connections.dependency],
+        connections: Annotated[Connections, Connections.websocket_dependency],
 ) -> None:
     connection = Connection(websocket, connections)
     await connection.send_packet(ServerErrorPacket.from_error(exception))
