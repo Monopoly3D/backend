@@ -1,4 +1,5 @@
 import asyncio
+from asyncio import CancelledError
 from contextlib import asynccontextmanager
 from typing import Any, Annotated
 
@@ -9,7 +10,7 @@ from starlette import status
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.api.router import api_router, ws_router
 from app.api.v1.assets.email_sender import EmailSender
@@ -86,7 +87,10 @@ app.include_router(ws_router)
 
 
 @app.exception_handler(GameError)
-async def on_game_error(request: Request | WebSocket, exception: GameError) -> Any:
+async def on_game_error(
+        request: Request | WebSocket,
+        exception: GameError
+) -> Any:
     if isinstance(request, Request):
         raise HTTPError(str(exception))
     elif isinstance(request, WebSocket):
@@ -112,17 +116,19 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 @app.exception_handler(WebSocketError)
 async def on_websocket_error(
         websocket: WebSocket,
-        exception: WebSocketError,
-        connections: Annotated[Connections, Depends(Connections.websocket_dependency)],
+        exception: WebSocketError
 ) -> None:
-    connection = Connection(websocket, connections)
-    await connection.send_packet(ServerErrorPacket.from_error(exception))
+    try:
+        if websocket is not None:
+            await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
+    except (WebSocketDisconnect, RuntimeError, CancelledError):
+        pass
 
     if isinstance(exception, InternalServerError):
         raise exception.error
     else:
         logger.error(
-            f"(\'{connection.client.host}\', {connection.client.port}) "
+            f"(\'{websocket.client.host}\', {websocket.client.port}) "
             f"WebSocket Error {exception.status_code}: {exception}"
         )
 
@@ -134,7 +140,8 @@ async def on_server_error(
 ) -> JSONResponse:
     logger.exception(exception)
 
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal Server Error"}
-    )
+    if isinstance(request, Request):
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal Server Error"}
+        )
