@@ -150,7 +150,8 @@ class Player(GameObject):
             self,
             packet: ServerPacket
     ) -> None:
-        await self.connection.send_packet(packet)
+        if self.connection is not None:
+            await self.connection.send_packet(packet)
 
     async def enter(self) -> None:
         packet = ServerPlayerEnterGamePacket(self.game)

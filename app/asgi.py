@@ -2,7 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, Annotated
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from pydantic import ValidationError
 from redis.asyncio import Redis
 from starlette import status
@@ -113,7 +113,7 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
 async def on_websocket_error(
         websocket: WebSocket,
         exception: WebSocketError,
-        connections: Annotated[Connections, Connections.websocket_dependency],
+        connections: Annotated[Connections, Depends(Connections.websocket_dependency)],
 ) -> None:
     connection = Connection(websocket, connections)
     await connection.send_packet(ServerErrorPacket.from_error(exception))

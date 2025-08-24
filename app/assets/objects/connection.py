@@ -27,9 +27,9 @@ class Connection:
             packet: ServerPacket
     ) -> None:
         try:
-            await self.send_text(packet.pack())
-        except Exception as e:
-            logging.getLogger().exception(e)
+            if self.websocket is not None:
+                await self.send_text(packet.pack())
+        except (WebSocketDisconnect, RuntimeError, CancelledError):
             await self.remove()
 
     async def remove(self) -> None:
