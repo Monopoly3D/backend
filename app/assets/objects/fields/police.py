@@ -22,7 +22,6 @@ class Police(AbstractField):
 
         await self.game.send(
             ServerPlayerGotImprisonedPacket(
-                self.game.game_id,
                 player.player_id,
                 self.game.fields.prison
             )

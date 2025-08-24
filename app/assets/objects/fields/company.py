@@ -112,7 +112,11 @@ class Company(AbstractField):
         if self.owner_id is None:
             self.game.action = BuyFieldAction(cost=self.cost)
             await player.send(
-                ServerPlayerCanBuyFieldPacket(self.game.game_id, player.player_id, self.field_id, self.cost)
+                ServerPlayerCanBuyFieldPacket(
+                    player.player_id,
+                    self.field_id,
+                    self.cost
+                )
             )
             return
 
@@ -124,7 +128,11 @@ class Company(AbstractField):
 
         self.game.action = PayRentAction(amount=stand_amount)
         await player.send(
-            ServerPlayerMustPayRentPacket(self.game.game_id, player.player_id, self.field_id, stand_amount)
+            ServerPlayerMustPayRentPacket(
+                player.player_id,
+                self.field_id,
+                stand_amount
+            )
         )
 
     def stand_amount(

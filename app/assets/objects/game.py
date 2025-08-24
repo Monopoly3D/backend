@@ -226,14 +226,12 @@ class Game(RedisObject):
 
         await self.send(
             ServerGameStartPacket(
-                self.game_id,
                 self.players.list,
                 self.fields.list
             )
         )
         await self.send(
             ServerGameMovePacket(
-                self.game_id,
                 self.players.current.player_id,
                 self.round,
                 self.move
@@ -252,7 +250,6 @@ class Game(RedisObject):
 
         await self.send(
             ServerGameCountdownStartPacket(
-                self.game_id,
                 self.start_delay
             )
         )
@@ -261,9 +258,7 @@ class Game(RedisObject):
 
     async def stop_countdown(self) -> None:
         await self.send(
-            ServerGameCountdownStopPacket(
-                self.game_id
-            )
+            ServerGameCountdownStopPacket()
         )
 
         task: Task | None = self.get_start_task()
@@ -288,7 +283,6 @@ class Game(RedisObject):
 
         await self.send(
             ServerGameMovePacket(
-                self.game_id,
                 next_player.player_id,
                 self.round,
                 self.move
@@ -300,7 +294,6 @@ class Game(RedisObject):
 
             await self.send(
                 ServerGameAskPlayerOnPrisonPacket(
-                    self.game_id,
                     next_player.player_id,
                     Parameters.DEFAULT_PRISON_ESCAPE_COST
                 )
@@ -326,7 +319,6 @@ class Game(RedisObject):
 
         await self.send(
             ServerPlayerPutFieldForAuctionPacket(
-                self.game_id,
                 player.player_id,
                 company.field_id,
                 cost
@@ -341,9 +333,7 @@ class Game(RedisObject):
 
         if len(self.action.players) == 0:
             await self.send(
-                ServerGamePlayersRefusedAuctionPacket(
-                    self.game_id
-                )
+                ServerGamePlayersRefusedAuctionPacket()
             )
 
             await self.next()
@@ -358,7 +348,6 @@ class Game(RedisObject):
 
         await self.send(
             ServerGameAskPlayerOnAuctionPacket(
-                self.game_id,
                 player.player_id,
                 self.action.field,
                 self.action.cost

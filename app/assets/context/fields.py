@@ -94,7 +94,6 @@ class Fields(Context):
 
             await self.game.send(
                 ServerPlayerLoseMortgagedFieldPacket(
-                    self.game.game_id,
                     field.field_id
                 )
             )

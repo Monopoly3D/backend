@@ -176,7 +176,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerJoinGamePacket(
-                self.game.game_id,
                 self.game.players.list
             )
         )
@@ -188,7 +187,6 @@ class Player(GameObject):
         self.is_ready = is_ready
         await self.game.send(
             ServerPlayerReadyPacket(
-                self.game.game_id,
                 self.player_id,
                 self.is_ready
             )
@@ -213,7 +211,6 @@ class Player(GameObject):
         self.field %= self.game.fields.size
         await self.game.send(
             ServerPlayerMovePacket(
-                self.game.game_id,
                 self.player_id,
                 dices,
                 self.field
@@ -224,7 +221,6 @@ class Player(GameObject):
             self.balance += amount
             await self.game.send(
                 ServerPlayerGotStartBonusPacket(
-                    self.game.game_id,
                     self.player_id,
                     self.balance
                 )
@@ -248,7 +244,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerBuyFieldPacket(
-                self.game.game_id,
                 self.player_id,
                 company.field_id,
                 self.balance
@@ -268,7 +263,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerBuyFieldOnAuctionPacket(
-                self.game.game_id,
                 self.player_id,
                 company.field_id,
                 self.balance
@@ -308,7 +302,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerAcceptAuctionPacket(
-                self.game.game_id,
                 self.player_id,
                 action.cost
             )
@@ -328,7 +321,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerRefuseAuctionPacket(
-                self.game.game_id,
                 self.player_id
             )
         )
@@ -348,7 +340,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerAcceptPrisonPacket(
-                self.game.game_id,
                 self.player_id,
                 dices,
                 got_double
@@ -367,7 +358,6 @@ class Player(GameObject):
 
             await self.game.send(
                 ServerPlayerMustPayPrisonPacket(
-                    self.game.game_id,
                     self.player_id,
                     Parameters.DEFAULT_PRISON_ESCAPE_COST
                 )
@@ -400,7 +390,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerPlayCasinoPacket(
-                self.game.game_id,
                 self.player_id,
                 self.balance,
                 dices,
@@ -415,7 +404,6 @@ class Player(GameObject):
     async def refuse_casino(self) -> None:
         await self.game.send(
             ServerPlayerRefuseCasinoPacket(
-                self.game.game_id,
                 self.player_id
             )
         )
@@ -449,7 +437,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerPayRentPacket(
-                self.game.game_id,
                 self.player_id,
                 owner.player_id,
                 company.field_id,
@@ -475,7 +462,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerPayTaxPacket(
-                self.game.game_id,
                 self.player_id,
                 self.balance
             )
@@ -492,7 +478,6 @@ class Player(GameObject):
 
         await self.send(
             ServerPlayerPayPrisonPacket(
-                self.game.game_id,
                 self.player_id,
                 self.balance
             )
@@ -502,7 +487,6 @@ class Player(GameObject):
 
         await self.send(
             ServerGameMovePacket(
-                self.game.game_id,
                 self.player_id,
                 self.game.round,
                 self.game.move
@@ -529,7 +513,6 @@ class Player(GameObject):
 
         await self.send(
             ServerPlayerMortgageFieldPacket(
-                self.game.game_id,
                 self.player_id,
                 company.field_id,
                 self.balance
@@ -559,7 +542,6 @@ class Player(GameObject):
 
         await self.send(
             ServerPlayerBuyoutFieldPacket(
-                self.game.game_id,
                 self.player_id,
                 company.field_id,
                 self.balance
@@ -600,7 +582,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerBuyFiliationPacket(
-                self.game.game_id,
                 self.player_id,
                 company.field_id,
                 company.filiation,
@@ -634,7 +615,6 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerSellFiliationPacket(
-                self.game.game_id,
                 self.player_id,
                 company.field_id,
                 company.filiation,

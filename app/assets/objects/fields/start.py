@@ -19,7 +19,10 @@ class Start(AbstractField):
         player.balance += self.game.start_reward
 
         await self.game.send(
-            ServerPlayerGotStartRewardPacket(self.game.game_id, player.player_id, player.balance)
+            ServerPlayerGotStartRewardPacket(
+                player.player_id,
+                player.balance
+            )
         )
 
         await self.game.next()

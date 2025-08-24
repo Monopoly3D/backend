@@ -21,7 +21,6 @@ class Casino(AbstractField):
 
         await self.game.send(
             ServerGameAskPlayerOnCasinoPacket(
-                self.game.game_id,
                 player.player_id
             )
         )

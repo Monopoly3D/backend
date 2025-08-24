@@ -42,5 +42,8 @@ class Tax(AbstractField):
         self.game.action = PayTaxAction(amount=self.tax_amount)
 
         await self.game.send(
-            ServerPlayerMustPayTaxPacket(self.game.game_id, player.player_id, self.tax_amount)
+            ServerPlayerMustPayTaxPacket(
+                player.player_id,
+                self.tax_amount
+            )
         )
