@@ -13,4 +13,6 @@ class ClientPlayerAcceptCasinoPacket(ClientPacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':
-        return cls(packet["dices"])
+        return cls(
+            packet["dices"]
+        )

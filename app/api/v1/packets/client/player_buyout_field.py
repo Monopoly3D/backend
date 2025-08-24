@@ -13,4 +13,6 @@ class ClientPlayerBuyoutFieldPacket(ClientPacket):
 
     @classmethod
     def from_json(cls, packet: Dict[str, Any]) -> 'ClientPacket':
-        return cls(packet["field"])
+        return cls(
+            packet["field"]
+        )
