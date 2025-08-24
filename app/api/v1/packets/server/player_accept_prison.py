@@ -10,14 +10,12 @@ from app.api.v1.packets.base_server import ServerPacket
 class ServerPlayerAcceptPrisonPacket(ServerPacket):
     PACKET_TAG = "player_accept_prison"
 
-    game_id: UUID
     player_id: UUID
     dices: Tuple[int, ...]
     got_double: bool
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "game_id": str(self.game_id),
             "player_id": str(self.player_id),
             "dices": list(self.dices),
             "got_double": self.got_double

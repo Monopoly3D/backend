@@ -1,5 +1,4 @@
 from typing import Dict, Any, List
-from uuid import UUID
 
 from pydantic.dataclasses import dataclass
 
@@ -12,13 +11,11 @@ from app.assets.objects.player import Player
 class ServerGameStartPacket(ServerPacket):
     PACKET_TAG = "game_start"
 
-    game_id: UUID
     players: List[Player]
     fields: List[AbstractField]
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "game_id": str(self.game_id),
             "players": [
                 {
                     "player_id": str(player.player_id),
