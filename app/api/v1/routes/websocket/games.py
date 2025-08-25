@@ -16,6 +16,7 @@ from app.api.v1.packets.client.player_accept_prison import ClientPlayerAcceptPri
 from app.api.v1.packets.client.player_buy_field import ClientPlayerBuyFieldPacket
 from app.api.v1.packets.client.player_buy_filiation import ClientPlayerBuyFiliationPacket
 from app.api.v1.packets.client.player_buyout_field import ClientPlayerBuyoutFieldPacket
+from app.api.v1.packets.client.player_kick_player import ClientPlayerKickPlayerPacket
 from app.api.v1.packets.client.player_mortgage_field import ClientPlayerMortgageFieldPacket
 from app.api.v1.packets.client.player_move import ClientPlayerMovePacket
 from app.api.v1.packets.client.player_pay_prison import ClientPlayerPayPrisonPacket
@@ -182,6 +183,18 @@ async def on_player_ready(
         await game.start_countdown()
     elif not game.players.are_ready and task is not None:
         await game.stop_countdown()
+
+
+@games_packets_router.handle(ClientPlayerKickPlayerPacket)
+async def on_player_kick_player(
+        packet: ClientPlayerKickPlayerPacket,
+        user: User,
+        game: Annotated[Game, get_game()]
+) -> None:
+    player: Player = game.players.get(user.id)
+    player_to_kick: Player = game.players.get(packet.player_id)
+
+    await player.kick(player_to_kick)
 
 
 @games_packets_router.handle(ClientPlayerMovePacket)

@@ -15,6 +15,7 @@ from app.api.v1.packets.server.player_buyout_field import ServerPlayerBuyoutFiel
 from app.api.v1.packets.server.player_enter_game import ServerPlayerEnterGamePacket
 from app.api.v1.packets.server.player_got_start_bonus import ServerPlayerGotStartBonusPacket
 from app.api.v1.packets.server.player_join_game import ServerPlayerJoinGamePacket
+from app.api.v1.packets.server.player_kick_player import ServerPlayerKickPlayerPacket
 from app.api.v1.packets.server.player_leave_game import ServerPlayerLeaveGamePacket
 from app.api.v1.packets.server.player_mortgage_field import ServerPlayerMortgageFieldPacket
 from app.api.v1.packets.server.player_move import ServerPlayerMovePacket
@@ -39,6 +40,10 @@ from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.exceptions.invalid_field_type import InvalidFieldTypeError
 from app.assets.exceptions.invalid_filiation import InvalidFiliationError
 from app.assets.exceptions.player_has_insufficient_balance import PlayerHasInsufficientBalanceError
+from app.assets.exceptions.player_kick_host import PlayerKickHostError
+from app.assets.exceptions.player_not_found import PlayerNotFoundError
+from app.assets.exceptions.player_not_host import PlayerNotHostError
+from app.assets.exceptions.player_not_in_game import PlayerNotInGameError
 from app.assets.objects.actions.abstract import AbstractAction
 from app.assets.objects.actions.buy_field_on_auction import BuyFieldOnAuctionAction
 from app.assets.objects.actions.move import MoveAction
@@ -177,6 +182,7 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerJoinGamePacket(
+                self.player_id,
                 self.game.players.list
             )
         )
@@ -191,11 +197,44 @@ class Player(GameObject):
 
         await self.game.send(
             ServerPlayerLeaveGamePacket(
+                self.player_id,
                 self.game.players.list
             )
         )
 
         await self.connection.remove()
+
+    async def kick(
+            self,
+            player: 'Player'
+    ) -> None:
+        if player is None:
+            raise PlayerNotFoundError("Player was not found")
+
+        if not self.game.players.exists(player.player_id):
+            raise PlayerNotInGameError("Player is not in game")
+
+        if not self.is_host:
+            raise PlayerNotHostError("You are not a game host")
+
+        if player.is_host:
+            raise PlayerKickHostError("Host cannot be kicked")
+
+        if player.game.is_started:
+            player.is_playing = False
+        else:
+            player.game.players.remove(player.player_id)
+
+        await player.game.controller.active_players_controller.remove_player(player.player_id)
+
+        await self.game.send(
+            ServerPlayerKickPlayerPacket(
+                player.player_id,
+                self.game.players.list
+            )
+        )
+
+        await player.connection.remove()
 
     async def set_ready(
             self,

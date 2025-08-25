@@ -12,8 +12,8 @@ else:
 
 
 @dataclass
-class ServerPlayerJoinGamePacket(ServerPacket):
-    PACKET_TAG = "player_join_game"
+class ServerPlayerKickPlayerPacket(ServerPacket):
+    PACKET_TAG = "player_kick_player"
 
     player_id: UUID
     players: List[Player]
