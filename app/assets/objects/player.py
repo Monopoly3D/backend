@@ -162,8 +162,10 @@ class Player(GameObject):
         packet = ServerPlayerEnterGamePacket(self.game)
 
         if self.game.players.exists(self.player_id):
-            self.game.players.get(self.player_id).connection = self.connection
-            await self.game.players.get(self.player_id).send(packet)
+            player: 'Player' = self.game.players.get(self.player_id)
+
+            player.connection = self.connection
+            await player.send(packet)
             return
 
         if not self.game.is_started:
