@@ -29,7 +29,8 @@ class Connection:
         try:
             if self.websocket is not None:
                 await self.send_text(packet.pack())
-        except (WebSocketDisconnect, RuntimeError, CancelledError):
+        except (WebSocketDisconnect, RuntimeError, CancelledError) as e:
+            logging.exception(e)
             await self.remove()
 
     async def remove(self) -> None:
