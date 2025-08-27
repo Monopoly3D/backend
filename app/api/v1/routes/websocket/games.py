@@ -203,6 +203,7 @@ async def on_player_kick_player(
     player_to_kick: Player = game.players.get(packet.player_id)
 
     await player.kick(player_to_kick)
+    await game.save()
 
 
 @games_packets_router.handle(ClientPlayerMovePacket)
