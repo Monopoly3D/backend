@@ -138,6 +138,8 @@ class PacketsRouter(APIRouter):
                     raise UnknownPacketError("Unknown packet")
 
                 await self._execute_handler(self._handlers[type(packet)], packet, connection, **kwargs)
+            except self._exceptions as exception:
+                raise exception
             except Exception as e:
                 raise InternalServerError("Internal server error", e)
         except self._exceptions as exception:

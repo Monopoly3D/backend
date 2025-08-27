@@ -197,7 +197,7 @@ async def on_player_ready(
 async def on_player_kick_player(
         packet: ClientPlayerKickPlayerPacket,
         user: User,
-        game: Annotated[Game, get_game()]
+        game: Annotated[Game, get_game(is_started=None)]
 ) -> None:
     player: Player = game.players.get(user.id)
     player_to_kick: Player = game.players.get(packet.player_id)
