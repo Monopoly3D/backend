@@ -33,6 +33,7 @@ from app.api.v1.security.authenticator import Authenticator
 from app.assets.enums.action_type import ActionType
 from app.assets.exceptions import game_status
 from app.assets.exceptions.game_already_started import GameAlreadyStartedError
+from app.assets.exceptions.game_error import GameError
 from app.assets.exceptions.game_invalid_action import GameInvalidActionError
 from app.assets.exceptions.game_not_awaiting_move import GameNotAwaitingMoveError
 from app.assets.exceptions.game_not_found import GameNotFoundError
@@ -45,7 +46,11 @@ from app.assets.redis.games import GamesController
 from app.database.models import User
 from app.dependencies import database_websocket_session, games_controller_websocket
 
-games_packets_router = PacketsRouter(prefix="/games")
+games_packets_router = PacketsRouter(
+    name="games_router",
+    prefix="/games",
+    exceptions=[GameError]
+)
 
 
 def get_game(
@@ -137,16 +142,19 @@ async def authenticate(
             game_status.G_4201_GAME_NOT_FOUND,
             "Game was not found"
         )
+        return
     if not game.players.exists(user.id) and game.players.size >= game.player_amount:
         await connection.close(
             game_status.G_4206_GAME_MAX_PLAYERS_REACHED,
             "Game with provided UUID has too many players"
         )
-    if game.players.exists(user.id) and game.is_started:
+        return
+    if not game.players.exists(user.id) and game.is_started:
         await connection.close(
             game_status.G_4302_PLAYER_NOT_IN_GAME,
             "You are not in game"
         )
+        return
 
     await connections.add_connection(connection, user_id)
 

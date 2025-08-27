@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from asyncio import CancelledError
 from typing import Any, Annotated
 
@@ -29,8 +28,7 @@ class Connection:
         try:
             if self.websocket is not None:
                 await self.send_text(packet.pack())
-        except (WebSocketDisconnect, RuntimeError, CancelledError) as e:
-            logging.exception(e)
+        except (WebSocketDisconnect, RuntimeError, CancelledError):
             await self.remove()
 
     async def remove(self) -> None:

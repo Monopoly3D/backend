@@ -86,17 +86,6 @@ app.include_router(api_router)
 app.include_router(ws_router)
 
 
-@app.exception_handler(GameError)
-async def on_game_error(
-        request: Request | WebSocket,
-        exception: GameError
-) -> Any:
-    if isinstance(request, Request):
-        raise HTTPError(str(exception))
-    elif isinstance(request, WebSocket):
-        raise WebSocketError(str(exception))
-
-
 @app.exception_handler(ValidationError)
 async def on_validation_error(request: Request, exception: ValidationError) -> JSONResponse:
     return JSONResponse(
@@ -113,26 +102,6 @@ async def on_http_error(request: Request, exception: HTTPError) -> JSONResponse:
     )
 
 
-@app.exception_handler(WebSocketError)
-async def on_websocket_error(
-        websocket: WebSocket,
-        exception: WebSocketError
-) -> None:
-    try:
-        if websocket is not None:
-            await websocket.send_text(ServerErrorPacket.from_error(exception).pack())
-    except (WebSocketDisconnect, RuntimeError, CancelledError):
-        pass
-
-    if isinstance(exception, InternalServerError):
-        raise exception.error
-    else:
-        logger.error(
-            f"(\'{websocket.client.host}\', {websocket.client.port}) "
-            f"WebSocket Error {exception.status_code}: {exception}"
-        )
-
-
 @app.exception_handler(Exception)
 async def on_server_error(
         request: Request,
@@ -140,8 +109,7 @@ async def on_server_error(
 ) -> JSONResponse:
     logger.exception(exception)
 
-    if isinstance(request, Request):
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Internal Server Error"}
-        )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal Server Error"}
+    )

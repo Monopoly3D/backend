@@ -1,5 +1,7 @@
+import asyncio
+from asyncio import Task, CancelledError
 from inspect import getfullargspec
-from typing import Dict, Any, Callable, Type, Annotated, Tuple
+from typing import Dict, Any, Callable, Type, Annotated, Tuple, List, Sequence
 
 from fastapi import APIRouter, Depends
 from fastapi.routing import APIWebSocketRoute
@@ -12,8 +14,8 @@ from app.api.v1.exceptions.websocket.websocket_error import WebSocketError
 from app.api.v1.logging import logger
 from app.api.v1.packets.base_client import ClientPacket
 from app.api.v1.packets.base_server import ServerPacket
+from app.api.v1.packets.server.error import ServerErrorPacket
 from app.api.v1.security.authenticator import Authenticator
-from app.assets.exceptions.game_error import GameError
 from app.assets.objects.connection import Connection
 from app.assets.objects.connections import Connections
 from app.assets.redis.games import GamesController
@@ -45,20 +47,25 @@ async def _dependencies(
 
 
 class PacketsRouter(APIRouter):
-    _NAME = "packet_handler"
+    _COMPLETED_TASK_REMOVAL_DELAY: int = 10
 
     def __init__(
             self,
             *,
-            prefix: str
+            name: str,
+            prefix: str,
+            exceptions: Sequence[Type[Exception]] | None = None
     ) -> None:
         super().__init__(prefix=prefix)
+
+        self._name = name
         self._handlers: Dict[Type[ClientPacket], Callable] = {}
+        self._exceptions: Tuple[Type[Exception], ...] = (WebSocketError,) + tuple(exceptions) if exceptions is not None else ()
 
         self.add_api_websocket_route(
             "",
             self._handle_packets,
-            self._NAME
+            self._name
         )
 
     def handle(
@@ -82,7 +89,7 @@ class PacketsRouter(APIRouter):
                 if not isinstance(route, APIWebSocketRoute):
                     continue
 
-                if route.name == self._NAME:
+                if route.name == self._name:
                     route_index = index
                     break
 
@@ -92,7 +99,7 @@ class PacketsRouter(APIRouter):
             self.add_api_websocket_route(
                 "" if path is None else path,
                 self._handle_packets,
-                self._NAME,
+                self._name,
                 dependencies=[Depends(func)]
             )
 
@@ -105,14 +112,17 @@ class PacketsRouter(APIRouter):
     ) -> None:
         connection = Connection(websocket, dp.get("connections"))
 
+        handle_tasks: List[Task] = []
+        removal_task: Task = asyncio.create_task(self._always_remove_completed_tasks(handle_tasks))
+
         try:
             while True:
                 packet: str = await connection.receive_text()
-                await self._handle_packet(packet, connection, **dp)  # At some point it must create asyncio tasks
-        except WebSocketDisconnect as e:
-            logger.info(f"Closing connection. Status code: {e.code}, Reason: {e.reason}")
-        except RuntimeError:
+                handle_tasks.append(asyncio.create_task(self._handle_packet(packet, connection, **dp)))
+        except (WebSocketDisconnect, RuntimeError, CancelledError):
             pass
+
+        removal_task.cancel()
 
     async def _handle_packet(
             self,
@@ -121,16 +131,25 @@ class PacketsRouter(APIRouter):
             **kwargs
     ) -> None:
         try:
-            packet: ClientPacket = ClientPacket.withdraw_packet(packet)
+            try:
+                packet: ClientPacket = ClientPacket.withdraw_packet(packet)
 
-            if type(packet) not in self._handlers:
-                raise UnknownPacketError("Unknown packet")
+                if type(packet) not in self._handlers:
+                    raise UnknownPacketError("Unknown packet")
 
-            await self._execute_handler(self._handlers[type(packet)], packet, connection, **kwargs)
-        except GameError or WebSocketError as e:
-            raise e
-        except Exception as e:
-            raise InternalServerError("Internal server error", e)
+                await self._execute_handler(self._handlers[type(packet)], packet, connection, **kwargs)
+            except Exception as e:
+                raise InternalServerError("Internal server error", e)
+        except self._exceptions as exception:
+            await connection.send_packet(ServerErrorPacket.from_error(exception))
+
+            if isinstance(exception, InternalServerError):
+                logger.exception(exception)
+            else:
+                logger.error(
+                    f"(\'{connection.client.host}\', {connection.client.port}) "
+                    f"WebSocket Error {exception.status_code}: {exception}"
+                )
 
     async def _execute_handler(
             self,
@@ -190,6 +209,22 @@ class PacketsRouter(APIRouter):
             handler_dependencies.update({name: await func(**prepared_args)})
 
         return handler_dependencies
+
+    async def _always_remove_completed_tasks(
+            self,
+            handle_tasks: List[Task]
+    ) -> None:
+        while True:
+            await asyncio.to_thread(self._remove_completed_tasks, handle_tasks=handle_tasks)
+            await asyncio.sleep(self._COMPLETED_TASK_REMOVAL_DELAY)
+
+    @staticmethod
+    def _remove_completed_tasks(
+            handle_tasks: List[Task]
+    ) -> None:
+        for index in range(len(handle_tasks) - 1, -1, -1):
+            if handle_tasks[index].done():
+                handle_tasks.pop(index)
 
     @staticmethod
     def _prepare_args(
