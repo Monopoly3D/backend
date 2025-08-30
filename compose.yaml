@@ -40,9 +40,9 @@ services:
     env_file: ".server.env"
     ports:
       - "8000:8000"
-    deploy:
-      labels:
-        - "logging.promtail"
+    labels:
+      - "logging.promtail=true"
+      - "logging_jobname=monopoly_server"
     depends_on:
       - postgres
       - redis
