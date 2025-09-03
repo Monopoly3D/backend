@@ -276,7 +276,7 @@ class Player(GameObject):
         )
 
         if got_start_bonus:
-            self.balance += amount
+            self.balance += self.game.start_bonus
             await self.game.send(
                 ServerPlayerGotStartBonusPacket(
                     self.player_id,
