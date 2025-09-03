@@ -62,7 +62,7 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
           cd ${{ secrets.WORK_DIR }} 
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          export SERVER_IMAGE="ghcr.io/${REPOSITORY_NAME}:${IMAGE_TAG}"
+          export BACKEND_IMAGE="ghcr.io/${REPOSITORY_NAME}:${IMAGE_TAG}"
           docker compose pull
           docker compose up -d
           docker system prune -f

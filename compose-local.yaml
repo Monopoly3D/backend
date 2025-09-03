@@ -1,6 +1,6 @@
 services:
   postgres:
-    container_name: monopoly_postgres
+    container_name: backend_postgres
     image: postgres:latest
     restart: on-failure
     env_file: ".postgres.env"
@@ -10,7 +10,7 @@ services:
       - "postgres-data:/data"
 
   redis:
-    container_name: monopoly_redis
+    container_name: backend_redis
     image: redis:latest
     restart: on-failure
     command: "redis-server /usr/local/etc/redis/redis.conf"
@@ -21,7 +21,7 @@ services:
       - "./redis.conf:/usr/local/etc/redis/redis.conf"
 
   minio:
-    container_name: monopoly_minio
+    container_name: backend
     image: minio/minio:latest
     restart: on-failure
     command: server /data --console-address ":9001"
